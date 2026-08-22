@@ -140,10 +140,14 @@ export const RULE_FILLERS: Record<RuleKind, (rng: Rng, len: number, rows: number
     return Array.from({ length: rows }, () => Array.from({ length: cols }, (_, c) => chosen[c]));
   },
 
+  // Steps +1 along the row and NEVER wraps (a child cannot read "4, 1, ?" as "+1").
+  // Start offsets are drawn so the whole row fits inside the value list; when the
+  // list is too short for the row (size has 3 values, 3 columns) every row starts at 0.
   progressRow: (rng, len, rows, cols) =>
     Array.from({ length: rows }, () => {
-      const start = rng.int(0, len - 1);
-      return Array.from({ length: cols }, (_, c) => (start + c) % len);
+      const maxStart = Math.max(0, len - cols);
+      const start = rng.int(0, maxStart);
+      return Array.from({ length: cols }, (_, c) => Math.min(len - 1, start + c));
     }),
 
   // A 3x3 Latin square over 3 chosen values: every row and every column holds each value once.

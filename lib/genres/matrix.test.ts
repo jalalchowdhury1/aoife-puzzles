@@ -438,3 +438,28 @@ describe("matrix genre", () => {
     });
   });
 });
+
+describe("progression never wraps", () => {
+  it("count/size/rot rows step by +1 without wrapping, 500 seeds × d3-10", () => {
+    const ATTR_LEN: Record<string, number> = { count: 4, size: 3, rot: 4 };
+    const idx = (f: Figure, a: string) =>
+      a === "count" ? f.count - 1 : a === "size" ? ["S", "M", "L"].indexOf(f.size) : [0, 90, 180, 270].indexOf(f.rot);
+    for (const d of [3, 4, 5, 6, 7, 8, 9, 10] as const) for (let seed = 0; seed < 500; seed++) {
+      const plan = planFor(seed, d);
+      if (plan.form !== "matrix") continue;
+      const item = matrix.generate(seed, d);
+      const full = [...item.cells]; full[full.length - 1] = item.options[item.answer];
+      for (const [attr, kind] of Object.entries(plan.kinds)) {
+        if (kind !== "progressRow") continue;
+        for (let r = 0; r < item.rows; r++) {
+          const row = full.slice(r * item.rows, (r + 1) * item.rows) as Figure[];
+          for (let c = 1; c < row.length; c++) {
+            const a = idx(row[c - 1], attr), b = idx(row[c], attr);
+            expect(b === a + 1 || (b === a && a === ATTR_LEN[attr] - 1)).toBe(true);
+            expect(b).toBeGreaterThanOrEqual(a);
+          }
+        }
+      }
+    }
+  });
+});

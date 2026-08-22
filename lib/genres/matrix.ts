@@ -1,7 +1,6 @@
 // Matrix Reasoning: "What's Missing?" — a 2x2/3x3 grid (or 1x5 series) of attribute
 // figures with the last cell missing; pick the option that completes the pattern.
 import { makeRng } from "../engine/rng";
-import { itemMs } from "../engine/timing";
 import type { Difficulty, Genre, ScoreResult } from "../engine/types";
 import type { Figure } from "./shapes";
 import { COLORS } from "./shapes";
@@ -84,6 +83,6 @@ export const matrix: Genre<MatrixItem, number> = {
   sample,
   generate,
   score,
-  timing: { kind: "item", ms: itemMs([[3, 30000], [6, 45000], [10, 60000]]) },
+  timing: { kind: "none" },   // spec §1.3: Matrix Reasoning is untimed (time recorded)
   mode: "staircase",
 };

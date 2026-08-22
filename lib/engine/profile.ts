@@ -17,7 +17,7 @@ function median(values: number[]): number {
   return sorted[Math.floor(sorted.length / 2)];
 }
 
-function genreValue(g: GenreId, gs: GenreStats): number | null {
+export function genreValue(g: GenreId, gs: GenreStats): number | null {
   const speedCeiling = SPEED_CEILING_PER_MIN[g];
   if (speedCeiling !== undefined) {
     return gs.perMinute === undefined ? null : Math.min(1, gs.perMinute / speedCeiling);

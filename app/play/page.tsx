@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { BlockRecord, ItemRecord, LevelConfig, PartConfig, SessionRecord } from "@/lib/engine/types";
+import type { BlockRecord, GenreViewProps, ItemRecord, LevelConfig, PartConfig, SessionRecord } from "@/lib/engine/types";
 import { summarize } from "@/lib/engine/types";
 import { LEVELS } from "@/lib/levels";
 import { GENRES } from "@/lib/genres";
@@ -17,17 +17,25 @@ import {
   flushOutbox,
   syncState,
   currentPosition,
-  profileStart,
 } from "@/lib/engine/storage";
+import { computeProfile } from "@/lib/engine/profile";
+import { adaptPart, type ResolvedBlock } from "@/lib/engine/adapt";
 import { SampleScreen } from "@/components/SampleScreen";
 import { Countdown } from "@/components/Countdown";
 import { PartDone } from "@/components/PartDone";
 
 type Phase = "loading" | "sample" | "item" | "between" | "done";
 
-// How long the "between" transition shows for each feedback style. Only
-// `none` is exercised by Level 1; `mark`/`reveal` exist for future levels.
-const BETWEEN_MS: Record<LevelConfig["feedback"], number> = { none: 600, mark: 1200, reveal: 2500 };
+// How long the "between" transition shows for `none`/`mark` feedback.
+// `reveal` (Level 2) has its own two-speed timing handled by feedbackDelay
+// below: a quick "Yes!" on a full-score response, a longer answer-reveal
+// pause otherwise.
+const BETWEEN_MS: Record<"none" | "mark", number> = { none: 600, mark: 1200 };
+
+function feedbackDelay(feedback: LevelConfig["feedback"], fullScore: boolean): number {
+  if (feedback === "reveal") return fullScore ? 1200 : 4000;
+  return BETWEEN_MS[feedback];
+}
 
 function minutesBetween(startedAt: string, endedAt?: string): number {
   const start = new Date(startedAt).getTime();
@@ -58,20 +66,54 @@ function BetweenScreen({ feedback, lastCorrect }: { feedback: LevelConfig["feedb
       </div>
     );
   }
-  if (feedback === "reveal") {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
-        <span className="text-7xl" aria-hidden>
-          {lastCorrect ? "✅" : "❌"}
-        </span>
-        <p className="font-bubble text-2xl text-ink">{lastCorrect ? "Nice work!" : "Good try!"}</p>
-      </div>
-    );
-  }
-  // feedback === "none": neutral transition, no ticks/crosses/answers.
+  // feedback === "none" (the only other value the runner ever passes here;
+  // "reveal" is rendered directly by PlayRunner via RevealAnswerScreen /
+  // FullScoreScreen below): neutral transition, no ticks/crosses/answers.
   return (
     <div className="flex flex-1 items-center justify-center">
       <span className="font-bubble text-4xl text-ink">Next!</span>
+    </div>
+  );
+}
+
+function hasExplanation(item: unknown): item is { explanation: string } {
+  return !!item && typeof (item as { explanation?: unknown }).explanation === "string";
+}
+
+// Level 2 ("reveal" feedback), full-score response: the "Yes!" look, shown
+// for 1200ms (feedbackDelay) instead of the longer answer-reveal pause.
+function FullScoreScreen() {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3">
+      <span className="text-8xl" aria-hidden>
+        ✅
+      </span>
+      <p className="font-bubble text-3xl text-ink">Yes!</p>
+    </div>
+  );
+}
+
+// Level 2 ("reveal" feedback), a response worth less than full points (or a
+// time-out): re-renders the same genre View, disabled, with `reveal` and
+// `lastResponse` set so the view can show the correct answer against her
+// own response. Shown for 4000ms (feedbackDelay).
+function RevealAnswerScreen({
+  View,
+  item,
+  lastResponse,
+}: {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  View: React.ComponentType<GenreViewProps<any, any>>;
+  item: unknown;
+  lastResponse: unknown;
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center gap-4 px-4 pb-4 text-center">
+      <p className="font-bubble text-2xl text-ink">Here is the answer</p>
+      <div className="w-full max-w-md rounded-3xl bg-white p-4 shadow-lg">
+        <View item={item} disabled reveal lastResponse={lastResponse} onReady={() => {}} onRespond={() => {}} />
+      </div>
+      {hasExplanation(item) && <p className="max-w-md text-lg text-ink/80">{item.explanation}</p>}
     </div>
   );
 }
@@ -89,6 +131,10 @@ function PlayRunner() {
   const [phase, setPhase] = useState<Phase>("loading");
   const [levelCfg, setLevelCfg] = useState<LevelConfig | null>(null);
   const [partCfg, setPartCfg] = useState<PartConfig | null>(null);
+  // The part's blocks resolved against her profile once per part-start (see
+  // adaptPart) — includes any repeat blocks a remedial level appends for a
+  // weak genre. blockIndex indexes into this, not into partCfg.blocks.
+  const [resolvedBlocks, setResolvedBlocks] = useState<ResolvedBlock[]>([]);
   const [blockIndex, setBlockIndex] = useState(0);
   const [session, setSession] = useState<SessionRecord | null>(null);
 
@@ -108,6 +154,11 @@ function PlayRunner() {
   const [blockStartedAtIso, setBlockStartedAtIso] = useState<string | null>(null);
   const [records, setRecords] = useState<ItemRecord[]>([]);
   const [lastCorrect, setLastCorrect] = useState<boolean | null>(null);
+  // "reveal" feedback only: her own response to re-render alongside the
+  // answer, and whether it scored full points (picks the "Yes!" vs.
+  // answer-reveal screen — see feedbackDelay and the render below).
+  const [lastResponse, setLastResponse] = useState<unknown>(null);
+  const [fullScore, setFullScore] = useState(false);
 
   // Stable across every render so views whose mount effect lists `onReady`
   // as a dependency (ChoiceView, ArithmeticView, PictureSpanView) never
@@ -162,6 +213,11 @@ function PlayRunner() {
       return;
     }
 
+    // Resolved once per part-start (fresh again on a reload or a replay):
+    // her profile drives each block's actual start/reps, and a remedial
+    // level can append repeat blocks for a weak genre. See adaptPart.
+    const blocksForPart = adaptPart(partCfgFound, levelCfgFound, computeProfile(sessions));
+
     const device = { ua: navigator.userAgent, w: window.innerWidth, h: window.innerHeight };
     const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
 
@@ -185,10 +241,11 @@ function PlayRunner() {
 
     setLevelCfg(levelCfgFound);
     setPartCfg(partCfgFound);
+    setResolvedBlocks(blocksForPart);
     setSession(activeSession);
     setBlockIndex(startBlockIndex);
 
-    if (startBlockIndex >= partCfgFound.blocks.length) {
+    if (startBlockIndex >= blocksForPart.length) {
       // Defensive: every block already recorded but the session was never
       // flagged complete (shouldn't normally happen). Finish it now.
       const endedAtIso = activeSession.endedAt ?? new Date().toISOString();
@@ -207,8 +264,8 @@ function PlayRunner() {
   }, []);
 
   function beginBlockItems() {
-    if (!partCfg) return;
-    const cfg = partCfg.blocks[blockIndex];
+    const cfg = resolvedBlocks[blockIndex];
+    if (!cfg) return;
     const genre = GENRES[cfg.genre];
 
     usedBankIdsRef.current = [];
@@ -216,15 +273,15 @@ function PlayRunner() {
     blockEndedRef.current = false;
     setRecords([]);
     setLastCorrect(null);
+    setLastResponse(null);
+    setFullScore(false);
     setBlockStartedAtIso(new Date().toISOString());
 
     const newSeed = randomSeed();
     setSeed(newSeed);
 
     if (genre.mode === "staircase") {
-      const startCfg =
-        cfg.start === "fromProfile" ? { fromProfileCeiling: profileStart(cfg.genre, loadSessions()) } : cfg.start ?? 1;
-      const st = startStair(startCfg, cfg.maxItems ?? 8);
+      const st = startStair(cfg.start, cfg.maxItems);
       setStair(st);
       setItem(genre.generate(newSeed, st.d, { excludeBankIds: [] }));
       setBlockStartMs(null);
@@ -240,8 +297,8 @@ function PlayRunner() {
   }
 
   function generateNextItem(d: number) {
-    if (!partCfg) return;
-    const cfg = partCfg.blocks[blockIndex];
+    const cfg = resolvedBlocks[blockIndex];
+    if (!cfg) return;
     const genre = GENRES[cfg.genre];
     const newSeed = randomSeed();
     respondedRef.current = false;
@@ -255,10 +312,10 @@ function PlayRunner() {
   }
 
   function endBlock(finalRecords: ItemRecord[]) {
-    if (blockEndedRef.current || !partCfg || !session) return;
+    const cfg = resolvedBlocks[blockIndex];
+    if (blockEndedRef.current || !cfg || !session) return;
     blockEndedRef.current = true;
 
-    const cfg = partCfg.blocks[blockIndex];
     const genre = GENRES[cfg.genre];
     const endedAtIso = new Date().toISOString();
     const blockRecord: BlockRecord = {
@@ -270,7 +327,7 @@ function PlayRunner() {
       summary: summarize(finalRecords, genre.mode),
     };
 
-    const isLastBlock = blockIndex + 1 >= partCfg.blocks.length;
+    const isLastBlock = blockIndex + 1 >= resolvedBlocks.length;
     const updated: SessionRecord = {
       ...session,
       blocks: [...session.blocks, blockRecord],
@@ -291,10 +348,10 @@ function PlayRunner() {
   }
 
   function finishItem(response: unknown, timedOut: boolean, meta?: { replayed?: boolean; audioFallback?: boolean }) {
-    if (respondedRef.current || blockEndedRef.current || !partCfg || !levelCfg) return;
+    const cfg = resolvedBlocks[blockIndex];
+    if (respondedRef.current || blockEndedRef.current || !cfg || !levelCfg) return;
     respondedRef.current = true;
 
-    const cfg = partCfg.blocks[blockIndex];
     const genre = GENRES[cfg.genre];
     const ms = startedAtMs !== null ? performance.now() - startedAtMs : 0;
     const finalScore = genre.score(item, timedOut ? null : response);
@@ -332,11 +389,14 @@ function PlayRunner() {
     }
 
     const newStair = stepStair(stair!, finalScore.correct);
+    const scoredFull = finalScore.points >= finalScore.max;
     setStair(newStair);
     setLastCorrect(finalScore.correct);
+    setLastResponse(timedOut ? null : (response ?? null));
+    setFullScore(scoredFull);
     setPhase("between");
 
-    const delay = BETWEEN_MS[levelCfg.feedback];
+    const delay = feedbackDelay(levelCfg.feedback, scoredFull);
     window.setTimeout(() => {
       if (newStair.done) endBlock(newRecords);
       else generateNextItem(newStair.d);
@@ -361,7 +421,10 @@ function PlayRunner() {
     );
   }
 
-  const cfg = partCfg.blocks[blockIndex];
+  const cfg = resolvedBlocks[blockIndex];
+  if (!cfg) {
+    return <div className="flex flex-1 bg-cream" />;
+  }
   const genre = GENRES[cfg.genre];
   const View = VIEWS[cfg.genre];
 
@@ -373,7 +436,7 @@ function PlayRunner() {
     <div className="flex flex-1 flex-col bg-cream">
       <div className="flex items-center justify-between gap-4 px-4 pt-4">
         <span className="font-bubble text-lg text-ink/70">{partCfg.title}</span>
-        {genre.mode === "staircase" && <ProgressDots total={cfg.maxItems ?? 8} filled={records.length} />}
+        {genre.mode === "staircase" && <ProgressDots total={cfg.maxItems} filled={records.length} />}
         <span aria-hidden className="w-0" />
       </div>
 
@@ -404,6 +467,12 @@ function PlayRunner() {
               onRespond={handleRespond}
             />
           </>
+        ) : levelCfg.feedback === "reveal" ? (
+          fullScore ? (
+            <FullScoreScreen />
+          ) : (
+            <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} />
+          )
         ) : (
           <BetweenScreen feedback={levelCfg.feedback} lastCorrect={lastCorrect} />
         )}

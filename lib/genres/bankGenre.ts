@@ -13,6 +13,7 @@ export interface ChoiceBankItem {
 export interface ChoiceItem {
   bankId: string; d: Difficulty; prompt: string; emoji?: string;
   options: { text: string; points: number }[];
+  explanation: string;
 }
 
 export interface ChoiceGenreMeta {
@@ -44,6 +45,7 @@ export function makeChoiceGenre(meta: ChoiceGenreMeta, bank: readonly ChoiceBank
       const item: ChoiceItem = {
         bankId: found.id, d: found.d, prompt: found.prompt, emoji: found.emoji,
         options: found.options.map(o => ({ text: o.text, points: o.points })),
+        explanation: found.explanation,
       };
       return { item, explanation: meta.sampleExplanation };
     },
@@ -52,7 +54,7 @@ export function makeChoiceGenre(meta: ChoiceGenreMeta, bank: readonly ChoiceBank
       const exclude = new Set(opts?.excludeBankIds ?? []);
       const picked = pickWidening(bank, d, exclude, rng);
       const options = rng.shuffle(picked.options).map(o => ({ text: o.text, points: o.points }));
-      return { bankId: picked.id, d: picked.d, prompt: picked.prompt, emoji: picked.emoji, options };
+      return { bankId: picked.id, d: picked.d, prompt: picked.prompt, emoji: picked.emoji, options, explanation: picked.explanation };
     },
     score(item: ChoiceItem, response: number | null): ScoreResult {
       const max = item.options.reduce((m, o) => Math.max(m, o.points), 0);
@@ -78,8 +80,11 @@ export interface ArithmeticBankItem {
   vars: Record<string, [number, number]>;
   answer: (v: Record<string, number>) => number;
   ok?: (v: Record<string, number>) => boolean;
+  /** Optional explanation template ({a}/{b}/... placeholders like `template`).
+   *  Falls back to a generic "text + answer" restatement when omitted. */
+  explanation?: string;
 }
-export interface ArithmeticItem { bankId: string; d: Difficulty; text: string; answer: number }
+export interface ArithmeticItem { bankId: string; d: Difficulty; text: string; answer: number; explanation: string }
 
 export interface ArithmeticGenreMeta {
   id: GenreId; subtest: string; domain: Domain; kidTitle: string; instructions: string;
@@ -104,10 +109,13 @@ function drawVars(tmpl: ArithmeticBankItem, rng: Rng): Record<string, number> {
   return first as Record<string, number>;
 }
 
-/** Draws vars for `tmpl` with `rng` and renders the text + computed answer. Exported for bank tests. */
-export function renderArithmetic(tmpl: ArithmeticBankItem, rng: Rng): { text: string; answer: number } {
+/** Draws vars for `tmpl` with `rng` and renders the text + computed answer + explanation. Exported for bank tests. */
+export function renderArithmetic(tmpl: ArithmeticBankItem, rng: Rng): { text: string; answer: number; explanation: string } {
   const vars = drawVars(tmpl, rng);
-  return { text: renderTemplate(tmpl.template, vars), answer: tmpl.answer(vars) };
+  const text = renderTemplate(tmpl.template, vars);
+  const answer = tmpl.answer(vars);
+  const explanation = tmpl.explanation ? renderTemplate(tmpl.explanation, vars) : `${text} The answer is ${answer}.`;
+  return { text, answer, explanation };
 }
 
 export function makeArithmeticGenre(meta: ArithmeticGenreMeta, bank: readonly ArithmeticBankItem[]): Genre<ArithmeticItem, number> {
@@ -116,17 +124,18 @@ export function makeArithmeticGenre(meta: ArithmeticGenreMeta, bank: readonly Ar
     mode: "staircase",
     timing: { kind: "item", ms: () => 30_000 },
     sample() {
+      const explanation = "Two apples plus one more apple makes three apples.";
       return {
-        item: { bankId: "sample", d: 1, text: "Aoife has 2 apples and picks 1 more. How many apples now?", answer: 3 },
-        explanation: "Two apples plus one more apple makes three apples.",
+        item: { bankId: "sample", d: 1, text: "Aoife has 2 apples and picks 1 more. How many apples now?", answer: 3, explanation },
+        explanation,
       };
     },
     generate(seed: number, d: Difficulty, opts?: GenerateOpts): ArithmeticItem {
       const rng = makeRng(seed);
       const exclude = new Set(opts?.excludeBankIds ?? []);
       const tmpl = pickWidening(bank, d, exclude, rng);
-      const { text, answer } = renderArithmetic(tmpl, rng);
-      return { bankId: tmpl.id, d: tmpl.d, text, answer };
+      const { text, answer, explanation } = renderArithmetic(tmpl, rng);
+      return { bankId: tmpl.id, d: tmpl.d, text, answer, explanation };
     },
     score(item: ArithmeticItem, response: number | null): ScoreResult {
       const correct = response !== null && response !== undefined && response === item.answer;

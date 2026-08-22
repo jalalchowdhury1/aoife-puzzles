@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import type { Profile } from "@/lib/engine/profile";
 import type { SessionRecord } from "@/lib/engine/types";
 import { LEVELS } from "@/lib/levels";
+import { classifyGenres } from "@/lib/engine/adapt";
 import { ParentTable } from "@/components/ParentTable";
 
 const KEY_STORAGE = "aoife-puzzles:parent-key";
@@ -146,7 +147,7 @@ export default function ParentPage() {
       {error && <p className="text-rose-500">{error}</p>}
 
       {profile ? (
-        <ParentTable profile={profile} />
+        <ParentTable profile={profile} strengths={classifyGenres(profile)} />
       ) : (
         <p className="text-ink/70">No profile data yet — play a part first.</p>
       )}

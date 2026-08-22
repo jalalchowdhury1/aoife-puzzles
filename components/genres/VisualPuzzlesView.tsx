@@ -3,6 +3,11 @@ import { useEffect, useState } from "react";
 import type { GenreViewProps } from "@/lib/engine/types";
 import { rotate, type Cell, type Piece, type VisualPuzzlesItem } from "@/lib/genres/visualPuzzles";
 
+// One cell is always this many px, in both the target silhouette and every
+// option piece, so pieces render at true relative scale (comparable to the
+// target and to each other) instead of each being auto-fit to a uniform tile.
+const CELL_PX = 32;
+
 function pieceBounds(cells: Cell[]): { rows: number; cols: number } {
   const rows = Math.max(...cells.map(c => c[0])) + 1;
   const cols = Math.max(...cells.map(c => c[1])) + 1;
@@ -13,7 +18,7 @@ function PieceGlyph({ piece }: { piece: Piece }) {
   const displayCells = rotate(piece.cells, piece.rot);
   const { rows, cols } = pieceBounds(displayCells);
   return (
-    <svg viewBox={`0 0 ${cols} ${rows}`} preserveAspectRatio="xMidYMid meet" className="h-full w-full">
+    <svg viewBox={`0 0 ${cols} ${rows}`} width={cols * CELL_PX} height={rows * CELL_PX}>
       {displayCells.map(([r, c], i) => (
         <rect key={i} x={c + 0.08} y={r + 0.08} width={0.84} height={0.84} rx={0.14} className="fill-teal-400" />
       ))}
@@ -27,13 +32,9 @@ function TargetSilhouette({ item }: { item: VisualPuzzlesItem }) {
   target.forEach((filled, i) => {
     if (filled) cells.push([Math.floor(i / size), i % size]);
   });
+  const px = size * CELL_PX;
   return (
-    <svg
-      viewBox={`0 0 ${size} ${size}`}
-      style={{ width: "40vmin", height: "40vmin" }}
-      className="shrink-0"
-      aria-hidden="true"
-    >
+    <svg viewBox={`0 0 ${size} ${size}`} width={px} height={px} className="shrink-0" aria-hidden="true">
       {cells.map(([r, c], i) => (
         <rect key={i} x={c} y={r} width={1} height={1} className="fill-teal-600" />
       ))}
@@ -79,7 +80,7 @@ export function VisualPuzzlesView({ item, disabled, onReady, onRespond }: GenreV
     <div className="flex h-full w-full flex-col items-center justify-center gap-6 bg-cream p-4">
       <TargetSilhouette item={item} />
 
-      <div className="grid w-full max-w-md grid-cols-3 gap-3">
+      <div className="flex w-full max-w-2xl flex-wrap items-center justify-center gap-4">
         {item.pieces.map((piece, i) => {
           const isSelected = selected.includes(i);
           return (
@@ -89,7 +90,7 @@ export function VisualPuzzlesView({ item, disabled, onReady, onRespond }: GenreV
               disabled={disabled}
               aria-pressed={isSelected}
               onClick={() => toggle(i)}
-              className={`flex aspect-square min-h-16 items-center justify-center rounded-2xl bg-white p-2 transition ${
+              className={`flex min-h-16 min-w-16 items-center justify-center rounded-2xl bg-white p-2 transition ${
                 isSelected ? "ring-4 ring-teal-600" : "ring-2 ring-teal-100"
               }`}
             >

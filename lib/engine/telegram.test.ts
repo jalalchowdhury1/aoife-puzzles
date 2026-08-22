@@ -69,9 +69,9 @@ describe("formatPartSummary", () => {
     expect(lines[0]).toBe("🧩 Aoife Puzzles — Level 1 Part A done (17 min)");
   });
 
-  it("falls back to the genre id when the registry has no kidTitle yet", () => {
-    expect(lines[1]).toContain("matrix");
-    expect(lines[2]).toContain("coding");
+  it("uses each genre's kidTitle from the registry", () => {
+    expect(lines[1]).toContain("What's Missing?");
+    expect(lines[2]).toContain("Secret Code");
   });
 
   it("shows correct/attempted and ceiling for the staircase block", () => {

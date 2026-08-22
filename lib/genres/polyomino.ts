@@ -133,7 +133,9 @@ export function growCells(rng: Rng, area: number, start: Cell, inBounds: (c: Cel
  * bounded number of iterations.
  */
 export function partitionIntoThree(rng: Rng, targetCells: Cell[]): Cell[][] | null {
-  if (targetCells.length < 6) return null;
+  // 3 non-empty pieces need at least 3 cells; per-difficulty area bands
+  // (see bandFor in visualPuzzles.ts) enforce the real floor.
+  if (targetCells.length < 3) return null;
   const inTarget = new Set(targetCells.map(cellKey));
 
   let bestTriple: [Cell, Cell, Cell] | null = null;

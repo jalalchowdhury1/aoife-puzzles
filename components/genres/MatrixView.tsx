@@ -5,7 +5,10 @@ import type { GenreViewProps } from "@/lib/engine/types";
 import type { MatrixItem } from "@/lib/genres/matrix";
 import { Figure } from "@/components/Figure";
 
-const CELL_BOX = 110;
+// Cells must read at >=120px even on iPad landscape (1180x713) — the real
+// data showed a 5-year-old missing near-identical distractors (rotated
+// hexagon, M vs L) when figures rendered too small to compare at a glance.
+const CELL_BOX = 120;
 const OPTION_BOX = 88;
 
 /** "What's Missing?" — a matrix (or 1x5 series) of figures with the last cell blank. */
@@ -74,7 +77,7 @@ export default function MatrixView({
           ) : (
             <div
               key={i}
-              className="flex items-center justify-center rounded-2xl border-4 border-dashed border-teal-400 text-4xl font-bubble text-teal-600"
+              className="flex items-center justify-center rounded-2xl border-4 border-dashed border-teal-400 text-5xl font-bubble text-teal-600"
               style={{ width: CELL_BOX, height: CELL_BOX }}
             >
               ?
@@ -84,7 +87,15 @@ export default function MatrixView({
       </div>
 
       <div className="flex flex-col items-center gap-6">
-        <div className="flex max-w-md flex-wrap justify-center gap-4">
+        {/*
+          Portrait: wrap the 5 options in a row (plenty of vertical room).
+          Landscape (iPad 1180x713): stack them in a column to the right of
+          the grid instead — a horizontal wrap of 5 88px buttons plus the
+          Done button comfortably clears the grid's height either way, but a
+          column keeps the whole screen well within 713px tall with no
+          scrolling, however many options wrap.
+        */}
+        <div className="flex max-w-md flex-wrap justify-center gap-4 landscape:max-w-none landscape:flex-col landscape:flex-nowrap landscape:gap-3">
           {item.options.map((opt, i) => {
             if (reveal) {
               const isCorrect = i === item.answer;

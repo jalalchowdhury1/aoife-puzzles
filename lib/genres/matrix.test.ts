@@ -10,6 +10,17 @@ function fig(v: unknown): string {
   return JSON.stringify(v);
 }
 
+/** All attrs that differ between two figures. */
+function diffAttrs(a: Figure, b: Figure): (keyof Figure)[] {
+  return ATTRS.filter(attr => a[attr] !== b[attr]);
+}
+
+/** The full set of Figures an item shows: every visible cell plus every option (answer + distractors). */
+function allFigures(item: ReturnType<typeof matrix.generate>): Figure[] {
+  const visible = item.cells.filter((c): c is Figure => c !== null);
+  return [...visible, ...item.options];
+}
+
 describe("matrix genre", () => {
   it("id/domain/mode match the registry contract", () => {
     expect(matrix.id).toBe("matrix");
@@ -61,11 +72,33 @@ describe("matrix genre", () => {
     }
   });
 
-  it("d1-2 matrix items vary exactly one attribute row to row (rest constant)", () => {
+  it("d1-2 is always the 2x2 matrix form (no series — she's only ever seen a 2x2 sample)", () => {
     for (const d of [1, 2] as const) {
       for (const seed of SEEDS) {
         const item = matrix.generate(seed, d);
-        if (item.form !== "matrix") continue;
+        expect(item.form).toBe("matrix");
+        expect(item.rows).toBe(2);
+      }
+    }
+  });
+
+  it("d1-2: every figure (visible cells + answer) is count:1, rot:0, dot:false", () => {
+    for (const d of [1, 2] as const) {
+      for (const seed of SEEDS) {
+        const item = matrix.generate(seed, d);
+        for (const f of allFigures(item)) {
+          expect(f.count).toBe(1);
+          expect(f.rot).toBe(0);
+          expect(f.dot).toBe(false);
+        }
+      }
+    }
+  });
+
+  it("d1-2: exactly one attribute (shape or color) varies row to row, everything else constant", () => {
+    for (const d of [1, 2] as const) {
+      for (const seed of SEEDS) {
+        const item = matrix.generate(seed, d);
 
         const full = [...item.cells];
         full[3] = item.options[item.answer];
@@ -77,7 +110,146 @@ describe("matrix genre", () => {
           expect(row1[0][attr]).toBe(row1[1][attr]);
         }
         const varying = ATTRS.filter(attr => row0[0][attr] !== row1[0][attr]);
-        expect(varying.length).toBeGreaterThanOrEqual(1);
+        expect(varying.length).toBe(1);
+        expect(["shape", "color"]).toContain(varying[0]);
+      }
+    }
+  });
+
+  it("d1-2: every distractor differs from the answer by shape or color only", () => {
+    for (const d of [1, 2] as const) {
+      for (const seed of SEEDS) {
+        const item = matrix.generate(seed, d);
+        const answerFigure = item.options[item.answer];
+        item.options.forEach((opt, i) => {
+          if (i === item.answer) return;
+          const diff = diffAttrs(answerFigure, opt);
+          expect(diff.length).toBeGreaterThanOrEqual(1);
+          for (const attr of diff) expect(["shape", "color"]).toContain(attr);
+        });
+      }
+    }
+  });
+
+  it("d3-4 matrix form: the progressing attribute is count (contiguous run within 1-3) or size (S/L only, never M); everything else is grid-constant", () => {
+    for (const d of [3, 4] as const) {
+      for (const seed of SEEDS) {
+        const item = matrix.generate(seed, d);
+        if (item.form !== "matrix") continue;
+
+        const full = [...item.cells];
+        full[full.length - 1] = item.options[item.answer];
+        const grid = full as Figure[];
+
+        for (const attr of ["shape", "color", "rot", "dot"] as const) {
+          const values = new Set(grid.map(f => f[attr]));
+          expect(values.size).toBe(1);
+        }
+        expect(grid.every(f => f.rot === 0)).toBe(true);
+        expect(grid.every(f => f.dot === false)).toBe(true);
+
+        const sizeValues = new Set(grid.map(f => f.size));
+        const countValues = new Set(grid.map(f => f.count));
+        // Exactly one of {size, count} varies across the grid (the "progressing" attribute).
+        const sizeVaries = sizeValues.size > 1;
+        const countVaries = countValues.size > 1;
+        expect(sizeVaries && countVaries).toBe(false);
+        expect(sizeVaries || countVaries).toBe(true);
+
+        if (sizeVaries) {
+          for (const v of sizeValues) expect(["S", "L"]).toContain(v);
+        }
+        if (countVaries) {
+          for (const v of countValues) expect([1, 2, 3]).toContain(v);
+        }
+      }
+    }
+  });
+
+  it("d3-4 series form (when it appears) is a clean 2-value alternation A B A B ?, never a 3-cycle", () => {
+    let sawSeries = false;
+    for (const d of [3, 4] as const) {
+      for (const seed of SEEDS) {
+        const item = matrix.generate(seed, d);
+        if (item.form !== "series") continue;
+        sawSeries = true;
+
+        const visible = item.cells.slice(0, 4) as Figure[];
+        const answerFigure = item.options[item.answer];
+        const five = [...visible, answerFigure];
+
+        // A B A B A: positions 0/2/4 identical, 1/3 identical, and the two groups differ.
+        for (const attr of ATTRS) {
+          expect(five[0][attr]).toBe(five[2][attr]);
+          expect(five[2][attr]).toBe(five[4][attr]);
+          expect(five[1][attr]).toBe(five[3][attr]);
+        }
+        const varying = ATTRS.filter(attr => five[0][attr] !== five[1][attr]);
+        expect(varying.length).toBe(1);
+        expect(varying[0]).not.toBe("rot"); // rotation never drives a d3-4 series
+        if (varying[0] === "size") {
+          expect([five[0].size, five[1].size].sort()).toEqual(["L", "S"]);
+        }
+        if (varying[0] === "count") {
+          expect([five[0].count, five[1].count]).not.toContain(4);
+        }
+      }
+    }
+    expect(sawSeries).toBe(true); // the 500-seed sweep should have hit series form at least once
+  });
+
+  it("rotation is only ever applied to a triangle, and only from d>=5", () => {
+    for (const d of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = matrix.generate(seed, d);
+        for (const f of allFigures(item)) {
+          if (d < 5) {
+            expect(f.rot).toBe(0);
+          } else if (f.rot !== 0) {
+            expect(f.shape).toBe("triangle");
+          }
+        }
+      }
+    }
+  });
+
+  it("dot is only ever true from d>=6", () => {
+    for (const d of DIFFICULTIES) {
+      if (d >= 6) continue;
+      for (const seed of SEEDS) {
+        const item = matrix.generate(seed, d);
+        for (const f of allFigures(item)) {
+          expect(f.dot).toBe(false);
+        }
+      }
+    }
+  });
+
+  it("size distractors at d<=6 differ from the answer by a full 2 steps (S vs L), never landing on M or adjacent", () => {
+    for (const d of DIFFICULTIES) {
+      if (d > 6) continue;
+      for (const seed of SEEDS) {
+        const item = matrix.generate(seed, d);
+        const answerFigure = item.options[item.answer];
+        for (const opt of item.options) {
+          if (opt.size === answerFigure.size) continue;
+          expect([answerFigure.size, opt.size].sort()).toEqual(["L", "S"]);
+        }
+      }
+    }
+  });
+
+  it("distractor salience at d<=4: each distractor differs from the answer in exactly one of shape/color/count", () => {
+    for (const d of [1, 2, 3, 4] as const) {
+      for (const seed of SEEDS) {
+        const item = matrix.generate(seed, d);
+        const answerFigure = item.options[item.answer];
+        item.options.forEach((opt, i) => {
+          if (i === item.answer) return;
+          const diff = diffAttrs(answerFigure, opt);
+          expect(diff.length).toBe(1);
+          expect(["shape", "color", "count"]).toContain(diff[0]);
+        });
       }
     }
   });
@@ -112,13 +284,21 @@ describe("matrix genre", () => {
     }
   });
 
-  it("series form shows up for a healthy share of seeds at d <= 6 and never at d >= 7", () => {
-    let seriesCount = 0;
-    for (const seed of SEEDS) {
-      if (matrix.generate(seed, 5).form === "series") seriesCount++;
+  it("series form is disabled at d1-2, allowed from d3 through d6 at <=30% of seeds, and off again at d>=7", () => {
+    for (const d of [1, 2] as const) {
+      for (const seed of SEEDS) {
+        expect(matrix.generate(seed, d).form).toBe("matrix");
+      }
     }
-    expect(seriesCount).toBeGreaterThan(100);
-    expect(seriesCount).toBeLessThan(220);
+
+    for (const d of [3, 4, 5, 6] as const) {
+      let seriesCount = 0;
+      for (const seed of SEEDS) {
+        if (matrix.generate(seed, d).form === "series") seriesCount++;
+      }
+      expect(seriesCount).toBeGreaterThan(100);
+      expect(seriesCount).toBeLessThan(220);
+    }
 
     for (const d of [7, 8, 9, 10] as const) {
       for (const seed of SEEDS) {
@@ -135,7 +315,7 @@ describe("matrix genre", () => {
     expect(matrix.score(item, null)).toEqual({ points: 0, max: 1, correct: false });
   });
 
-  it("sample() is a 2x2 matrix whose missing cell is a blue square, matching the explanation", () => {
+  it("sample() is a 2x2 matrix whose missing cell is a blue square, matching the explanation and the d1-2 rules", () => {
     const { item, explanation } = matrix.sample();
     expect(item.form).toBe("matrix");
     expect(item.rows).toBe(2);
@@ -148,5 +328,17 @@ describe("matrix genre", () => {
     expect(answerFigure.shape).toBe("square");
     expect(explanation.toLowerCase()).toContain("square");
     expect(explanation.length).toBeGreaterThan(0);
+
+    for (const f of allFigures(item)) {
+      expect(f.count).toBe(1);
+      expect(f.rot).toBe(0);
+      expect(f.dot).toBe(false);
+    }
+    item.options.forEach((opt, i) => {
+      if (i === item.answer) return;
+      const diff = diffAttrs(answerFigure, opt);
+      expect(diff.length).toBeGreaterThanOrEqual(1);
+      for (const attr of diff) expect(["shape", "color"]).toContain(attr);
+    });
   });
 });

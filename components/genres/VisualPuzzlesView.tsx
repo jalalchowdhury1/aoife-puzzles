@@ -7,6 +7,10 @@ import { rotate, type Cell, type Piece, type VisualPuzzlesItem } from "@/lib/gen
 // option piece, so pieces render at true relative scale (comparable to the
 // target and to each other) instead of each being auto-fit to a uniform tile.
 const CELL_PX = 32;
+// A true 1px grid line regardless of CELL_PX — expressed in viewBox units
+// (1 unit = 1 cell = CELL_PX real px), so both the target and every piece
+// draw the same hairline weight.
+const GRID_STROKE_WIDTH = 1 / CELL_PX;
 
 function pieceBounds(cells: Cell[]): { rows: number; cols: number } {
   const rows = Math.max(...cells.map(c => c[0])) + 1;
@@ -14,18 +18,35 @@ function pieceBounds(cells: Cell[]): { rows: number; cols: number } {
   return { rows, cols };
 }
 
+// Pieces render as contiguous, gap-free cells with the same light grid-line
+// style as the target (see TargetSilhouette) — no rounded corners, no
+// margins between cells. Her real d1 data showed two identical pieces and a
+// mirror-image distractor that were easy to miss when pieces were drawn as
+// separate rounded squares; a solid, gridded, contiguous piece reads as one
+// object instead of a pile of separate tiles.
 function PieceGlyph({ piece }: { piece: Piece }) {
   const displayCells = rotate(piece.cells, piece.rot);
   const { rows, cols } = pieceBounds(displayCells);
   return (
     <svg viewBox={`0 0 ${cols} ${rows}`} width={cols * CELL_PX} height={rows * CELL_PX}>
       {displayCells.map(([r, c], i) => (
-        <rect key={i} x={c + 0.08} y={r + 0.08} width={0.84} height={0.84} rx={0.14} className="fill-teal-400" />
+        <rect
+          key={i}
+          x={c}
+          y={r}
+          width={1}
+          height={1}
+          className="fill-teal-400 stroke-cream"
+          strokeWidth={GRID_STROKE_WIDTH}
+        />
       ))}
     </svg>
   );
 }
 
+// Drawn WITH light cell grid lines so the cells are countable — her real d1
+// data showed a solid silhouette with no lines meant she couldn't count
+// cells to check a piece's size against the target.
 function TargetSilhouette({ item }: { item: VisualPuzzlesItem }) {
   const { size, target } = item;
   const cells: Cell[] = [];
@@ -36,7 +57,15 @@ function TargetSilhouette({ item }: { item: VisualPuzzlesItem }) {
   return (
     <svg viewBox={`0 0 ${size} ${size}`} width={px} height={px} className="shrink-0" aria-hidden="true">
       {cells.map(([r, c], i) => (
-        <rect key={i} x={c} y={r} width={1} height={1} className="fill-teal-600" />
+        <rect
+          key={i}
+          x={c}
+          y={r}
+          width={1}
+          height={1}
+          className="fill-teal-600 stroke-cream"
+          strokeWidth={GRID_STROKE_WIDTH}
+        />
       ))}
     </svg>
   );

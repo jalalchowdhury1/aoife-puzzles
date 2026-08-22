@@ -38,6 +38,9 @@ const MAX_RESEED_DEPTH = 20;
 const RESEED_STEP = 1_000_003;
 
 function bandFor(d: Difficulty): { size: 4 | 5 | 6; minArea: number; maxArea: number } {
+  // d1-2: a smaller 5-6 cell target — big enough for 3 pieces, small enough
+  // that the "obviously wrong" distractor counts (below) stay well clear.
+  if (d <= 2) return { size: 4, minArea: 5, maxArea: 6 };
   if (d <= 4) return { size: 4, minArea: 6, maxArea: 8 };
   if (d <= 7) return { size: 5, minArea: 9, maxArea: 12 };
   return { size: 6, minArea: 12, maxArea: 16 };
@@ -112,6 +115,37 @@ function buildDistractors(rng: Rng, trueShapes: Cell[][], allowRotation: boolean
   return accepted;
 }
 
+/**
+ * d<=3 distractors: "obviously wrong" by cell count alone — never a mirror,
+ * never a one-cell-moved near miss (those start at d>=4, see buildDistractors
+ * above). Her real d1 data showed a mirror-image distractor and a same-size
+ * "close enough" piece both fooled her; a piece whose count isn't even among
+ * the true pieces' counts can't be confused for one at a glance.
+ */
+function buildObviousDistractors(rng: Rng, trueShapes: Cell[][]): Cell[][] | null {
+  const trueCounts = new Set(trueShapes.map(s => s.length));
+  const candidateCounts = [1, 2, 3, 4, 5, 6].filter(n => !trueCounts.has(n));
+  if (candidateCounts.length === 0) return null;
+
+  const accepted: Cell[][] = [];
+  const isDuplicate = (candidate: Cell[]) =>
+    trueShapes.some(t => equalShape(candidate, t, false)) ||
+    accepted.some(a => equalShape(candidate, a, false));
+
+  for (let i = 0; i < 3; i++) {
+    const piece = generateWithRetries(25, () => {
+      const area = rng.pick(candidateCounts);
+      const grown = growCells(rng, area, [0, 0], c => c[0] >= -4 && c[0] <= 4 && c[1] >= -4 && c[1] <= 4);
+      if (!grown) return null;
+      const candidate = normalize(grown);
+      return isDuplicate(candidate) ? null : candidate;
+    });
+    if (!piece) return null;
+    accepted.push(piece);
+  }
+  return accepted;
+}
+
 function assignRotations(rng: Rng, entries: Entry[], d: Difficulty): void {
   if (d < 6) {
     for (const e of entries) e.rot = 0;
@@ -135,23 +169,35 @@ function buildItem(rng: Rng, size: 4 | 5 | 6, area: number, d: Difficulty): Visu
 
   const partition = partitionIntoThree(rng, targetCells);
   if (!partition) return null;
+  // d1-2 areas (5-6 cells) can only reach 3 distinct shapes if a 1-cell
+  // piece is allowed (3 distinct positive counts need at least 1+2+3=6);
+  // every other difficulty keeps the original 2-cell floor.
+  const minPieceSize = d <= 2 ? 1 : 2;
   for (const piece of partition) {
-    if (piece.length < 2 || !isConnected(piece)) return null;
+    if (piece.length < minPieceSize || !isConnected(piece)) return null;
   }
 
   const allowRotation = d >= 6;
-  const trueEntries: Entry[] = partition.map(cells => ({
-    cells: normalize(cells),
+  const normalizedTrue = partition.map(cells => normalize(cells));
+  // No two true pieces may be the same shape (exact match below d>=6,
+  // rotation-equivalent at d>=6) — her real d1 data had two identical
+  // vertical dominoes among the true pieces. Re-partition on a collision.
+  for (let i = 0; i < normalizedTrue.length; i++) {
+    for (let j = i + 1; j < normalizedTrue.length; j++) {
+      if (equalShape(normalizedTrue[i], normalizedTrue[j], allowRotation)) return null;
+    }
+  }
+
+  const trueEntries: Entry[] = partition.map((cells, i) => ({
+    cells: normalizedTrue[i],
     isTrue: true,
     placedCells: cells,
     rot: 0,
   }));
 
-  const distractors = buildDistractors(
-    rng,
-    trueEntries.map(e => e.cells),
-    allowRotation
-  );
+  const distractors = d <= 3
+    ? buildObviousDistractors(rng, trueEntries.map(e => e.cells))
+    : buildDistractors(rng, trueEntries.map(e => e.cells), allowRotation);
   if (!distractors) return null;
 
   const entries: Entry[] = [
@@ -201,11 +247,48 @@ export function score(item: VisualPuzzlesItem, response: number[] | null): Score
   return { points: correct ? 1 : 0, max: 1, correct };
 }
 
+// Hand-authored so the sample is always exactly this shape, rather than
+// whatever a lucky seed happens to produce: a single cell, a domino, and a
+// straight tromino (1+2+3=6 cells) tile a 2x3 rectangle; the three
+// distractors are all "obviously wrong" by cell count (4, 5, and 6 — never
+// among the true pieces' 1/2/3), matching the d<=3 distractor rule.
 export function sample(): { item: VisualPuzzlesItem; explanation: string } {
+  const size = 4;
+  const target = new Array(size * size).fill(false) as boolean[];
+  const mark = (cells: Cell[]) => cells.forEach(([r, c]) => { target[r * size + c] = true; });
+
+  const singleCell: Cell[] = [[0, 0]];
+  const domino: Cell[] = [[0, 1], [0, 2]];
+  const tromino: Cell[] = [[1, 0], [1, 1], [1, 2]];
+  mark(singleCell);
+  mark(domino);
+  mark(tromino);
+
+  const distractorSquare: Cell[] = [[0, 0], [0, 1], [1, 0], [1, 1]]; // 4 cells
+  const distractorLine: Cell[] = [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]]; // 5 cells
+  const distractorBigL: Cell[] = [[0, 0], [1, 0], [2, 0], [3, 0], [3, 1], [3, 2]]; // 6 cells
+
+  const pieces: Piece[] = [
+    { cells: normalize(singleCell), rot: 0 },
+    { cells: normalize(domino), rot: 0 },
+    { cells: normalize(distractorSquare), rot: 0 },
+    { cells: normalize(tromino), rot: 0 },
+    { cells: normalize(distractorLine), rot: 0 },
+    { cells: normalize(distractorBigL), rot: 0 },
+  ];
+
   return {
-    item: generate(7, 1),
+    item: {
+      size,
+      target,
+      pieces,
+      answer: [0, 1, 3], // singleCell, domino, tromino
+      placed: [singleCell, domino, tromino],
+    },
     explanation:
-      "Three of these six pieces fit together to make the shape at the top with no gaps and no overlaps. Tap the three pieces that belong, then press Done.",
+      "Three of these pieces fit together with no gaps or overlaps to make the shape at the top: " +
+      "one square, two squares in a row, and three squares in a row. Count them: 1 plus 2 plus 3 is 6. " +
+      "Tap those three, then press Done.",
   };
 }
 

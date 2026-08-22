@@ -1,6 +1,24 @@
 // Pure helpers for the Matrix Reasoning ("What's Missing?") rule engine.
 // Split out of matrix.ts so the genre glue file stays small; nothing here is
 // React/DOM/I-O, and every function is deterministic given the Rng it is passed.
+//
+// Age-appropriateness rules baked into this module (2026-08-22, after her
+// real d1 items showed the easiest ones were unfair — see AGENTS.md/spec):
+//   - d1-2: 2x2 only, single varying attribute (shape XOR color), everything
+//     else pinned to count:1 / rot:0 / dot:false; distractors differ from the
+//     answer by shape or color only.
+//   - d3-4: progressing attribute is count (contiguous run within 1-3, never
+//     reaching 4) or size restricted to S/L (M never appears); a series, when
+//     it appears, is a clean 2-value alternation (A B A B ?), never a 3-cycle;
+//     distractor salience stays to exactly one of {shape, color, count}.
+//   - Rotation is only ever applied to a triangle (the only shape whose
+//     rotation reads unambiguously to a 5-year-old) and only from d>=5; dot
+//     only from d>=6 (both enforced as hard floors on every code path,
+//     including the "unruled attribute" defaults and the distractor mutator,
+//     not just the rule-plan pool).
+//   - Size distractors at d<=6 must jump a full 2 steps (S<->L), never land
+//     adjacent to the answer (S/M or M/L) — the exact confusion the real
+//     data flagged (rotated hexagon, size M vs L).
 import type { Rng } from "../engine/rng";
 import type { Difficulty } from "../engine/types";
 import type { Figure } from "./shapes";
@@ -81,8 +99,27 @@ export function distinctOrCyclic(rng: Rng, len: number, count: number): number[]
   return Array.from({ length: count }, (_, i) => (start + i) % len);
 }
 
+/** A contiguous ascending or descending run of `cols` indices within [0, n-1] — never skips a value. */
+function contiguousProgression(rng: Rng, n: number, rows: number, cols: number): number[][] {
+  const maxStart = Math.max(0, n - cols);
+  return Array.from({ length: rows }, () => {
+    const start = rng.int(0, maxStart);
+    const descending = rng.next() < 0.5;
+    return Array.from({ length: cols }, (_, c) => (descending ? start + (cols - 1 - c) : start + c));
+  });
+}
+
+/** Alternates through a small fixed value set (e.g. just S/L) — a clean A,B,A,B,... run, never a third value. */
+function alternateFromValueSet(rng: Rng, valueSet: number[], rows: number, cols: number): number[][] {
+  const n = valueSet.length;
+  return Array.from({ length: rows }, () => {
+    const start = rng.int(0, n - 1);
+    return Array.from({ length: cols }, (_, c) => valueSet[(start + c) % n]);
+  });
+}
+
 // --- Rule kinds: each fills a rows x cols grid of value-indices for one attribute. ---
-export type RuleKind = "const" | "constRow" | "constCol" | "progressRow" | "dist3";
+export type RuleKind = "const" | "constRow" | "constCol" | "progressRow" | "dist3" | "progressCount123" | "progressSizeSL";
 
 export const RULE_FILLERS: Record<RuleKind, (rng: Rng, len: number, rows: number, cols: number) => number[][]> = {
   const: (rng, len, rows, cols) => fillGrid(rows, cols, rng.int(0, len - 1)),
@@ -112,6 +149,13 @@ export const RULE_FILLERS: Record<RuleKind, (rng: Rng, len: number, rows: number
       Array.from({ length: 3 }, (_, c) => values[(rowPerm[r] + colPerm[c]) % 3])
     );
   },
+
+  // d3-4 only: count progresses through a contiguous run of 1-2-3 (never 4).
+  progressCount123: (rng, _len, rows, cols) => contiguousProgression(rng, 3, rows, cols),
+
+  // d3-4 only: size alternates between S and L only — M never appears, so it
+  // can never sit "adjacent to the answer" the way it confused her at d1.
+  progressSizeSL: (rng, _len, rows, cols) => alternateFromValueSet(rng, [0, 2], rows, cols),
 };
 
 // --- Difficulty -> rule plan, as data. ---
@@ -119,8 +163,11 @@ export interface AttrRule { attr: AttrName; kind: RuleKind }
 interface PlanSpec { rows: 2 | 3; kinds: RuleKind[]; pool: AttrName[]; appendDotCol?: boolean }
 
 const PLAN_BY_D: Record<Difficulty, PlanSpec> = {
-  1: { rows: 2, kinds: ["constRow"], pool: DRAWABLE_ATTRS },
-  2: { rows: 2, kinds: ["constRow"], pool: DRAWABLE_ATTRS },
+  // d1-2: exactly one of {shape, color} varies row to row; everything else
+  // (including count/rot/dot) is pinned by buildGrid regardless of this pool.
+  1: { rows: 2, kinds: ["constRow"], pool: ["shape", "color"] },
+  2: { rows: 2, kinds: ["constRow"], pool: ["shape", "color"] },
+  // d3-4: "progressRow" is remapped below to progressCount123 / progressSizeSL.
   3: { rows: 2, kinds: ["progressRow"], pool: ["size", "count"] },
   4: { rows: 3, kinds: ["progressRow"], pool: ["size", "count"] },
   5: { rows: 3, kinds: ["constRow", "progressRow"], pool: DRAWABLE_ATTRS },
@@ -131,17 +178,43 @@ const PLAN_BY_D: Record<Difficulty, PlanSpec> = {
   10: { rows: 3, kinds: ["dist3", "dist3", "progressRow"], pool: DRAWABLE_ATTRS, appendDotCol: true },
 };
 
+/**
+ * Picks `n` distinct attrs from `pool`, never returning both "shape" and
+ * "rot" together — rotation is only ever meaningfully distinct on a
+ * triangle, so a rule plan can't simultaneously vary shape independently.
+ */
+function pickPlanAttrs(rng: Rng, pool: AttrName[], n: number): AttrName[] {
+  const shuffled = rng.shuffle(pool);
+  const chosen: AttrName[] = [];
+  for (const attr of shuffled) {
+    if (chosen.length >= n) break;
+    if (attr === "shape" && chosen.includes("rot")) continue;
+    if (attr === "rot" && chosen.includes("shape")) continue;
+    chosen.push(attr);
+  }
+  return chosen;
+}
+
 /** Turns a difficulty into a concrete set of attribute rules (data-driven; see PLAN_BY_D). */
 export function buildRulePlan(rng: Rng, d: Difficulty): { rows: 2 | 3; rules: AttrRule[] } {
   const spec = PLAN_BY_D[d];
-  const attrs = rng.shuffle(spec.pool).slice(0, spec.kinds.length);
-  const rules: AttrRule[] = spec.kinds.map((kind, i) => ({ attr: attrs[i], kind }));
+  const attrs = pickPlanAttrs(rng, spec.pool, spec.kinds.length);
+  let rules: AttrRule[] = spec.kinds.map((kind, i) => ({ attr: attrs[i], kind }));
+
+  if (d === 3 || d === 4) {
+    rules = rules.map(r =>
+      r.kind === "progressRow"
+        ? { attr: r.attr, kind: (r.attr === "count" ? "progressCount123" : "progressSizeSL") as RuleKind }
+        : r
+    );
+  }
+
   if (spec.appendDotCol) rules.push({ attr: "dot", kind: "constCol" });
   return { rows: spec.rows, rules };
 }
 
-/** Builds the full rows x rows grid of Figures from a rule plan; unruled attributes are constant (dot defaults to false). */
-export function buildGrid(rng: Rng, rows: 2 | 3, rules: AttrRule[]): Figure[][] {
+/** Builds the full rows x rows grid of Figures from a rule plan; unruled attributes are constant (dot/rot default to their "off" value). */
+export function buildGrid(rng: Rng, rows: 2 | 3, rules: AttrRule[], d: Difficulty): Figure[][] {
   const cols = rows;
   const used = new Set(rules.map(r => r.attr));
   const indexGrids = {} as Record<AttrName, number[][]>;
@@ -151,7 +224,25 @@ export function buildGrid(rng: Rng, rows: 2 | 3, rules: AttrRule[]): Figure[][] 
   }
   for (const attr of ATTR_LIST) {
     if (used.has(attr)) continue;
-    indexGrids[attr] = attr === "dot" ? fillGrid(rows, cols, 0) : RULE_FILLERS.const(rng, attrLen(attr), rows, cols);
+    if (attr === "dot" || attr === "rot") {
+      // Rotation only ever appears from d>=5 (as a rule attribute, handled
+      // above); dot only from d9-10 (appendDotCol). Unruled, both default to
+      // their "off" value rather than a random-but-constant one, so a plain
+      // d1-4 item never shows a uniformly-rotated or dotted figure.
+      indexGrids[attr] = fillGrid(rows, cols, 0);
+    } else if (attr === "count" && d <= 2) {
+      // d1-2: every figure has count:1 — not just "a constant count".
+      indexGrids[attr] = fillGrid(rows, cols, 0);
+    } else {
+      indexGrids[attr] = RULE_FILLERS.const(rng, attrLen(attr), rows, cols);
+    }
+  }
+
+  // Rotation only reads unambiguously on a triangle: whenever rot is a rule
+  // attribute, pin every figure's shape to triangle (pickPlanAttrs already
+  // guarantees "shape" itself isn't also a separate rule attribute here).
+  if (rules.some(r => r.attr === "rot")) {
+    indexGrids.shape = fillGrid(rows, cols, SHAPES.indexOf("triangle"));
   }
 
   return Array.from({ length: rows }, (_, r) =>
@@ -168,20 +259,58 @@ export function buildGrid(rng: Rng, rows: 2 | 3, rules: AttrRule[]): Figure[][] 
   );
 }
 
-/** Builds a 1x5 series row: one attribute progresses across all 5 cells; a second alternates at d >= 5. */
+/** 2 distinct value-indices for a series' progressing/alternating attribute, honoring the d3-4 S/L-only and 1-2-3-only limits. */
+function twoValueSet(rng: Rng, attr: AttrName): number[] {
+  if (attr === "size") return distinctOrCyclic(rng, 2, 2).map(i => (i === 0 ? 0 : 2)); // S/L only, never M
+  if (attr === "count") return distinctOrCyclic(rng, 3, 2); // 1/2/3 only, never 4
+  return distinctOrCyclic(rng, attrLen(attr), 2);
+}
+
+/**
+ * Builds a 1x5 series row.
+ *   - d3-4 ("narrow"): a single attribute (never rotation) makes a clean
+ *     2-value alternation across all 5 cells (A B A B ?) — never a 3-cycle.
+ *   - d5-6: one attribute progresses across the full cell range; a second
+ *     may alternate on top of it. Rotation, if chosen, forces every shape to
+ *     triangle (same rule as the matrix form).
+ */
 export function buildSeriesFigures(rng: Rng, d: Difficulty): Figure[] {
-  const progAttr = rng.pick(DRAWABLE_ATTRS);
-  const altAttr = d >= 5 ? rng.pick(DRAWABLE_ATTRS.filter(a => a !== progAttr)) : null;
+  const narrow = d <= 4;
+  const progPool = narrow ? DRAWABLE_ATTRS.filter(a => a !== "rot") : DRAWABLE_ATTRS;
+  const progAttr = rng.pick(progPool);
 
   const cols = {} as Record<AttrName, number[]>;
-  cols[progAttr] = RULE_FILLERS.progressRow(rng, attrLen(progAttr), 1, 5)[0];
+
+  if (narrow) {
+    const values = twoValueSet(rng, progAttr);
+    cols[progAttr] = Array.from({ length: 5 }, (_, i) => values[i % 2]);
+  } else {
+    cols[progAttr] = RULE_FILLERS.progressRow(rng, attrLen(progAttr), 1, 5)[0];
+  }
+
+  const altPool = !narrow && d >= 5
+    ? DRAWABLE_ATTRS.filter(a =>
+        a !== progAttr &&
+        !(progAttr === "rot" && a === "shape") &&
+        !(progAttr === "shape" && a === "rot")
+      )
+    : [];
+  const altAttr = altPool.length > 0 ? rng.pick(altPool) : null;
   if (altAttr) {
-    const vals = distinctOrCyclic(rng, attrLen(altAttr), 2);
+    const vals = altAttr === "size" ? [0, 2] : distinctOrCyclic(rng, attrLen(altAttr), 2);
     cols[altAttr] = Array.from({ length: 5 }, (_, i) => vals[i % 2]);
   }
+
+  const forceTriangle = progAttr === "rot" || altAttr === "rot";
   for (const attr of ATTR_LIST) {
     if (attr === progAttr || attr === altAttr) continue;
-    cols[attr] = attr === "dot" ? Array(5).fill(0) : Array(5).fill(rng.int(0, attrLen(attr) - 1));
+    if (attr === "dot" || attr === "rot") {
+      cols[attr] = Array(5).fill(0);
+    } else if (attr === "shape" && forceTriangle) {
+      cols[attr] = Array(5).fill(SHAPES.indexOf("triangle"));
+    } else {
+      cols[attr] = Array(5).fill(rng.int(0, attrLen(attr) - 1));
+    }
   }
 
   return Array.from({ length: 5 }, (_, i) =>
@@ -196,17 +325,64 @@ export function buildSeriesFigures(rng: Rng, d: Difficulty): Figure[] {
   );
 }
 
-/** A distractor: `answer` with 1..maxAttrs attributes changed to a different value. */
-function mutateFigure(rng: Rng, answer: Figure, maxAttrs: number): Figure {
-  const numAttrs = maxAttrs <= 1 ? 1 : rng.int(1, maxAttrs);
-  const attrs = rng.shuffle(ATTR_LIST).slice(0, numAttrs);
+/** Which attributes a distractor is allowed to differ on, given the difficulty and the answer figure. */
+function eligibleDistractorAttrs(d: Difficulty, answer: Figure): AttrName[] {
+  if (d <= 2) return ["shape", "color"];
+  if (d <= 4) return ["shape", "color", "count"];
+
+  const attrs: AttrName[] = ["color", "count"];
+  // If the answer is already rotated (only ever true for a triangle),
+  // mutating shape away would silently produce a rotated non-triangle —
+  // exactly the ambiguous case rotation is pinned away from. Leave rot
+  // itself as the only way to vary a rotated figure's orientation further.
+  if (answer.rot === 0) attrs.push("shape");
+  // Size distractors at d<=6 must jump a full S<->L step; if the answer is
+  // M there is no valid 2-step target, so size just isn't eligible there.
+  if (d > 6 || answer.size !== "M") attrs.push("size");
+  if (d >= 6) attrs.push("dot");
+  // Rotation only ever varies a triangle (and only from d>=5, guaranteed by
+  // reaching this branch at all).
+  if (answer.shape === "triangle") attrs.push("rot");
+  return attrs;
+}
+
+/**
+ * Picks `n` distinct attrs from `eligible`, never both "shape" and "rot" —
+ * mutating both at once on a d>=7 (maxAttrs 2) distractor could otherwise
+ * rotate a *non*-triangle shape, exactly the ambiguous case rotation is
+ * supposed to be pinned away from.
+ */
+function pickMutateAttrs(rng: Rng, eligible: AttrName[], n: number): AttrName[] {
+  const shuffled = rng.shuffle(eligible);
+  const chosen: AttrName[] = [];
+  for (const attr of shuffled) {
+    if (chosen.length >= n) break;
+    if (attr === "shape" && chosen.includes("rot")) continue;
+    if (attr === "rot" && chosen.includes("shape")) continue;
+    chosen.push(attr);
+  }
+  return chosen;
+}
+
+/** A distractor: `answer` with 1..maxAttrs eligible attributes changed to a different value. */
+function mutateFigure(rng: Rng, answer: Figure, d: Difficulty, maxAttrs: number): Figure {
+  const eligible = eligibleDistractorAttrs(d, answer);
+  const numAttrs = Math.min(maxAttrs <= 1 ? 1 : rng.int(1, maxAttrs), eligible.length);
+  const attrs = pickMutateAttrs(rng, eligible, numAttrs);
+
   let next = answer;
   for (const attr of attrs) {
     const len = attrLen(attr);
     if (len <= 1) continue;
     const curIdx = indexOfAttr(attr, next);
-    let idx = rng.int(0, len - 1);
-    while (idx === curIdx) idx = rng.int(0, len - 1);
+    let idx: number;
+    if (attr === "size" && d <= 6) {
+      // Enforced 2-step jump: S<->L only, M is never used as a distractor size at d<=6.
+      idx = curIdx === 0 ? 2 : 0;
+    } else {
+      idx = rng.int(0, len - 1);
+      while (idx === curIdx) idx = rng.int(0, len - 1);
+    }
     next = withAttrIndex(next, attr, idx);
   }
   return next;
@@ -226,7 +402,7 @@ export function buildOptions(
   let guard = 0;
   while (distractors.length < 4 && guard < 5000) {
     guard++;
-    const candidate = mutateFigure(rng, answer, maxAttrs);
+    const candidate = mutateFigure(rng, answer, d, maxAttrs);
     if (forbidden.some(f => figuresEqual(f, candidate))) continue;
     if (distractors.some(f => figuresEqual(f, candidate))) continue;
     distractors.push(candidate);

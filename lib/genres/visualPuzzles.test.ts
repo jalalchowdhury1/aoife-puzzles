@@ -16,6 +16,7 @@ import {
 const SEEDS = Array.from({ length: 500 }, (_, i) => i + 1);
 
 function areaBand(d: Difficulty): { size: number; min: number; max: number } {
+  if (d <= 2) return { size: 4, min: 5, max: 6 };
   if (d <= 4) return { size: 4, min: 6, max: 8 };
   if (d <= 7) return { size: 5, min: 9, max: 12 };
   return { size: 6, min: 12, max: 16 };
@@ -135,21 +136,23 @@ describe("visualPuzzles.generate", () => {
         expect(totalPlacedCells).toBe(targetSet.size);
         expect(seen.size).toBe(targetSet.size);
 
-        // every piece: >= 2 cells, internally connected
+        // every piece: internally connected, and at least 1 cell (d<=3 "obviously
+        // wrong" distractors, and d1-2 true pieces, may be a lone single cell —
+        // every other difficulty keeps the original 2-cell floor).
+        const minPieceSize = d <= 3 ? 1 : 2;
         for (const piece of item.pieces) {
-          expect(piece.cells.length).toBeGreaterThanOrEqual(2);
+          expect(piece.cells.length).toBeGreaterThanOrEqual(minPieceSize);
           expect(isConnected(piece.cells)).toBe(true);
         }
 
-        // every non-answer (distractor) piece is not equalShape to any answer piece
-        const answerSet = new Set(item.answer);
-        const trueShapes = item.answer.map(i => item.pieces[i].cells);
-        item.pieces.forEach((piece, i) => {
-          if (answerSet.has(i)) return;
-          for (const trueShape of trueShapes) {
-            expect(equalShape(piece.cells, trueShape, allowRotation)).toBe(false);
+        // No two of the six option pieces are the same shape (exact match
+        // below d>=6, rotation-equivalent from d>=6) — covers true-vs-true,
+        // true-vs-distractor, and distractor-vs-distractor pairs alike.
+        for (let i = 0; i < item.pieces.length; i++) {
+          for (let j = i + 1; j < item.pieces.length; j++) {
+            expect(equalShape(item.pieces[i].cells, item.pieces[j].cells, allowRotation)).toBe(false);
           }
-        });
+        }
 
         // rotation is the display difficulty driver
         if (d <= 5) {
@@ -160,6 +163,41 @@ describe("visualPuzzles.generate", () => {
       }
     }
   }, 30000);
+
+  it("d1-2: true pieces are pairwise non-equal, and (since 3 distinct positive counts need >=6 cells) usually land on 3 distinct cell counts", () => {
+    let sawDistinctCounts = 0;
+    for (const d of [1, 2] as const) {
+      for (const seed of SEEDS) {
+        const item = generate(seed, d);
+        const trueShapes = item.answer.map(i => item.pieces[i].cells);
+        for (let i = 0; i < trueShapes.length; i++) {
+          for (let j = i + 1; j < trueShapes.length; j++) {
+            expect(equalShape(trueShapes[i], trueShapes[j], false)).toBe(false);
+          }
+        }
+        if (new Set(trueShapes.map(s => s.length)).size === 3) sawDistinctCounts++;
+      }
+    }
+    expect(sawDistinctCounts).toBeGreaterThan(0);
+  });
+
+  it("d<=3: distractors are 'obviously wrong' by cell count, never a mirror or near-miss of a true piece", () => {
+    for (const d of [1, 2, 3] as const) {
+      for (const seed of SEEDS) {
+        const item = generate(seed, d);
+        const trueShapes = item.answer.map(i => item.pieces[i].cells);
+        const trueCounts = new Set(trueShapes.map(s => s.length));
+
+        item.pieces.forEach((piece, i) => {
+          if (item.answer.includes(i)) return;
+          expect(trueCounts.has(piece.cells.length)).toBe(false);
+          for (const trueShape of trueShapes) {
+            expect(equalShape(piece.cells, mirror(trueShape), false)).toBe(false);
+          }
+        });
+      }
+    }
+  });
 });
 
 describe("visualPuzzles.score", () => {
@@ -198,10 +236,26 @@ describe("visualPuzzles genre object", () => {
     }
   });
 
-  it("sample() returns a well-formed item and explanation", () => {
+  it("sample() returns a well-formed item matching its explanation: single cell + domino + tromino = 6 cells", () => {
     const { item, explanation } = visualPuzzles.sample();
     expect(item.pieces.length).toBe(6);
     expect(typeof explanation).toBe("string");
     expect(explanation.length).toBeGreaterThan(0);
+
+    const trueShapes = item.answer.map(i => item.pieces[i].cells);
+    expect(trueShapes.map(s => s.length).sort()).toEqual([1, 2, 3]);
+    for (let i = 0; i < trueShapes.length; i++) {
+      for (let j = i + 1; j < trueShapes.length; j++) {
+        expect(equalShape(trueShapes[i], trueShapes[j], false)).toBe(false);
+      }
+    }
+
+    const trueCounts = new Set(trueShapes.map(s => s.length));
+    item.pieces.forEach((piece, i) => {
+      if (item.answer.includes(i)) return;
+      expect(trueCounts.has(piece.cells.length)).toBe(false);
+    });
+
+    expect(explanation).toContain("6");
   });
 });

@@ -3,11 +3,13 @@
 // is guarded so this module can also be imported under Vitest (node env),
 // where tests inject a fake `globalThis.localStorage`.
 import type { GenreId, LevelConfig, SessionRecord } from "./types";
+import type { ResolvedBlock } from "./adapt";
 
 const SESSIONS_KEY = "aoife-puzzles:sessions";
 const OUTBOX_KEY = "aoife-puzzles:outbox";
 const MAX_SESSIONS = 200;
 const MAX_TRIES = 20;
+const STATE_FETCH_TIMEOUT_MS = 5000;
 
 const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // Crockford base32, no I L O U
 
@@ -176,4 +178,75 @@ export function profileStart(genre: GenreId, sessions: SessionRecord[]): number 
     }
   }
   return max;
+}
+
+/** Minimal record of a session KV knows is complete, from GET /api/state. */
+export interface CompletedRef { level: number; part: string; id: string; startedAt: string }
+
+export interface ServerState {
+  ok: true;
+  completed: CompletedRef[];
+  position: { level: number; part: string; blockIndex: number };
+  blocks: ResolvedBlock[] | null;
+}
+
+/**
+ * Calls GET /api/state (the server's source of truth for where she is and
+ * how a part should be adapted — see AGENTS.md §2/§5). Returns the parsed
+ * body on success, or null on any error, non-2xx response, malformed body,
+ * or if it doesn't answer within STATE_FETCH_TIMEOUT_MS (a flaky/offline
+ * connection must never hang the runner or the home screen). Callers fall
+ * back to local-only data on null.
+ */
+export async function fetchServerState(level?: number, part?: string): Promise<ServerState | null> {
+  if (typeof fetch === "undefined") return null;
+
+  const params = new URLSearchParams();
+  if (level !== undefined) params.set("level", String(level));
+  if (part !== undefined) params.set("part", part);
+  const qs = params.toString();
+  const url = qs ? `/api/state?${qs}` : "/api/state";
+
+  const hasAbort = typeof AbortController !== "undefined";
+  const controller = hasAbort ? new AbortController() : undefined;
+  const timer = hasAbort ? setTimeout(() => controller!.abort(), STATE_FETCH_TIMEOUT_MS) : undefined;
+
+  try {
+    const res = await fetch(url, { signal: controller?.signal, cache: "no-store" });
+    if (!res.ok) return null;
+    const body = (await res.json()) as Partial<ServerState> | null;
+    if (!body || body.ok !== true) return null;
+    return body as ServerState;
+  } catch {
+    return null; // network error, timeout/abort, or bad JSON
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+/**
+ * Unions local sessions with server-known completions the local mirror never
+ * saw (lost localStorage, or a different device). For every (level, part)
+ * the server says is complete that isn't already present locally (matched by
+ * id), synthesizes a minimal complete SessionRecord so `currentPosition` and
+ * `computeProfile` treat that part as done without ever needing its items.
+ * Local sessions (complete or not) are always kept as-is.
+ */
+export function mergeSessions(local: SessionRecord[], serverCompleted: CompletedRef[]): SessionRecord[] {
+  const localIds = new Set(local.map((s) => s.id));
+  const synthesized: SessionRecord[] = [];
+  for (const ref of serverCompleted) {
+    if (localIds.has(ref.id)) continue;
+    synthesized.push({
+      id: ref.id,
+      level: ref.level,
+      part: ref.part,
+      startedAt: ref.startedAt,
+      device: { ua: "server", w: 0, h: 0 },
+      blocks: [],
+      complete: true,
+      appVersion: "server",
+    });
+  }
+  return [...local, ...synthesized];
 }

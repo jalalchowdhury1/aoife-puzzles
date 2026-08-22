@@ -2,14 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   currentPosition,
   enqueue,
+  fetchServerState,
   flushOutbox,
   loadOutbox,
   loadSessions,
+  mergeSessions,
   profileStart,
   saveSessionLocal,
   syncState,
   ulid,
 } from "./storage";
+import type { CompletedRef } from "./storage";
 import { summarize } from "./types";
 import type { ItemRecord, LevelConfig, SessionRecord } from "./types";
 import { LEVELS } from "../levels";
@@ -269,5 +272,109 @@ describe("profileStart", () => {
       blocks: [{ genre: "blockDesign", mode: "staircase", startedAt: "t", endedAt: "t", items, summary: summarize(items, "staircase") }],
     });
     expect(profileStart("matrix", [s])).toBeNull();
+  });
+});
+
+describe("mergeSessions", () => {
+  it("returns local sessions unchanged when there is no server data", () => {
+    const local = [makeSession({ id: "L1", level: 1, part: "A" })];
+    expect(mergeSessions(local, [])).toEqual(local);
+  });
+
+  it("dedupes by id: a server-completed ref matching a local session id adds nothing", () => {
+    const local = [makeSession({ id: "L1", level: 1, part: "A", complete: true })];
+    const serverCompleted: CompletedRef[] = [{ level: 1, part: "A", id: "L1", startedAt: "2026-08-20T10:00:00.000Z" }];
+    const merged = mergeSessions(local, serverCompleted);
+    expect(merged).toHaveLength(1);
+    expect(merged).toEqual(local);
+  });
+
+  it("keeps a local incomplete session as-is even if the server has no matching completion", () => {
+    const local = [makeSession({ id: "L1", level: 1, part: "B", complete: false })];
+    const merged = mergeSessions(local, []);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]).toEqual(local[0]);
+    expect(merged[0].complete).toBe(false);
+  });
+
+  it("adds a synthetic minimal complete session for a server-only completion", () => {
+    const local: SessionRecord[] = [];
+    const serverCompleted: CompletedRef[] = [{ level: 1, part: "A", id: "SERVER-1", startedAt: "2026-08-19T10:00:00.000Z" }];
+    const merged = mergeSessions(local, serverCompleted);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]).toMatchObject({
+      id: "SERVER-1",
+      level: 1,
+      part: "A",
+      startedAt: "2026-08-19T10:00:00.000Z",
+      blocks: [],
+      complete: true,
+    });
+  });
+
+  it("makes currentPosition treat a server-only completion as done even though local knows nothing about it", () => {
+    const levels: LevelConfig[] = [
+      {
+        id: 1,
+        title: "L1",
+        feedback: "none",
+        parts: [
+          { id: "A", title: "A", sticker: "🧩", blocks: [{ genre: "matrix" }] },
+          { id: "B", title: "B", sticker: "⚡", blocks: [{ genre: "digitSpan" }] },
+        ],
+      },
+    ];
+    const local: SessionRecord[] = []; // fresh device / wiped localStorage
+    const serverCompleted: CompletedRef[] = [{ level: 1, part: "A", id: "SERVER-1", startedAt: "2026-08-19T10:00:00.000Z" }];
+    const merged = mergeSessions(local, serverCompleted);
+    expect(currentPosition(levels, merged)).toEqual({ level: 1, part: "B", blockIndex: 0 });
+  });
+
+  it("keeps local and server-only sessions both when they cover different parts", () => {
+    const local = [makeSession({ id: "L1", level: 1, part: "B", complete: false })];
+    const serverCompleted: CompletedRef[] = [{ level: 1, part: "A", id: "SERVER-1", startedAt: "2026-08-19T10:00:00.000Z" }];
+    const merged = mergeSessions(local, serverCompleted);
+    expect(merged.map((s) => s.id).sort()).toEqual(["L1", "SERVER-1"]);
+  });
+});
+
+describe("fetchServerState", () => {
+  it("returns the parsed body on a successful {ok:true} response", async () => {
+    const state = {
+      ok: true,
+      completed: [{ level: 1, part: "A", id: "S1", startedAt: "2026-08-20T10:00:00.000Z" }],
+      position: { level: 1, part: "B", blockIndex: 0 },
+      blocks: null,
+    };
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => state }) as unknown as typeof fetch;
+
+    await expect(fetchServerState()).resolves.toEqual(state);
+  });
+
+  it("passes level/part as query params", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: true, json: async () => ({ ok: true, completed: [], position: { level: 1, part: "A", blockIndex: 0 }, blocks: [] }) });
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+    await fetchServerState(2, "B");
+
+    const calledUrl = fetchMock.mock.calls[0][0] as string;
+    expect(calledUrl).toBe("/api/state?level=2&part=B");
+  });
+
+  it("returns null on a non-2xx response", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({}) }) as unknown as typeof fetch;
+    await expect(fetchServerState()).resolves.toBeNull();
+  });
+
+  it("returns null when the body reports ok:false", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: false }) }) as unknown as typeof fetch;
+    await expect(fetchServerState()).resolves.toBeNull();
+  });
+
+  it("returns null on a network exception instead of throwing", async () => {
+    globalThis.fetch = vi.fn().mockRejectedValue(new Error("offline")) as unknown as typeof fetch;
+    await expect(fetchServerState()).resolves.toBeNull();
   });
 });

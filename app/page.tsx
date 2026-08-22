@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { RELEASED_LEVELS as LEVELS } from "@/lib/levels";
-import { loadSessions, currentPosition, syncState, flushOutbox } from "@/lib/engine/storage";
+import { loadSessions, currentPosition, syncState, flushOutbox, fetchServerState, mergeSessions } from "@/lib/engine/storage";
 import type { LevelConfig, SessionRecord } from "@/lib/engine/types";
 import { BigButton } from "@/components/BigButton";
 
@@ -22,12 +22,19 @@ export default function HomePage() {
   const [levelCfg, setLevelCfg] = useState<LevelConfig | null>(null);
   const [earned, setEarned] = useState<Record<string, boolean>>({});
   const [synced, setSynced] = useState(true);
+  // True once we've asked the server and it did NOT answer in time — the
+  // page is running on local storage alone. See AGENTS.md §2/§5: the server
+  // is the source of truth for position; local is a mirror/offline fallback.
+  const [serverOffline, setServerOffline] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    void flushOutbox().then(() => {
+    void flushOutbox().then(async () => {
       if (cancelled) return;
-      const sessions = loadSessions();
+      const local = loadSessions();
+      const state = await fetchServerState();
+      if (cancelled) return;
+      const sessions = state ? mergeSessions(local, state.completed) : local;
       const pos = currentPosition(LEVELS, sessions);
       const cfg = LEVELS.find((l) => l.id === pos.level) ?? null;
       const earnedMap: Record<string, boolean> = {};
@@ -38,6 +45,7 @@ export default function HomePage() {
       setLevelCfg(cfg);
       setEarned(earnedMap);
       setSynced(syncState() === "synced");
+      setServerOffline(!state);
       setReady(true);
     });
     return () => {
@@ -81,9 +89,16 @@ export default function HomePage() {
         </>
       )}
 
-      <span className="text-2xl" aria-label={synced ? "Saved" : "Will save when back online"}>
-        {synced ? "☁️" : "⏳"}
-      </span>
+      <div className="flex items-center gap-1">
+        <span className="text-2xl" aria-label={synced ? "Saved" : "Will save when back online"}>
+          {synced ? "☁️" : "⏳"}
+        </span>
+        {serverOffline && (
+          <span className="text-xs text-ink/50" aria-label="Couldn't reach the server; showing what's saved on this device">
+            offline
+          </span>
+        )}
+      </div>
     </main>
   );
 }

@@ -44,11 +44,12 @@ spec `docs/superpowers/specs/2026-08-22-aoife-puzzles-design.md` · plan `docs/s
 
 ```
 app/
-  page.tsx               home: Play → current part; stickers; ☁️/⏳ sync icon. No scores.
+  page.tsx               home: Play → current part; stickers; ☁️/⏳ sync icon (+ "offline" if /api/state didn't answer). No scores.
   play/page.tsx          THE RUNNER: sample screen → staircase/speed block → "Next!" → persist → PartDone
   parent/page.tsx        unlinked dashboard; asks for PARENT_KEY once (localStorage); profile + sessions + replay links
   api/sessions/route.ts  POST upsert SessionRecord (→ Telegram on first `complete`), GET list (gated)
   api/profile/route.ts   GET computeProfile(sessions) (gated)
+  api/state/route.ts     GET position + resolved plan for the child's OWN device (public, no gate — see below)
 lib/engine/
   types.ts     Genre<I,R> contract, GenreViewProps, Item/Block/Session records, Level/Part/Block configs, summarize()
   rng.ts       mulberry32 — every item = (genreId, seed, difficulty), fully deterministic
@@ -58,7 +59,10 @@ lib/engine/
   adapt.ts     classifyGenres (weak/typical/strong per genre) + adaptPart (resolves a part's blocks against
                her profile — remedial levels only; see §7)
   speech.ts    Web Speech wrapper (speak, speakSequence, warmUpSpeech) — the only browser code under lib/
-  storage.ts   localStorage mirror + outbox → /api/sessions (20 tries then keep local), currentPosition, profileStart
+  storage.ts   localStorage mirror + outbox → /api/sessions (20 tries then keep local), currentPosition, profileStart,
+               fetchServerState (GET /api/state, 5s timeout, null on any failure) + mergeSessions (unions local
+               sessions with server-known completions the mirror never saw, as synthetic minimal complete records)
+  sessionsStore.ts  server-only loadAllSessions() (index LRANGE + per-id GET) — shared by api/sessions, api/profile, api/state
   kv.ts        Upstash REST; EVERY key goes through PREFIX "aoife_puzzles:"
   telegram.ts  sendTelegram (never throws) + formatPartSummary
   gate.ts      x-parent-key === PARENT_KEY
@@ -79,6 +83,23 @@ Data flow: runner builds `SessionRecord` (one per part attempt) → after every 
 `enqueue` + `flushOutbox` → `POST /api/sessions` → Upstash `aoife_puzzles:session:<ulid>` +
 `aoife_puzzles:index` (LPUSH) → on first `complete: true`, Telegram summary (idempotent via
 `aoife_puzzles:notified:<id>`, cleared with DEL if the send fails so the next POST retries).
+
+**The server is the source of truth for position and adaptation; local storage is a mirror/offline
+fallback** (2026-08-22, after learning iPad Safari deletes script-writable storage — including
+localStorage — after 7 days with no visit, and a different device starts with nothing). Home
+(`app/page.tsx`) and the runner (`app/play/page.tsx`) both call `fetchServerState()` on load/part-start
+and `mergeSessions(loadSessions(), state.completed)` the result into the local session list before
+computing `currentPosition` or `computeProfile` — so a wiped iPad or a fresh device still lands on the
+correct next part instead of being sent back to Level 1 Part A and re-taking the diagnostic. `GET
+/api/state?level=N&part=X` is **public — no `PARENT_KEY` gate** (it's what the child's own device calls)
+but returns no items/points/ceilings/profile, only `completed` (level/part/id/startedAt of finished
+sessions), `position` (`currentPosition` against every KV session), and `blocks` (that part's
+`ResolvedBlock[]` from `adaptPart`, i.e. the *already-adapted* start/maxItems/teachingItems/timeScale/
+strength/repeat plan — her profile went into producing it, but the profile numbers themselves never
+leave the server). If the server doesn't answer within 5s, or KV is down, `fetchServerState` returns
+`null` and both pages fall back to local-only data exactly as before this existed. The runner still
+resolves a remedial level's plan locally via `adaptPart(part, level, computeProfile(sessions))` whenever
+the server didn't answer; it only prefers `state.blocks` when the fetch succeeded.
 
 ## 3. Run / test / deploy
 
@@ -114,7 +135,13 @@ No secrets in the repo. Never print them to a transcript.
   Block Design 45/75/120 s by difficulty, Visual Puzzles 30 s, Figure Weights 30 s, Arithmetic 30 s after
   speech ends, Coding / Symbol Search 120 s block windows.
 - **Reload mid-block** restarts that block with fresh seeds; completed blocks are never redone; a part
-  that is complete redirects to `/` unless `?replay=1`.
+  that is complete redirects to `/` unless `?replay=1` — checked against the **merged** (server + local)
+  session list, so a part the server knows is done redirects even if this device's localStorage never
+  recorded it.
+- **`/api/state` is public but returns no results** — no `PARENT_KEY`, but only `completed`/`position`/
+  `blocks` (a resolved plan), never items, points, ceilings, or the profile. `/api/sessions` GET and
+  `/api/profile` GET stay parent-gated; all three now load sessions through the one shared
+  `loadAllSessions()` in `lib/engine/sessionsStore.ts`.
 - **iOS speech needs a user gesture**: the Start button on the sample screen is it (`warmUpSpeech`). If
   `speechSynthesis` is missing, views fall back to visual presentation and mark `audioFallback`.
 - React Compiler lint rules (`react-hooks/set-state-in-effect`, `react-hooks/refs`) reject "reset state in

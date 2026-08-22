@@ -17,6 +17,8 @@ import {
   flushOutbox,
   syncState,
   currentPosition,
+  fetchServerState,
+  mergeSessions,
 } from "@/lib/engine/storage";
 import { computeProfile } from "@/lib/engine/profile";
 import { adaptPart, type ResolvedBlock } from "@/lib/engine/adapt";
@@ -178,97 +180,131 @@ function PlayRunner() {
   }, []);
 
   // ---- Resolve where to start: URL params, else currentPosition; ?replay=1
-  // starts a fresh session even if the part is already complete. ----
+  // starts a fresh session even if the part is already complete. The server
+  // (GET /api/state) is the source of truth for position and adaptation —
+  // local storage is a mirror/offline fallback (AGENTS.md §2/§5): a wiped
+  // iPad or a different device must never re-run the diagnostic just
+  // because localStorage forgot what she already completed. ----
   useEffect(() => {
     if (initRef.current) return;
     initRef.current = true;
 
-    // This effect reads browser-only state (localStorage sessions, the URL,
-    // navigator/window) that isn't available during SSR and can't be derived
-    // during render. Guarded by initRef so it runs exactly once; the several
-    // setState calls below are one coherent initialization, not a per-render
-    // synchronization, so the lint rule's general "avoid setState in effects"
-    // guidance doesn't apply here.
-    /* eslint-disable react-hooks/set-state-in-effect */
-    void flushOutbox();
+    let cancelled = false;
 
-    const sessions = loadSessions();
-    const replay = searchParams.get("replay") === "1";
-    const levelParam = searchParams.get("level");
-    const partParam = searchParams.get("part");
+    async function init() {
+      // This effect reads browser-only state (localStorage sessions, the URL,
+      // navigator/window) that isn't available during SSR and can't be derived
+      // during render, plus a network call to the server. Guarded by initRef
+      // so it runs exactly once; the several setState calls below are one
+      // coherent initialization, not a per-render synchronization (the
+      // react-hooks/set-state-in-effect lint rule doesn't flag setState
+      // inside this nested async function, unlike the direct-body case
+      // elsewhere in this file).
+      void flushOutbox();
 
-    let level: number;
-    let part: string;
-    if (levelParam !== null && partParam !== null) {
-      level = Number(levelParam);
-      part = partParam;
-    } else {
-      const pos = currentPosition(RELEASED_LEVELS, sessions);
-      level = pos.level;
-      part = pos.part;
-    }
+      const local = loadSessions();
+      const replay = searchParams.get("replay") === "1";
+      const levelParam = searchParams.get("level");
+      const partParam = searchParams.get("part");
+      const hasUrlParams = levelParam !== null && partParam !== null;
 
-    const levelCfgFound = LEVELS.find((l) => l.id === level);
-    const partCfgFound = levelCfgFound?.parts.find((p) => p.id === part);
-    if (!levelCfgFound || !partCfgFound) {
-      router.replace("/");
-      return;
-    }
+      let level: number;
+      let part: string;
+      let state: Awaited<ReturnType<typeof fetchServerState>>;
 
-    const partSessions = sessions.filter((s) => s.level === level && s.part === part);
-    const hasComplete = partSessions.some((s) => s.complete);
-    if (hasComplete && !replay) {
-      router.replace("/");
-      return;
-    }
-
-    // Resolved once per part-start (fresh again on a reload or a replay):
-    // her profile drives each block's actual start/reps, and a remedial
-    // level can append repeat blocks for a weak genre. See adaptPart.
-    const blocksForPart = adaptPart(partCfgFound, levelCfgFound, computeProfile(sessions));
-
-    const device = { ua: navigator.userAgent, w: window.innerWidth, h: window.innerHeight };
-    const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
-
-    let activeSession: SessionRecord;
-    let startBlockIndex: number;
-
-    if (replay) {
-      activeSession = { id: ulid(), level, part, startedAt: new Date().toISOString(), device, blocks: [], complete: false, appVersion };
-      startBlockIndex = 0;
-    } else {
-      const incomplete = partSessions.filter((s) => !s.complete);
-      const latest = incomplete.length ? incomplete.reduce((a, b) => (a.startedAt > b.startedAt ? a : b)) : null;
-      if (latest) {
-        activeSession = latest;
-        startBlockIndex = latest.blocks.length;
+      if (hasUrlParams) {
+        level = Number(levelParam);
+        part = partParam as string;
+        state = await fetchServerState(level, part);
+        if (cancelled) return;
       } else {
+        // Position needs server-known completions merged in first (a
+        // different device, or lost localStorage, may have finished parts
+        // this device has never heard of) before we know which part's
+        // adapted plan to ask for next.
+        const probe = await fetchServerState();
+        if (cancelled) return;
+        const mergedForPosition = probe ? mergeSessions(local, probe.completed) : local;
+        const pos = currentPosition(RELEASED_LEVELS, mergedForPosition);
+        level = pos.level;
+        part = pos.part;
+        state = probe ? await fetchServerState(level, part) : null;
+        if (cancelled) return;
+      }
+
+      const sessions = state ? mergeSessions(local, state.completed) : local;
+
+      const levelCfgFound = LEVELS.find((l) => l.id === level);
+      const partCfgFound = levelCfgFound?.parts.find((p) => p.id === part);
+      if (!levelCfgFound || !partCfgFound) {
+        router.replace("/");
+        return;
+      }
+
+      const partSessions = sessions.filter((s) => s.level === level && s.part === part);
+      const hasComplete = partSessions.some((s) => s.complete);
+      if (hasComplete && !replay) {
+        router.replace("/");
+        return;
+      }
+
+      // Resolved once per part-start (fresh again on a reload or a replay):
+      // her profile drives each block's actual start/reps, and a remedial
+      // level can append repeat blocks for a weak genre. Prefer the
+      // server's already-resolved plan (it embeds her FULL server-side
+      // profile, not just what this device happens to have locally); only
+      // fall back to computing it from local sessions when the server
+      // didn't answer. See adaptPart.
+      const blocksForPart = state?.blocks ?? adaptPart(partCfgFound, levelCfgFound, computeProfile(sessions));
+
+      const device = { ua: navigator.userAgent, w: window.innerWidth, h: window.innerHeight };
+      const appVersion = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
+
+      let activeSession: SessionRecord;
+      let startBlockIndex: number;
+
+      if (replay) {
         activeSession = { id: ulid(), level, part, startedAt: new Date().toISOString(), device, blocks: [], complete: false, appVersion };
         startBlockIndex = 0;
+      } else {
+        const incomplete = partSessions.filter((s) => !s.complete);
+        const latest = incomplete.length ? incomplete.reduce((a, b) => (a.startedAt > b.startedAt ? a : b)) : null;
+        if (latest) {
+          activeSession = latest;
+          startBlockIndex = latest.blocks.length;
+        } else {
+          activeSession = { id: ulid(), level, part, startedAt: new Date().toISOString(), device, blocks: [], complete: false, appVersion };
+          startBlockIndex = 0;
+        }
       }
+
+      setLevelCfg(levelCfgFound);
+      setPartCfg(partCfgFound);
+      setResolvedBlocks(blocksForPart);
+      setSession(activeSession);
+      setBlockIndex(startBlockIndex);
+
+      if (startBlockIndex >= blocksForPart.length) {
+        // Defensive: every block already recorded but the session was never
+        // flagged complete (shouldn't normally happen). Finish it now.
+        const endedAtIso = activeSession.endedAt ?? new Date().toISOString();
+        const doneSession: SessionRecord = { ...activeSession, complete: true, endedAt: endedAtIso };
+        saveSessionLocal(doneSession);
+        enqueue(doneSession);
+        void flushOutbox();
+        setSession(doneSession);
+        setPhase("done");
+      } else {
+        setPhase("sample");
+      }
+      setReady(true);
     }
 
-    setLevelCfg(levelCfgFound);
-    setPartCfg(partCfgFound);
-    setResolvedBlocks(blocksForPart);
-    setSession(activeSession);
-    setBlockIndex(startBlockIndex);
+    void init();
 
-    if (startBlockIndex >= blocksForPart.length) {
-      // Defensive: every block already recorded but the session was never
-      // flagged complete (shouldn't normally happen). Finish it now.
-      const endedAtIso = activeSession.endedAt ?? new Date().toISOString();
-      const doneSession: SessionRecord = { ...activeSession, complete: true, endedAt: endedAtIso };
-      saveSessionLocal(doneSession);
-      enqueue(doneSession);
-      void flushOutbox();
-      setSession(doneSession);
-      setPhase("done");
-    } else {
-      setPhase("sample");
-    }
-    setReady(true);
-    /* eslint-enable react-hooks/set-state-in-effect */
+    return () => {
+      cancelled = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

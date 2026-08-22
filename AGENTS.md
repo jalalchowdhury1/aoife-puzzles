@@ -32,6 +32,7 @@ spec `docs/superpowers/specs/2026-08-22-aoife-puzzles-design.md` · plan `docs/s
 | 10 | Verbal difficulty | Age 6 → 13 ramp over d1–10. |
 | 11 | Mood | Calm during; confetti + sticker at the end of a part only. |
 | 12 | Telegram | One summary message per completed part to the owner's @ZingerJC_bot DM. |
+| 13 | Remedial rule (2026-08-22, after launch) | **Every level after the diagnostic adapts to her profile: a weak area starts EASIER and gets MORE practice; a strong area starts near her ceiling and gets fewer reps.** Implemented in `lib/engine/adapt.ts`; levels opt in with `weighting: "remedial"`. Never ship a post-diagnostic level that ignores the profile. |
 
 ## 2. Architecture
 

@@ -320,7 +320,7 @@ function PlayRunner() {
         const doneSession: SessionRecord = { ...activeSession, complete: true, endedAt: endedAtIso };
         saveSessionLocal(doneSession);
         enqueue(doneSession);
-        void flushOutbox();
+        await flushOutbox();   // PartDone's first render reflects the real sync state
         setSession(doneSession);
         setPhase("done");
       } else {
@@ -331,33 +331,9 @@ function PlayRunner() {
 
     void init();
 
-<<<<<<< HEAD
     return () => {
       cancelled = true;
     };
-=======
-    if (startBlockIndex >= blocksForPart.length) {
-      // Defensive: every block already recorded but the session was never
-      // flagged complete (shouldn't normally happen). Finish it now.
-      const endedAtIso = activeSession.endedAt ?? new Date().toISOString();
-      const doneSession: SessionRecord = { ...activeSession, complete: true, endedAt: endedAtIso };
-      saveSessionLocal(doneSession);
-      enqueue(doneSession);
-      setSession(doneSession);
-      // Awaited (via an inner async IIFE — this effect body itself isn't
-      // async) so PartDone's first render already reflects the real sync
-      // outcome instead of the stale "still pending" state right after
-      // `enqueue`. Same reasoning as endBlock's isLastBlock branch below.
-      void (async () => {
-        await flushOutbox();
-        setPhase("done");
-      })();
-    } else {
-      setPhase("sample");
-    }
-    setReady(true);
-    /* eslint-enable react-hooks/set-state-in-effect */
->>>>>>> worktree-agent-ae0c2baa426922a7f
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

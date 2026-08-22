@@ -1,0 +1,10 @@
+@import url('https://fonts.googleapis.com/css2?family=Bubblegum+Sans&family=Inter:wght@400;700&display=swap');
+@import "tailwindcss";
+@theme {
+  --font-bubble: "Bubblegum Sans", cursive;
+  --font-body: "Inter", system-ui, sans-serif;
+  --color-cream: #fff8ec; --color-teal-100: #ccf2ef; --color-teal-400: #2bb3a9; --color-teal-600: #1c8a82;
+  --color-ink: #1f2937; --color-amber-400: #f5b63d; --color-rose-400: #f06b7a; --color-sky-300: #8cc9ff;
+}
+html, body { background: var(--color-cream); color: var(--color-ink); font-family: var(--font-body); }
+* { -webkit-tap-highlight-color: transparent; touch-action: manipulation; user-select: none; }

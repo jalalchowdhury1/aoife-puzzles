@@ -119,6 +119,8 @@ No secrets in the repo. Never print them to a transcript.
 ## 6. State / TODO
 
 - 2026-08-22: v0.1.0 shipped — Level 1 (3 parts) live; parent page; Telegram summaries; no Level 2 yet.
+- Cosmetic: the SampleScreen card is narrower than the two Block Builder boards at 1180px wide (boards overflow the white card). Harmless; fix when touching SampleScreen.
+- `vercel env add` via stdin marks vars *sensitive*: `vercel env pull` on this project returns BLANK values (production still works). To run `scripts/kv-del.mjs`, pull the env from the `aoifes-schedule` project instead.
 - Ideas parked, not promised: Cancellation / Letter-Number Sequencing / Picture Concepts genres;
   `feedback: "reveal"` practice levels with explanations (banks already carry `explanation`);
   per-session "guess rate" proxy; audio-only Arithmetic (`display: "audio"`) in later levels.

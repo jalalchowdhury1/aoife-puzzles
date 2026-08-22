@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { matrix } from "./matrix";
+import { matrix, planFor } from "./matrix";
 import type { Figure } from "./matrix";
 import { DIFFICULTIES } from "../engine/types";
+import { COLORS, SHAPES } from "./shapes";
 
 const SEEDS = Array.from({ length: 500 }, (_, i) => i * 97 + 1);
 const ATTRS: (keyof Figure)[] = ["shape", "color", "size", "count", "rot", "dot"];
@@ -20,6 +21,27 @@ function allFigures(item: ReturnType<typeof matrix.generate>): Figure[] {
   const visible = item.cells.filter((c): c is Figure => c !== null);
   return [...visible, ...item.options];
 }
+
+/**
+ * True iff `indices` are all different AND consecutive ones satisfy
+ * index_{k+1} = index_k + 1 (mod len) — i.e. a genuine "step through the
+ * list, wrapping" progression, the pattern only const/constRow/constCol/
+ * dist3 may leave behind on colour or shape (2026-08-22 fix). A period-2
+ * alternation (A B A B ...) does NOT satisfy this for any list length > 2
+ * used here, so it never false-flags the still-allowed alternating rules.
+ */
+function isWrapProgression(indices: number[], len: number): boolean {
+  if (new Set(indices).size !== indices.length) return false;
+  for (let i = 1; i < indices.length; i++) {
+    if ((indices[i - 1] + 1) % len !== indices[i]) return false;
+  }
+  return true;
+}
+
+const COLOR_SHAPE_CHECKS: [attr: "color" | "shape", list: readonly string[]][] = [
+  ["color", COLORS],
+  ["shape", SHAPES],
+];
 
 describe("matrix genre", () => {
   it("id/domain/mode match the registry contract", () => {
@@ -282,6 +304,80 @@ describe("matrix genre", () => {
         expect(latinCount).toBeGreaterThanOrEqual(2);
       }
     }
+  });
+
+  it("matrix-form rule plans never assign the progressing (stepping) rule to colour or shape", () => {
+    // Colour and shape have no natural order, so a "progressRow" step
+    // through either is unguessable — real Matrix Reasoning only ever
+    // progresses size, count, or rotation. Checked directly against the
+    // RulePlan `generate` used, via the test-only `planFor` window.
+    for (const d of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const plan = planFor(seed, d);
+        if (plan.form !== "matrix") continue;
+        expect(plan.kinds.color).not.toBe("progressRow");
+        expect(plan.kinds.shape).not.toBe("progressRow");
+      }
+    }
+  });
+
+  it("matrix-form items: colour/shape never show a row-wise list-order wrap progression unless the same pattern also holds column-wise (Latin square)", () => {
+    // Behavioral cross-check of the same rule, reconstructed from the
+    // rendered grid rather than the plan: a row is a "wrap progression" if
+    // its values are all different AND index_{k+1} = index_k + 1 (mod n).
+    // That's exactly what an unguarded progressRow on colour/shape used to
+    // produce (2026-08-22 bug). It's fine for a Latin square (dist3), which
+    // is why the same check must also hold column-wise before this fails.
+    for (const d of DIFFICULTIES) {
+      for (const seed of SEEDS) {
+        const item = matrix.generate(seed, d);
+        if (item.form !== "matrix") continue;
+
+        const full = [...item.cells];
+        full[full.length - 1] = item.options[item.answer];
+        const grid = full as Figure[];
+        const n = item.rows;
+
+        for (const [attr, list] of COLOR_SHAPE_CHECKS) {
+          for (let r = 0; r < n; r++) {
+            const rowIdx = Array.from({ length: n }, (_, c) => list.indexOf(grid[r * n + c][attr]));
+            if (!isWrapProgression(rowIdx, list.length)) continue;
+            for (let c = 0; c < n; c++) {
+              const colVals = Array.from({ length: n }, (_, rr) => grid[rr * n + c][attr]);
+              expect(new Set(colVals).size).toBe(n);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it("series items (d3-6) never show colour or shape as a full-range step (wrap) progression", () => {
+    // The series form's "progressing" attribute is the same kind of
+    // stepping rule as matrix-form's progressRow (see matrixRules.ts
+    // buildSeriesFigures) and is subject to the same restriction: only
+    // count/size/rot may step; a genuine wrap progression on colour/shape
+    // would be unguessable. The still-allowed 2-value alternation never
+    // satisfies isWrapProgression for these list lengths, so this can't
+    // false-flag it.
+    let sawSeries = false;
+    for (const d of [3, 4, 5, 6] as const) {
+      for (const seed of SEEDS) {
+        const item = matrix.generate(seed, d);
+        if (item.form !== "series") continue;
+        sawSeries = true;
+
+        const visible = item.cells.slice(0, 4) as Figure[];
+        const answerFigure = item.options[item.answer];
+        const five = [...visible, answerFigure];
+
+        for (const [attr, list] of COLOR_SHAPE_CHECKS) {
+          const idx = five.map(f => list.indexOf(f[attr]));
+          expect(isWrapProgression(idx, list.length)).toBe(false);
+        }
+      }
+    }
+    expect(sawSeries).toBe(true);
   });
 
   it("series form is disabled at d1-2, allowed from d3 through d6 at <=30% of seeds, and off again at d>=7", () => {

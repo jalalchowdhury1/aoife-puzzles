@@ -5,6 +5,7 @@ import type { Difficulty, Genre, ScoreResult } from "../engine/types";
 import type { Figure } from "./shapes";
 import { COLORS } from "./shapes";
 import { buildGrid, buildOptions, buildRulePlan, buildSeriesFigures } from "./matrixRules";
+import type { AttrName, RuleKind } from "./matrixRules";
 
 export type { Figure } from "./shapes";
 
@@ -36,6 +37,24 @@ function generate(seed: number, d: Difficulty): MatrixItem {
   const answerFigure = grid[grid.length - 1];
   const { options, answerIndex } = buildOptions(rng, answerFigure, visible, d);
   return { form: "matrix", rows, cells: [...visible, null], options, answer: answerIndex };
+}
+
+/**
+ * Test-only window into `generate`'s rule plan (never used by the running
+ * game). Mirrors `generate`'s rng usage up to the series/matrix fork so a
+ * test can inspect which RuleKind was assigned to which attribute for a
+ * given (seed, d) without re-deriving it from a rendered grid — in
+ * particular, to assert colour/shape never land on "progressRow".
+ */
+export function planFor(seed: number, d: Difficulty): { form: "matrix" | "series"; kinds: Partial<Record<AttrName, RuleKind>> } {
+  const rng = makeRng(seed);
+  const useSeries = d >= 3 && d <= 6 && rng.next() < 0.3;
+  if (useSeries) return { form: "series", kinds: {} };
+
+  const { rules } = buildRulePlan(rng, d);
+  const kinds: Partial<Record<AttrName, RuleKind>> = {};
+  for (const rule of rules) kinds[rule.attr] = rule.kind;
+  return { form: "matrix", kinds };
 }
 
 function score(item: MatrixItem, response: number | null): ScoreResult {

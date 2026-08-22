@@ -49,6 +49,8 @@ lib/engine/
   staircase.ts startStair/stepStair: +1 on correct, hold on wrong, stop after 2 consecutive wrong / maxItems / top
   timing.ts    itemMs table helper, SPEED_BLOCK_MS = 120 s
   profile.ts   sessions → per-genre stats → domain roll-ups (VS FR WM PS VC) + EGAI/CPI bundles; z-flags ±0.5 within HER OWN domains
+  adapt.ts     classifyGenres (weak/typical/strong per genre) + adaptPart (resolves a part's blocks against
+               her profile — remedial levels only; see §7)
   speech.ts    Web Speech wrapper (speak, speakSequence, warmUpSpeech) — the only browser code under lib/
   storage.ts   localStorage mirror + outbox → /api/sessions (20 tries then keep local), currentPosition, profileStart
   kv.ts        Upstash REST; EVERY key goes through PREFIX "aoife_puzzles:"
@@ -58,7 +60,7 @@ lib/genres/    one pure module per genre (generate/score/sample/timing/mode) + b
   index.ts     GENRES registry + GENRE_LIST (spec order)
 components/genres/*View.tsx   one UI per genre (4 verbal genres share ChoiceView); components/genres/index.tsx = VIEWS map
 components/{BigButton,Countdown,SampleScreen,PartDone,Figure,ParentTable}.tsx
-lib/levels/    level1.ts + index.ts (LEVELS) — levels are DATA
+lib/levels/    level1.ts, level2.ts + index.ts (LEVELS) — levels are DATA
 ```
 
 Genre ↔ subtest map: blockDesign=Block Design (VS) · visualPuzzles=Visual Puzzles (VS) ·
@@ -119,19 +121,39 @@ No secrets in the repo. Never print them to a transcript.
 
 ## 6. State / TODO
 
-- 2026-08-22: v0.1.0 shipped — Level 1 (3 parts) live; parent page; Telegram summaries; no Level 2 yet.
+- 2026-08-22: v0.1.0 shipped — Level 1 (3 parts) live; parent page; Telegram summaries.
+- 2026-08-22: Level 2 "Practice Round 1" exists, unlocked after Level 1 (`currentPosition` only surfaces it
+  once every Level 1 part is complete). `feedback: "reveal"` + `weighting: "remedial"` — see §7.
 - Cosmetic: the SampleScreen card is narrower than the two Block Builder boards at 1180px wide (boards overflow the white card). Harmless; fix when touching SampleScreen.
 - `vercel env add` via stdin marks vars *sensitive*: `vercel env pull` on this project returns BLANK values (production still works). To run `scripts/kv-del.mjs`, pull the env from the `aoifes-schedule` project instead.
 - Ideas parked, not promised: Cancellation / Letter-Number Sequencing / Picture Concepts genres;
-  `feedback: "reveal"` practice levels with explanations (banks already carry `explanation`);
   per-session "guess rate" proxy; audio-only Arithmetic (`display: "audio"`) in later levels.
 
 ## 7. Playbooks
 
 **"Add a level"** → new `lib/levels/levelN.ts` exporting a `LevelConfig` (usually `feedback: "reveal"`,
-blocks with `start: "fromProfile"` so each genre begins just under her last ceiling, and `display:
-"audio"` for Arithmetic if she is ready); register in `lib/levels/index.ts`; `levels.test.ts` guards
-genre ids. **Before designing the level, read her profile** (next playbook).
+`weighting: "remedial"`, blocks with `start: "fromProfile"` so `adaptPart` resolves each genre's actual
+start/reps from her profile (see the remedial-adaptation playbook below), and `display: "audio"` for
+Arithmetic if she is ready); register in `lib/levels/index.ts`; `levels.test.ts` guards genre ids.
+**Before designing the level, read her profile** (next playbook).
+
+**"How remedial adaptation works"** (decision #13) → any level with `weighting: "remedial"` (Level 2
+onward) is resolved by `lib/engine/adapt.ts`, not played straight off `LevelConfig`. `classifyGenres`
+flags every genre `weak` / `typical` / `strong` relative to *her own* data: a genre is `weak` if its
+domain flag (from `profile.ts`) is `"weakness"` OR its value sits more than 0.1 below the median of all
+her genre values; `strong` if the domain flag is `"strength"` AND its value is at/above that median;
+otherwise `typical`; no data at all → `typical`. `adaptPart` then resolves each block for a non-remedial
+level literally (`start`/`maxItems` as written, `"fromProfile"` → `ceiling − 1`) but for a remedial level:
+weak starts at `ceiling − 2` (more room to rebuild) with up to 10 reps *and* one extra repeat block of the
+same genre appended at the end of the part; typical starts at `ceiling − 1` with up to 8 reps; strong
+starts at (or near) the ceiling with as few as 6 reps. Speed genres (`coding`, `symbolSearch`) are exempt
+from the ceiling math — they always start 1/8 since the runner ignores those fields in a speed block —
+but still get the repeat block when weak. The runner (`app/play/page.tsx`) calls `adaptPart` once per
+part-start (and again on `?replay=1`), so mid-part performance in the SAME sitting never re-adjusts the
+rest of that part. **The knobs are all in `adaptPart`/`classifyGenres`** — the median-minus-0.1 weak
+threshold, the −2/−1/0 ceiling offsets, and the 10/8/6 rep counts. Change them there, not in a level file.
+The parent page's per-genre table shows the live `classifyGenres` result (a "Level 2 plan" tag) so the
+owner can see what a remedial level will actually do before she plays it.
 
 **"How is she doing / design the next level"** → read the live profile:
 ```bash

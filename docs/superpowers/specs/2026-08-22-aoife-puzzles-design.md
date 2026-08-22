@@ -84,7 +84,7 @@ registry entry. Adding a level = one object in `lib/levels/`.
 interface Genre<I, R> {
   id: GenreId;                 // 'blockDesign' …
   subtest: string;             // 'Block Design'
-  domain: 'VS' | 'FR' | 'WM' | 'PS' | 'VC' | 'QR';   // QR only for arithmetic (also counted FR)
+  domain: 'VS' | 'FR' | 'WM' | 'PS' | 'VC';   // arithmetic counts as FR (the QRI pairing is reported in the profile text only)
   kidTitle: string;            // 'Block Builder'
   instructions: string;        // spoken + shown before the sample
   sample(): { item: I; explanation: string };        // fixed, untimed, with explanation

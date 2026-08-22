@@ -14,50 +14,50 @@ export const ARITHMETIC_BANK: ArithmeticBankItem[] = [
   {
     id: "ar-01", d: 1,
     template: "Aoife has {a} apples and picks {b} more. How many apples does she have now?",
-    vars: { a: [1, 4], b: [1, 3] },
+    vars: { a: [2, 4], b: [2, 3] },
     answer: v => v.a + v.b,
   },
   {
     id: "ar-02", d: 1,
     template: "There are {a} ducks in the pond. {b} more ducks swim in. How many ducks are in the pond now?",
-    vars: { a: [2, 5], b: [1, 3] },
+    vars: { a: [2, 5], b: [2, 3] },
     answer: v => v.a + v.b,
   },
   {
     id: "ar-03", d: 1,
     template: "Sam has {a} red balloons and {b} blue balloons. How many balloons does he have in all?",
-    vars: { a: [1, 5], b: [1, 4] },
+    vars: { a: [2, 5], b: [2, 4] },
     answer: v => v.a + v.b,
   },
   {
     id: "ar-04", d: 1,
     template: "There are {a} cars in the lot. {b} more cars park. How many cars are in the lot now?",
-    vars: { a: [2, 6], b: [1, 3] },
+    vars: { a: [2, 6], b: [2, 3] },
     answer: v => v.a + v.b,
   },
   {
     id: "ar-05", d: 1,
     template: "Aoife counts {a} birds on a branch. {b} more birds land on it. How many birds are on the branch now?",
-    vars: { a: [1, 4], b: [1, 3] },
+    vars: { a: [2, 4], b: [2, 3] },
     answer: v => v.a + v.b,
   },
   {
     id: "ar-06", d: 1,
     template: "Mia has {a} pencils and {b} more in her bag. How many pencils does she have altogether?",
-    vars: { a: [2, 5], b: [1, 3] },
+    vars: { a: [2, 5], b: [2, 3] },
     answer: v => v.a + v.b,
   },
   // d2: counting/adding and simple taking away within 10, age 6
   {
     id: "ar-07", d: 2,
     template: "Aoife has {a} stickers and gets {b} more. How many stickers does she have now?",
-    vars: { a: [2, 6], b: [1, 4] },
+    vars: { a: [2, 6], b: [2, 4] },
     answer: v => v.a + v.b,
   },
   {
     id: "ar-08", d: 2,
     template: "There are {a} kittens in the basket. {b} more kittens climb in. How many kittens are in the basket now?",
-    vars: { a: [2, 5], b: [1, 4] },
+    vars: { a: [2, 5], b: [2, 4] },
     answer: v => v.a + v.b,
   },
   {
@@ -69,7 +69,7 @@ export const ARITHMETIC_BANK: ArithmeticBankItem[] = [
   {
     id: "ar-10", d: 2,
     template: "There were {a} birds on the fence. {b} birds flew away. How many birds are left on the fence?",
-    vars: { a: [5, 9], b: [1, 4] },
+    vars: { a: [5, 9], b: [2, 4] },
     answer: v => v.a - v.b,
   },
   {
@@ -81,7 +81,7 @@ export const ARITHMETIC_BANK: ArithmeticBankItem[] = [
   {
     id: "ar-12", d: 2,
     template: "Aoife picks {a} flowers. She picks {b} more. How many flowers does she have now?",
-    vars: { a: [3, 6], b: [1, 4] },
+    vars: { a: [3, 6], b: [2, 4] },
     answer: v => v.a + v.b,
   },
   // d3: add/subtract within 20, one step, age 7 to 8
@@ -168,7 +168,7 @@ export const ARITHMETIC_BANK: ArithmeticBankItem[] = [
   {
     id: "ar-26", d: 5,
     template: "It is {a} o'clock. In {b} hours it will be a new hour. What hour will it be?",
-    vars: { a: [1, 6], b: [1, 5] },
+    vars: { a: [1, 6], b: [2, 5] },
     answer: v => v.a + v.b,
   },
   {
@@ -205,7 +205,7 @@ export const ARITHMETIC_BANK: ArithmeticBankItem[] = [
   {
     id: "ar-32", d: 6,
     template: "A train leaves at {a} o'clock and the ride takes {b} hours. What hour does it arrive if it does not pass midnight?",
-    vars: { a: [1, 5], b: [1, 6] },
+    vars: { a: [1, 5], b: [2, 6] },
     answer: v => v.a + v.b,
   },
   {

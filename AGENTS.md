@@ -11,7 +11,13 @@ the 13 WISC-V subtests** the Gifted Development Center administers (10 primary +
 Comprehension, Arithmetic). She sits the WISC-V at GDC in early 2027. **Level 1** is a
 diagnostic ("Find Your Superpowers", three ~15-minute parts) that maps her relative
 strengths and weaknesses; later levels are added as data and can start from her recorded
-profile. Every item, answer, time and time-out is stored server-side.
+profile. Every item, answer, time and time-out is stored server-side. Every staircase block
+also opens with up to two **teaching items** (real data: a 5-year-old failed the first two
+items of two genres without ever seeing the format work) — a miss there reveals the answer
+for 4s and does NOT by itself end the block, unlike a normal miss; the knob is
+`teachingItems` on `LevelConfig`/`BlockConfig` (block overrides level), resolved into
+`ResolvedBlock.teachingItems` by `lib/engine/adapt.ts` and enforced by `lib/engine/staircase.ts`
+(`startStair`'s third arg). Level 1 and Level 2 both set `teachingItems: 2`.
 
 Live: **https://aoife-puzzles.vercel.app** · repo `jalalchowdhury1/aoife-puzzles` (public) ·
 spec `docs/superpowers/specs/2026-08-22-aoife-puzzles-design.md` · plan `docs/superpowers/plans/`.
@@ -27,7 +33,7 @@ spec `docs/superpowers/specs/2026-08-22-aoife-puzzles-design.md` · plan `docs/s
 | 5 | Device | iPad, touch first, landscape and portrait. |
 | 6 | Company | Usually alone → every block self-explains (spoken instructions + untimed sample item). |
 | 7 | Audio | Browser speech reads digit sequences and word problems; one Replay per item; visual fallback only if speech unavailable (logged `audioFallback`). |
-| 8 | Level 1 feedback | **None** — "Next!" only. No ticks/crosses/answers. |
+| 8 | Level 1 feedback | **None** — "Next!" only. No ticks/crosses/answers, **EXCEPT teaching items**: the first two items of each block reveal the answer if missed, like the real test's teaching items. |
 | 9 | Sittings | Level 1 = 3 parts (A Shapes, B Memory and Speed, C Words); progress saves after every block. |
 | 10 | Verbal difficulty | Age 6 → 13 ramp over d1–10. |
 | 11 | Mood | Calm during; confetti + sticker at the end of a part only. |

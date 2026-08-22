@@ -32,8 +32,12 @@ type Phase = "loading" | "sample" | "item" | "between" | "done";
 // pause otherwise.
 const BETWEEN_MS: Record<"none" | "mark", number> = { none: 600, mark: 1200 };
 
-function feedbackDelay(feedback: LevelConfig["feedback"], fullScore: boolean): number {
+// `teaching`: this item was a missed teaching item (see ResolvedBlock.teachingItems
+// / lib/engine/staircase.ts) — it gets the same 4s answer-reveal pause as
+// Level 2's "reveal" feedback even when the level's own feedback is "none".
+function feedbackDelay(feedback: LevelConfig["feedback"], fullScore: boolean, teaching: boolean): number {
   if (feedback === "reveal") return fullScore ? 1200 : 4000;
+  if (teaching) return 4000;
   return BETWEEN_MS[feedback];
 }
 
@@ -93,10 +97,11 @@ function FullScoreScreen() {
   );
 }
 
-// Level 2 ("reveal" feedback), a response worth less than full points (or a
-// time-out): re-renders the same genre View, disabled, with `reveal` and
-// `lastResponse` set so the view can show the correct answer against her
-// own response. Shown for 4000ms (feedbackDelay).
+// A response worth less than full points (or a time-out): re-renders the
+// same genre View, disabled, with `reveal` and `lastResponse` set so the
+// view can show the correct answer against her own response. Shown for
+// 4000ms (feedbackDelay). Used for Level 2's ("reveal" feedback) misses, and
+// also for a missed teaching item on any level (see `teachingReveal`).
 function RevealAnswerScreen({
   View,
   item,
@@ -159,6 +164,10 @@ function PlayRunner() {
   // answer-reveal screen — see feedbackDelay and the render below).
   const [lastResponse, setLastResponse] = useState<unknown>(null);
   const [fullScore, setFullScore] = useState(false);
+  // True when the item just answered was a missed teaching item (see
+  // ResolvedBlock.teachingItems) — forces the answer-reveal screen for this
+  // one "between" pause even on a level whose own feedback is "none".
+  const [teachingReveal, setTeachingReveal] = useState(false);
 
   // Stable across every render so views whose mount effect lists `onReady`
   // as a dependency (ChoiceView, ArithmeticView, PictureSpanView) never
@@ -275,13 +284,14 @@ function PlayRunner() {
     setLastCorrect(null);
     setLastResponse(null);
     setFullScore(false);
+    setTeachingReveal(false);
     setBlockStartedAtIso(new Date().toISOString());
 
     const newSeed = randomSeed();
     setSeed(newSeed);
 
     if (genre.mode === "staircase") {
-      const st = startStair(cfg.start, cfg.maxItems);
+      const st = startStair(cfg.start, cfg.maxItems, cfg.teachingItems);
       setStair(st);
       setItem(genre.generate(newSeed, st.d, { excludeBankIds: [] }));
       setBlockStartMs(null);
@@ -355,6 +365,7 @@ function PlayRunner() {
     const genre = GENRES[cfg.genre];
     const ms = startedAtMs !== null ? performance.now() - startedAtMs : 0;
     const finalScore = genre.score(item, timedOut ? null : response);
+    const scoredFull = finalScore.points >= finalScore.max;
 
     let fast: boolean | undefined;
     if (genre.timing.kind === "item") {
@@ -362,6 +373,12 @@ function PlayRunner() {
       fast = ms < cap * 0.5;
     }
     const bankId: string | undefined = genre.bankId?.(item);
+
+    // Teaching items (ResolvedBlock.teachingItems / lib/engine/staircase.ts):
+    // the first `cfg.teachingItems` items of a staircase block reveal the
+    // answer if missed, like the real test's teaching items — independent of
+    // the level's own `feedback` (Level 1 is otherwise "none").
+    const isTeachingMiss = genre.mode === "staircase" && records.length < cfg.teachingItems && (timedOut || !scoredFull);
 
     const record: ItemRecord = {
       idx: records.length,
@@ -378,6 +395,7 @@ function PlayRunner() {
     if (fast !== undefined) record.fast = fast;
     if (meta?.replayed !== undefined) record.replayed = meta.replayed;
     if (meta?.audioFallback !== undefined) record.audioFallback = meta.audioFallback;
+    if (isTeachingMiss) record.teaching = true;
 
     const newRecords = [...records, record];
     setRecords(newRecords);
@@ -389,14 +407,14 @@ function PlayRunner() {
     }
 
     const newStair = stepStair(stair!, finalScore.correct);
-    const scoredFull = finalScore.points >= finalScore.max;
     setStair(newStair);
     setLastCorrect(finalScore.correct);
     setLastResponse(timedOut ? null : (response ?? null));
     setFullScore(scoredFull);
+    setTeachingReveal(isTeachingMiss);
     setPhase("between");
 
-    const delay = feedbackDelay(levelCfg.feedback, scoredFull);
+    const delay = feedbackDelay(levelCfg.feedback, scoredFull, isTeachingMiss);
     window.setTimeout(() => {
       if (newStair.done) endBlock(newRecords);
       else generateNextItem(newStair.d);
@@ -473,6 +491,10 @@ function PlayRunner() {
           ) : (
             <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} />
           )
+        ) : teachingReveal ? (
+          // A missed teaching item on a level whose own feedback is "none"
+          // (Level 1): still show the answer, just this once.
+          <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} />
         ) : (
           <BetweenScreen feedback={levelCfg.feedback} lastCorrect={lastCorrect} />
         )}

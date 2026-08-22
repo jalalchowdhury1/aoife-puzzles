@@ -19,9 +19,11 @@ export function SampleScreen({
 }) {
   const sample = useMemo(() => genre.sample(), [genre]);
 
+  // The child hears the general instructions, then the sample's own
+  // explanation, back to back (not simultaneously) so both register.
   useEffect(() => {
-    void speak(genre.instructions);
-  }, [genre]);
+    void speak(genre.instructions).then(() => speak(sample.explanation));
+  }, [genre, sample]);
 
   const handleStart = () => {
     warmUpSpeech(); // the iOS/Safari audio-unlock gesture
@@ -33,8 +35,13 @@ export function SampleScreen({
       <h1 className="font-bubble text-5xl text-ink">{genre.kidTitle}</h1>
       <p className="max-w-xl text-xl text-ink">{genre.instructions}</p>
 
+      {/* Every genre view supports reveal mode: correct answer highlighted,
+          inputs inert. Showing the sample this way (instead of an
+          unanswered, undecorated item) is the whole point of this change —
+          she sees what a correct answer to this format looks like before
+          she ever has to produce one herself. */}
       <div className="w-full max-w-md rounded-3xl bg-white p-4 shadow-lg">
-        <View item={sample.item} disabled onReady={() => {}} onRespond={() => {}} />
+        <View item={sample.item} disabled reveal lastResponse={null} onReady={() => {}} onRespond={() => {}} />
       </div>
 
       <div className="max-w-xl rounded-3xl bg-sky-300/40 p-4 text-lg text-ink">{sample.explanation}</div>

@@ -12,6 +12,7 @@ export interface ResolvedBlock extends BlockConfig {
   maxItems: number;
   strength: Strength;
   repeat?: boolean;
+  teachingItems: number;
 }
 
 // Genres scored by throughput (perMinute), not a staircase ceiling. Their
@@ -102,7 +103,9 @@ export function adaptPart(part: PartConfig, level: LevelConfig, profile: Profile
       maxItems = block.maxItems !== undefined ? Math.min(block.maxItems, baseMax) : baseMax;
     }
 
-    return { ...block, start, maxItems, strength };
+    const teachingItems = block.teachingItems ?? level.teachingItems ?? 0;
+
+    return { ...block, start, maxItems, strength, teachingItems };
   });
 
   if (!remedial) return resolved;

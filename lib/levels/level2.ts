@@ -9,6 +9,7 @@ export const level2: LevelConfig = {
   title: "Practice Round 1",
   feedback: "reveal",
   weighting: "remedial",
+  teachingItems: 2,
   parts: [
     {
       id: "A",

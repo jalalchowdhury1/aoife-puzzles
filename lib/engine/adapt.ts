@@ -12,6 +12,8 @@ export interface ResolvedBlock extends BlockConfig {
   maxItems: number;
   strength: Strength;
   repeat?: boolean;
+  /** Multiplier on per-item time caps (weak genres in remedial levels get 1.5× — learning a format under a 30 s cap just produces time-outs). Speed blocks ignore it. */
+  timeScale: number;
   teachingItems: number;
 }
 
@@ -58,9 +60,12 @@ export function classifyGenres(profile: Profile): Record<GenreId, Strength> {
       result[g] = "typical";
       continue;
     }
-    if (domainFlag === "weakness" || value < med - 0.1) {
+    // WEAK is judged on the genre's OWN value only (2026-08-22 review: Block
+    // Builder at ceiling 7 was being tagged weak just because it shares a
+    // domain with Piece Picker). The domain flag may only promote to STRONG.
+    if (value < med - 0.1) {
       result[g] = "weak";
-    } else if (domainFlag === "strength" && value >= med) {
+    } else if (value >= med + 0.1 || (domainFlag === "strength" && value >= med)) {
       result[g] = "strong";
     } else {
       result[g] = "typical";
@@ -105,14 +110,15 @@ export function adaptPart(part: PartConfig, level: LevelConfig, profile: Profile
 
     const teachingItems = block.teachingItems ?? level.teachingItems ?? 0;
 
-    return { ...block, start, maxItems, strength, teachingItems };
+    const timeScale = level.weighting === "remedial" && strength === "weak" ? 1.5 : 1;
+    return { ...block, start, maxItems, strength, teachingItems, timeScale };
   });
 
   if (!remedial) return resolved;
 
   const repeats: ResolvedBlock[] = resolved
     .filter((b) => b.strength === "weak")
-    .map((b) => ({ ...b, repeat: true }));
+    .map((b) => ({ ...b, repeat: true, maxItems: Math.min(b.maxItems, 6) }));   // repeats are shorter so a part stays ~15 min
 
   return [...resolved, ...repeats];
 }

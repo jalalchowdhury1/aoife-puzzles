@@ -9,7 +9,7 @@ export const level2: LevelConfig = {
   title: "Practice Round 1",
   feedback: "reveal",
   weighting: "remedial",
-  released: false, // flip to true after the owner/Claude reviews her Level 1 data (AGENTS.md §7)
+  released: true, // released 2026-08-22 after reviewing her Level 1 + replay data
   teachingItems: 2,
   parts: [
     {

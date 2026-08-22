@@ -369,7 +369,7 @@ function PlayRunner() {
 
     let fast: boolean | undefined;
     if (genre.timing.kind === "item") {
-      const cap = genre.timing.ms(stair!.d);
+      const cap = genre.timing.ms(stair!.d) * (cfg.timeScale ?? 1);
       fast = ms < cap * 0.5;
     }
     const bankId: string | undefined = genre.bankId?.(item);
@@ -470,7 +470,7 @@ function PlayRunner() {
             {genre.timing.kind === "item" && (
               <div className="w-full max-w-md px-4 pb-2">
                 <Countdown
-                  totalMs={genre.timing.ms(stair!.d)}
+                  totalMs={genre.timing.ms(stair!.d) * (cfg.timeScale ?? 1)}
                   startedAt={startedAtEpoch}
                   onExpire={() => finishItem(null, true)}
                 />

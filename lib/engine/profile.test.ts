@@ -55,7 +55,7 @@ describe("computeProfile", () => {
   it("rolls genres up into domains present in this session", () => {
     expect(profile.domains.FR.value).toBe(0.7);
     expect(profile.domains.VS.value).toBe(0.3);
-    expect(profile.domains.PS.value).toBe(0.25);
+    expect(profile.domains.PS.value).toBeCloseTo(15 / 45, 10);
   });
 
   it("flags relative strengths/weaknesses only across present domains", () => {
@@ -75,7 +75,7 @@ describe("computeProfile", () => {
 
   it("computes EGAI and CPI bundles from present genres only", () => {
     expect(profile.bundles.egai).toBeCloseTo(0.5, 10);
-    expect(profile.bundles.cpi).toBeCloseTo(0.25, 10);
+    expect(profile.bundles.cpi).toBeCloseTo(15 / 45, 10);
   });
 
   it("records a trend entry per session for each genre", () => {

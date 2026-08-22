@@ -6,7 +6,9 @@ export interface Profile { sessions: number; genres: Partial<Record<GenreId, Gen
 export const DOMAIN_GENRES: Record<Domain, GenreId[]> = { VS: ["blockDesign", "visualPuzzles"], FR: ["matrix", "figureWeights", "arithmetic"], WM: ["digitSpan", "pictureSpan"], PS: ["coding", "symbolSearch"], VC: ["similarities", "vocabulary", "information", "comprehension"] };
 export const EGAI: GenreId[] = ["similarities", "vocabulary", "information", "comprehension", "blockDesign", "matrix", "figureWeights", "arithmetic"];
 export const CPI: GenreId[] = ["digitSpan", "pictureSpan", "coding", "symbolSearch"];
-const SPEED_CEILING_PER_MIN: Partial<Record<GenreId, number>> = { coding: 60, symbolSearch: 40 };
+// Per-minute rates that count as "full marks" for a 6-year-old on these 120 s blocks.
+// Calibrated 2026-08-22: her second runs were 33/min (coding) and 30/min (symbol search) with ~1 error.
+const SPEED_CEILING_PER_MIN: Partial<Record<GenreId, number>> = { coding: 45, symbolSearch: 40 };
 
 const DOMAIN_KEYS: Domain[] = ["VS", "FR", "WM", "PS", "VC"];
 const VC_GENRES = new Set<GenreId>(DOMAIN_GENRES.VC);

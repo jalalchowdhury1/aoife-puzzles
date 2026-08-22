@@ -94,9 +94,9 @@ describe("adaptPart", () => {
     expect(repeats.every((b) => b.repeat)).toBe(true);
     expect(resolved.slice(0, 4).every((b) => !b.repeat)).toBe(true);
 
-    // A repeat carries the same resolved start/maxItems as its original.
+    // A repeat carries the same start but is capped at 6 items (keeps a part ~15 min).
     expect(repeats[0].start).toBe(resolved[0].start);
-    expect(repeats[0].maxItems).toBe(resolved[0].maxItems);
+    expect(repeats[0].maxItems).toBe(Math.min(resolved[0].maxItems, 6));
   });
 
   it("respects an explicit maxItems only as an upper bound in remedial mode", () => {
@@ -141,7 +141,7 @@ describe("adaptPart", () => {
     expect(originals).toHaveLength(2);
     for (const b of originals) {
       expect(b.start).toBe(1);
-      expect(b.maxItems).toBe(8);
+      expect(b.maxItems).toBe(b.repeat ? 6 : 8);
       expect(b.strength).toBe("weak");
     }
 
@@ -149,7 +149,7 @@ describe("adaptPart", () => {
     expect(repeats.map((b) => b.genre)).toEqual(["coding", "symbolSearch"]);
     for (const b of repeats) {
       expect(b.start).toBe(1);
-      expect(b.maxItems).toBe(8);
+      expect(b.maxItems).toBe(b.repeat ? 6 : 8);
     }
   });
 

@@ -29,6 +29,8 @@ export interface GenreViewProps<I, R> {
   item: I; disabled: boolean; display?: "audio" | "both";
   onReady: () => void;                 // call once when the stimulus is fully presented (timer starts)
   onRespond: (r: R, meta?: { replayed?: boolean; audioFallback?: boolean }) => void;
+  reveal?: boolean;                    // practice levels: show the correct answer highlighted, inputs inert
+  lastResponse?: R | null;             // with reveal: the child's own answer, so the view can contrast it
 }
 
 export interface ItemRecord {
@@ -52,7 +54,10 @@ export interface SessionRecord {
 
 export interface BlockConfig { genre: GenreId; start?: number | "fromProfile"; maxItems?: number; display?: "audio" | "both" }
 export interface PartConfig { id: string; title: string; sticker: string; blocks: BlockConfig[] }
-export interface LevelConfig { id: number; title: string; feedback: "none" | "mark" | "reveal"; parts: PartConfig[] }
+export interface LevelConfig {
+  id: number; title: string; feedback: "none" | "mark" | "reveal"; parts: PartConfig[];
+  weighting?: "none" | "remedial";     // remedial = adapt starts/reps/repeats to her profile (lib/engine/adapt.ts)
+}
 
 export function summarize(items: ItemRecord[], mode: "staircase" | "speedBlock"): BlockSummary {
   const attempted = items.length;

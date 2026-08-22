@@ -43,7 +43,14 @@ function TargetSilhouette({ item }: { item: VisualPuzzlesItem }) {
 }
 
 /** Piece Picker (Visual Puzzles, VS): tap the 3 pieces that tile the target shape. */
-export function VisualPuzzlesView({ item, disabled, onReady, onRespond }: GenreViewProps<VisualPuzzlesItem, number[]>) {
+export function VisualPuzzlesView({
+  item,
+  disabled,
+  reveal = false,
+  lastResponse = null,
+  onReady,
+  onRespond,
+}: GenreViewProps<VisualPuzzlesItem, number[]>) {
   const [selected, setSelected] = useState<number[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [renderedItem, setRenderedItem] = useState(item);
@@ -62,7 +69,7 @@ export function VisualPuzzlesView({ item, disabled, onReady, onRespond }: GenreV
   }, [item]);
 
   function toggle(i: number) {
-    if (disabled || submitted) return;
+    if (disabled || reveal || submitted) return;
     setSelected(prev => {
       if (prev.includes(i)) return prev.filter(x => x !== i);
       if (prev.length >= 3) return prev;
@@ -71,10 +78,16 @@ export function VisualPuzzlesView({ item, disabled, onReady, onRespond }: GenreV
   }
 
   function handleDone() {
-    if (disabled || submitted || selected.length !== 3) return;
+    if (disabled || reveal || submitted || selected.length !== 3) return;
     setSubmitted(true);
     onRespond([...selected].sort((a, b) => a - b));
   }
+
+  // Reveal: the 3 true pieces always get the green "correct" treatment; any
+  // piece she tapped that wasn't one of them gets the rose "wrong pick"
+  // treatment; everything else is dimmed out of the way.
+  const answerSet = reveal ? new Set(item.answer) : null;
+  const pickedSet = reveal ? new Set(lastResponse ?? []) : null;
 
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-6 bg-cream p-4">
@@ -82,6 +95,23 @@ export function VisualPuzzlesView({ item, disabled, onReady, onRespond }: GenreV
 
       <div className="flex w-full max-w-2xl flex-wrap items-center justify-center gap-4">
         {item.pieces.map((piece, i) => {
+          if (reveal) {
+            const isCorrect = answerSet!.has(i);
+            const isWrongPick = !isCorrect && pickedSet!.has(i);
+            const revealClass = isCorrect
+              ? "bg-[#6fcf6f]/15 ring-4 ring-[#6fcf6f]"
+              : isWrongPick
+                ? "bg-white ring-4 ring-rose-400"
+                : "bg-white ring-2 ring-teal-100 opacity-40";
+            return (
+              <div
+                key={i}
+                className={`flex min-h-16 min-w-16 items-center justify-center rounded-2xl p-2 ${revealClass}`}
+              >
+                <PieceGlyph piece={piece} />
+              </div>
+            );
+          }
           const isSelected = selected.includes(i);
           return (
             <button

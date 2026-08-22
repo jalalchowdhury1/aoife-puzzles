@@ -34,8 +34,9 @@ function PanShapes({ shapes, cx, cy }: { shapes: Shape[]; cx: number; cy: number
 }
 
 /** One SVG balance beam: level when both pans are known, tilted toward the loaded
- * side (with a big "?" on the empty pan) when this is the question scale. */
-function Beam({ scale, tilt }: { scale: Scale; tilt: number }) {
+ * side (with a big "?" on the empty pan) when this is the question scale.
+ * `revealShapes` fills that "?" pan with the correct shapes instead, for reveal mode. */
+function Beam({ scale, tilt, revealShapes }: { scale: Scale; tilt: number; revealShapes?: Shape[] }) {
   const pivot = { x: 150, y: 78 };
   const halfBeam = 90;
   const panDrop = 40;
@@ -61,6 +62,8 @@ function Beam({ scale, tilt }: { scale: Scale; tilt: number }) {
       <PanShapes shapes={scale.left} cx={leftPan.x} cy={leftPan.y} />
       {scale.right ? (
         <PanShapes shapes={scale.right} cx={rightPan.x} cy={rightPan.y} />
+      ) : revealShapes ? (
+        <PanShapes shapes={revealShapes} cx={rightPan.x} cy={rightPan.y} />
       ) : (
         <text x={rightPan.x} y={rightPan.y - 14} textAnchor="middle" fontSize={34} fontWeight="bold" fill="#1f2937">
           ?
@@ -91,6 +94,8 @@ function OptionTile({ shapes }: { shapes: Shape[] }) {
 export default function FigureWeightsView({
   item,
   disabled,
+  reveal = false,
+  lastResponse = null,
   onReady,
   onRespond,
 }: GenreViewProps<FigureWeightsItem, number>) {
@@ -111,33 +116,59 @@ export default function FigureWeightsView({
   }, [item]);
 
   const submit = () => {
-    if (disabled || selected === null) return;
+    if (disabled || reveal || selected === null) return;
     onRespond(selected);
   };
+
+  const correctShapes = reveal ? item.options[item.answer] : undefined;
 
   return (
     <div className="flex flex-col items-center gap-6 p-4">
       <div className="flex flex-wrap justify-center gap-4">
         {item.scales.map((scale, i) => (
-          <Beam key={i} scale={scale} tilt={scale.right === null ? TILT_DEG : 0} />
+          <Beam
+            key={i}
+            scale={scale}
+            tilt={scale.right === null ? TILT_DEG : 0}
+            revealShapes={reveal && scale.right === null ? correctShapes : undefined}
+          />
         ))}
       </div>
 
       <div className="grid grid-cols-5 gap-3 w-full max-w-2xl">
-        {item.options.map((opt, i) => (
-          <button
-            key={i}
-            type="button"
-            disabled={disabled}
-            onClick={() => setSelected(i)}
-            aria-pressed={selected === i}
-            className={`min-h-16 min-w-16 rounded-2xl border-4 flex items-center justify-center p-2 bg-white ${
-              selected === i ? "border-teal-400" : "border-teal-100"
-            }`}
-          >
-            <OptionTile shapes={opt} />
-          </button>
-        ))}
+        {item.options.map((opt, i) => {
+          if (reveal) {
+            const isCorrect = i === item.answer;
+            const isWrongPick = !isCorrect && lastResponse === i;
+            const revealClass = isCorrect
+              ? "border-[#6fcf6f] bg-[#6fcf6f]/15"
+              : isWrongPick
+                ? "border-rose-400 bg-white"
+                : "border-teal-100 bg-white opacity-40";
+            return (
+              <div
+                key={i}
+                className={`min-h-16 min-w-16 rounded-2xl border-4 flex items-center justify-center p-2 ${revealClass}`}
+              >
+                <OptionTile shapes={opt} />
+              </div>
+            );
+          }
+          return (
+            <button
+              key={i}
+              type="button"
+              disabled={disabled}
+              onClick={() => setSelected(i)}
+              aria-pressed={selected === i}
+              className={`min-h-16 min-w-16 rounded-2xl border-4 flex items-center justify-center p-2 bg-white ${
+                selected === i ? "border-teal-400" : "border-teal-100"
+              }`}
+            >
+              <OptionTile shapes={opt} />
+            </button>
+          );
+        })}
       </div>
 
       <button

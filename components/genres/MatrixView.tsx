@@ -9,7 +9,14 @@ const CELL_BOX = 110;
 const OPTION_BOX = 88;
 
 /** "What's Missing?" — a matrix (or 1x5 series) of figures with the last cell blank. */
-export default function MatrixView({ item, disabled, onReady, onRespond }: GenreViewProps<MatrixItem, number>) {
+export default function MatrixView({
+  item,
+  disabled,
+  reveal = false,
+  lastResponse = null,
+  onReady,
+  onRespond,
+}: GenreViewProps<MatrixItem, number>) {
   const [selected, setSelected] = useState<number | null>(null);
 
   // A new item is a new object reference; reset the selection during render
@@ -29,14 +36,16 @@ export default function MatrixView({ item, disabled, onReady, onRespond }: Genre
   const cols = item.form === "series" ? 5 : item.rows;
 
   const pick = (i: number) => {
-    if (disabled) return;
+    if (disabled || reveal) return;
     setSelected(i);
   };
 
   const confirm = () => {
-    if (disabled || selected === null) return;
+    if (disabled || reveal || selected === null) return;
     onRespond(selected);
   };
+
+  const correctFigure = reveal ? item.options[item.answer] : null;
 
   return (
     <div className="flex min-h-full flex-col items-center justify-center gap-10 p-4 landscape:flex-row landscape:items-center landscape:gap-14">
@@ -53,6 +62,15 @@ export default function MatrixView({ item, disabled, onReady, onRespond }: Genre
             >
               <Figure f={cell} box={CELL_BOX * 0.78} />
             </div>
+          ) : reveal && correctFigure ? (
+            // Reveal: fill the missing cell in with the figure that actually completes the pattern.
+            <div
+              key={i}
+              className="flex items-center justify-center rounded-2xl bg-white shadow-sm ring-4 ring-[#6fcf6f]"
+              style={{ width: CELL_BOX, height: CELL_BOX }}
+            >
+              <Figure f={correctFigure} box={CELL_BOX * 0.78} />
+            </div>
           ) : (
             <div
               key={i}
@@ -67,20 +85,40 @@ export default function MatrixView({ item, disabled, onReady, onRespond }: Genre
 
       <div className="flex flex-col items-center gap-6">
         <div className="flex max-w-md flex-wrap justify-center gap-4">
-          {item.options.map((opt, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => pick(i)}
-              aria-pressed={selected === i}
-              className={`flex items-center justify-center rounded-2xl border-4 bg-white transition-colors ${
-                selected === i ? "border-teal-600 bg-teal-100" : "border-transparent"
-              }`}
-              style={{ width: OPTION_BOX, height: OPTION_BOX }}
-            >
-              <Figure f={opt} box={OPTION_BOX * 0.8} />
-            </button>
-          ))}
+          {item.options.map((opt, i) => {
+            if (reveal) {
+              const isCorrect = i === item.answer;
+              const isWrongPick = !isCorrect && lastResponse === i;
+              const revealClass = isCorrect
+                ? "border-[#6fcf6f] bg-[#6fcf6f]/15"
+                : isWrongPick
+                  ? "border-rose-400 bg-white"
+                  : "border-transparent bg-white opacity-40";
+              return (
+                <div
+                  key={i}
+                  className={`flex items-center justify-center rounded-2xl border-4 ${revealClass}`}
+                  style={{ width: OPTION_BOX, height: OPTION_BOX }}
+                >
+                  <Figure f={opt} box={OPTION_BOX * 0.8} />
+                </div>
+              );
+            }
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => pick(i)}
+                aria-pressed={selected === i}
+                className={`flex items-center justify-center rounded-2xl border-4 bg-white transition-colors ${
+                  selected === i ? "border-teal-600 bg-teal-100" : "border-transparent"
+                }`}
+                style={{ width: OPTION_BOX, height: OPTION_BOX }}
+              >
+                <Figure f={opt} box={OPTION_BOX * 0.8} />
+              </button>
+            );
+          })}
         </div>
 
         <button

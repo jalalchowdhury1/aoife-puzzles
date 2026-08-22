@@ -17,7 +17,14 @@ function FaceCell({ face, size }: { face: Face; size: number }) {
   );
 }
 
-export function BlockDesignView({ item, disabled, onReady, onRespond }: GenreViewProps<BlockDesignItem, Face[]>) {
+export function BlockDesignView({
+  item,
+  disabled,
+  reveal = false,
+  lastResponse = null,
+  onReady,
+  onRespond,
+}: GenreViewProps<BlockDesignItem, Face[]>) {
   const [renderedItem, setRenderedItem] = useState(item);
   const [board, setBoard] = useState<Face[]>(() => Array(item.grid.length).fill("W"));
   const [responded, setResponded] = useState(false);
@@ -37,7 +44,7 @@ export function BlockDesignView({ item, disabled, onReady, onRespond }: GenreVie
   }, [item]);
 
   function cycle(i: number) {
-    if (disabled) return;
+    if (disabled || reveal) return;
     setBoard(prev => {
       const next = [...prev];
       const idx = FACES.indexOf(next[i]);
@@ -47,12 +54,16 @@ export function BlockDesignView({ item, disabled, onReady, onRespond }: GenreVie
   }
 
   function submit() {
-    if (disabled || responded) return;
+    if (disabled || reveal || responded) return;
     setResponded(true);
     onRespond(board);
   }
 
   const targetGap = item.showGridLines ? 4 : 0;
+  // Reveal: show the correct pattern on the "board" side (instead of her live
+  // build) and outline the cells where her recorded answer differed from it.
+  const displayBoard = reveal ? item.grid : board;
+  const boardCaption = reveal ? "This is the matching pattern" : "Your board";
 
   return (
     <div className="flex h-full w-full flex-col landscape:flex-row items-center justify-center gap-8 bg-cream p-4">
@@ -69,24 +80,27 @@ export function BlockDesignView({ item, disabled, onReady, onRespond }: GenreVie
       </div>
 
       <div className="flex flex-col items-center gap-4">
-        <div className="text-2xl font-bold text-ink">Your board</div>
+        <div className="text-2xl font-bold text-ink">{boardCaption}</div>
         <div
           className="grid rounded-lg bg-teal-100 p-2"
           style={{ gridTemplateColumns: `repeat(${item.n}, ${CELL}px)`, gap: 4 }}
         >
-          {board.map((face, i) => (
-            <button
-              key={i}
-              type="button"
-              disabled={disabled}
-              onClick={() => cycle(i)}
-              aria-label={`Board square ${i + 1}`}
-              className="overflow-hidden rounded-md border-2 border-teal-600"
-              style={{ width: CELL, height: CELL }}
-            >
-              <FaceCell face={face} size={CELL} />
-            </button>
-          ))}
+          {displayBoard.map((face, i) => {
+            const missed = reveal && !!lastResponse && lastResponse[i] !== item.grid[i];
+            return (
+              <button
+                key={i}
+                type="button"
+                disabled={disabled}
+                onClick={() => cycle(i)}
+                aria-label={`Board square ${i + 1}`}
+                className={`overflow-hidden rounded-md border-2 ${missed ? "border-rose-400" : "border-teal-600"}`}
+                style={{ width: CELL, height: CELL }}
+              >
+                <FaceCell face={face} size={CELL} />
+              </button>
+            );
+          })}
         </div>
         {!disabled && (
           <button

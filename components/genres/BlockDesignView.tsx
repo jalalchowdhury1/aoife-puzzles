@@ -94,7 +94,13 @@ export function BlockDesignView({
                 disabled={disabled}
                 onClick={() => cycle(i)}
                 aria-label={`Board square ${i + 1}`}
-                className={`overflow-hidden rounded-md border-2 ${missed ? "border-rose-400" : "border-teal-600"}`}
+                // A rose border-2 sitting flush against a red ("R"/diagonal)
+                // cell is nearly invisible — the ring is drawn OUTSIDE the
+                // cell with a gap (ring-offset-2), so it reads against any
+                // face color instead of blending into red ones.
+                className={`overflow-hidden rounded-md border-2 border-teal-600 ${
+                  missed ? "ring-4 ring-rose-400 ring-offset-2" : ""
+                }`}
                 style={{ width: CELL, height: CELL }}
               >
                 <FaceCell face={face} size={CELL} />

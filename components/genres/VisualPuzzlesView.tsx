@@ -6,7 +6,7 @@ import { rotate, type Cell, type Piece, type VisualPuzzlesItem } from "@/lib/gen
 // One cell is always this many px, in both the target silhouette and every
 // option piece, so pieces render at true relative scale (comparable to the
 // target and to each other) instead of each being auto-fit to a uniform tile.
-const CELL_PX = 32;
+const CELL_PX = 36;
 // A true 1px grid line regardless of CELL_PX — expressed in viewBox units
 // (1 unit = 1 cell = CELL_PX real px), so both the target and every piece
 // draw the same hairline weight.
@@ -122,7 +122,10 @@ export function VisualPuzzlesView({
     <div className="flex h-full w-full flex-col items-center justify-center gap-6 bg-cream p-4">
       <TargetSilhouette item={item} />
 
-      <div className="flex w-full max-w-2xl flex-wrap items-center justify-center gap-4">
+      {/* max-w wide enough that 6 tiles at CELL_PX=36 fit across the 1180px
+          iPad viewport in one row when the pieces are small; flex-wrap still
+          drops to two rows for larger (d>=7) pieces without clipping anything. */}
+      <div className="flex w-full max-w-[68rem] flex-wrap items-center justify-center gap-4">
         {item.pieces.map((piece, i) => {
           if (reveal) {
             const isCorrect = answerSet!.has(i);

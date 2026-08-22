@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { BlockRecord, GenreViewProps, ItemRecord, LevelConfig, PartConfig, SessionRecord } from "@/lib/engine/types";
 import { summarize } from "@/lib/engine/types";
-import { LEVELS } from "@/lib/levels";
+import { LEVELS, RELEASED_LEVELS } from "@/lib/levels";
 import { GENRES } from "@/lib/genres";
 import { VIEWS } from "@/components/genres";
 import { startStair, stepStair, type StairState } from "@/lib/engine/staircase";
@@ -203,7 +203,7 @@ function PlayRunner() {
       level = Number(levelParam);
       part = partParam;
     } else {
-      const pos = currentPosition(LEVELS, sessions);
+      const pos = currentPosition(RELEASED_LEVELS, sessions);
       level = pos.level;
       part = pos.part;
     }

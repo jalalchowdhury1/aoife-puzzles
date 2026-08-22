@@ -78,3 +78,10 @@ describe("Level 2 (Practice Round 1)", () => {
     usesEveryGenreOnce(level2);
   });
 });
+
+import { RELEASED_LEVELS } from "./index";
+describe("release gating", () => {
+  it("level 2 is unreleased until reviewed; level 1 is released", () => {
+    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1]);
+  });
+});

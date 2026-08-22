@@ -9,6 +9,7 @@ export const level2: LevelConfig = {
   title: "Practice Round 1",
   feedback: "reveal",
   weighting: "remedial",
+  released: false, // flip to true after the owner/Claude reviews her Level 1 data (AGENTS.md §7)
   teachingItems: 2,
   parts: [
     {

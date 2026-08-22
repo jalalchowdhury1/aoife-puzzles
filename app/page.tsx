@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LEVELS } from "@/lib/levels";
+import { RELEASED_LEVELS as LEVELS } from "@/lib/levels";
 import { loadSessions, currentPosition, syncState, flushOutbox } from "@/lib/engine/storage";
 import type { LevelConfig, SessionRecord } from "@/lib/engine/types";
 import { BigButton } from "@/components/BigButton";

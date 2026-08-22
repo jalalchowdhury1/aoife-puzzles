@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GenreViewProps } from "@/lib/engine/types";
-import type { DigitSpanItem } from "@/lib/genres/digitSpan";
+import type { DigitSpanItem, SpanTask } from "@/lib/genres/digitSpan";
 import { speak, speechAvailable } from "@/lib/engine/speech";
+import { BigButton } from "@/components/BigButton";
 
 const TASK_LABEL: Record<DigitSpanItem["task"], string> = {
   forward: "Tap them in the SAME order",
@@ -13,7 +14,32 @@ const TASK_LABEL: Record<DigitSpanItem["task"], string> = {
 
 const KEYS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-type Phase = "listening" | "answering";
+type Phase = "intro" | "listening" | "answering";
+
+// A new rule (backward, then sequencing) gets a one-time worked-example intro
+// the first time it's played in this page session, so the child sees each
+// rule demonstrated on its own instead of inferring it from a forward sample.
+// Module-level (not state) so it isn't reset per item and isn't repeated
+// once a level's later items reuse the same task.
+type RuleTask = Extract<SpanTask, "backward" | "sequencing">;
+const introShown = new Set<RuleTask>();
+
+function isRuleTask(task: SpanTask): task is RuleTask {
+  return task === "backward" || task === "sequencing";
+}
+
+const INTRO_HEADING: Record<RuleTask, string> = {
+  backward: "New rule: backward",
+  sequencing: "New rule: smallest to biggest",
+};
+const INTRO_SPEECH: Record<RuleTask, string> = {
+  backward: "Now a new rule. Tap the numbers backward. If I say 2, 5, you tap 5, then 2.",
+  sequencing: "Now a new rule. Tap the numbers from smallest to biggest. If I say 7, 3, 5, you tap 3, 5, 7.",
+};
+const INTRO_EXAMPLE: Record<RuleTask, { say: number[]; tap: number[] }> = {
+  backward: { say: [2, 5], tap: [5, 2] },
+  sequencing: { say: [7, 3, 5], tap: [3, 5, 7] },
+};
 
 /** Number Echo (Digit Span): listens to (or watches) a digit sequence, then taps it back per the task. */
 export function DigitSpanView({ item, disabled, reveal, lastResponse, onReady, onRespond }: GenreViewProps<DigitSpanItem, number[]>) {
@@ -33,8 +59,9 @@ export function DigitSpanView({ item, disabled, reveal, lastResponse, onReady, o
   // documented "adjust state while rendering" pattern) rather than in an
   // effect, so this doesn't trigger a cascading extra render.
   if (presented !== item) {
+    const needsIntro = !reveal && !disabled && isRuleTask(item.task) && !introShown.has(item.task);
     setPresented(item);
-    setPhase("listening");
+    setPhase(needsIntro ? "intro" : "listening");
     setReplaying(false);
     setFlashIndex(-1);
     setAudioFallback(false);
@@ -85,6 +112,16 @@ export function DigitSpanView({ item, disabled, reveal, lastResponse, onReady, o
     responded.current = false;
   }, [item]);
 
+  // Shared by the mount effect below and handleIntroReady(): starts the real
+  // listening phase and, once the sequence finishes, moves to "answering"
+  // and fires the one-time onReady() the runner's timer depends on.
+  function presentAndAdvance() {
+    present(() => {
+      setPhase("answering");
+      if (!readyCalled.current) { readyCalled.current = true; onReady(); }
+    });
+  }
+
   useEffect(() => {
     // In reveal, the answer is simply shown: no listening phase, no speech,
     // no flashing/timers. Still call onReady() once, as the contract requires
@@ -93,15 +130,27 @@ export function DigitSpanView({ item, disabled, reveal, lastResponse, onReady, o
       if (!readyCalled.current) { readyCalled.current = true; onReady(); }
       return;
     }
+    // First time this page session a backward/sequencing item is shown, the
+    // render-time adjustment above already put us in "intro": speak the new
+    // rule once and wait — handleIntroReady() calls presentAndAdvance() (and
+    // thus onReady()) once she taps Ready, so no timing pressure is added.
+    if (phase === "intro") {
+      void speak(INTRO_SPEECH[item.task as RuleTask]);
+      return;
+    }
     // present() stamps a fresh generation id on every call (including the
     // next item's or a Replay's), which auto-invalidates this run's stale()
     // checks, so no cleanup-based cancellation is needed here.
-    present(() => {
-      setPhase("answering");
-      if (!readyCalled.current) { readyCalled.current = true; onReady(); }
-    });
+    presentAndAdvance();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item, reveal]);
+
+  function handleIntroReady() {
+    if (disabled || reveal || phase !== "intro") return;
+    introShown.add(item.task as RuleTask);
+    setPhase("listening");
+    presentAndAdvance();
+  }
 
   function handleReplay() {
     if (disabled || reveal || replayUsed || replaying) return;
@@ -178,6 +227,52 @@ export function DigitSpanView({ item, disabled, reveal, lastResponse, onReady, o
               </div>
             </div>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === "intro") {
+    const task = item.task as RuleTask;
+    const example = INTRO_EXAMPLE[task];
+    return (
+      <div className="flex flex-col items-center justify-center gap-6 p-6 text-ink">
+        <div className="flex w-full max-w-md flex-col items-center gap-6">
+          <p className="text-center font-bubble text-3xl">{INTRO_HEADING[task]}</p>
+
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-lg font-semibold text-ink/50">I say</span>
+            <div className="flex flex-wrap justify-center gap-2">
+              {example.say.map((n, i) => (
+                <div
+                  key={i}
+                  className="flex h-14 w-14 items-center justify-center rounded-xl bg-teal-100/60 text-2xl font-bold text-ink/50"
+                >
+                  {n}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="text-4xl" aria-hidden>
+            ↓
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-lg font-semibold text-ink/70">You tap</span>
+            <div className="flex flex-wrap justify-center gap-2">
+              {example.tap.map((n, i) => (
+                <div
+                  key={i}
+                  className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#eaf9ea] border-4 border-[#6fcf6f] text-3xl font-bold text-ink"
+                >
+                  {n}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <BigButton onClick={handleIntroReady}>Ready</BigButton>
         </div>
       </div>
     );

@@ -37,6 +37,7 @@ export interface ItemRecord {
   idx: number; seed: number; d: Difficulty; points: number; max: number; correct: boolean;
   ms: number; timedOut: boolean; response: unknown; bankId?: string;
   fast?: boolean; audioFallback?: boolean; replayed?: boolean;
+  teaching?: boolean;                  // a teaching-item that revealed the answer (see BlockConfig.teachingItems)
 }
 export interface BlockSummary {
   attempted: number; correct: number; points: number; max: number;
@@ -52,11 +53,20 @@ export interface SessionRecord {
   blocks: BlockRecord[]; complete: boolean; appVersion: string;
 }
 
-export interface BlockConfig { genre: GenreId; start?: number | "fromProfile"; maxItems?: number; display?: "audio" | "both" }
+export interface BlockConfig {
+  genre: GenreId; start?: number | "fromProfile"; maxItems?: number; display?: "audio" | "both";
+  teachingItems?: number;              // overrides the level-wide teachingItems for this block
+}
 export interface PartConfig { id: string; title: string; sticker: string; blocks: BlockConfig[] }
 export interface LevelConfig {
   id: number; title: string; feedback: "none" | "mark" | "reveal"; parts: PartConfig[];
   weighting?: "none" | "remedial";     // remedial = adapt starts/reps/repeats to her profile (lib/engine/adapt.ts)
+  // Level-wide default count of "teaching items": the first N items of each
+  // block get corrective feedback (answer reveal) if missed, and a miss
+  // there does not count toward the staircase's two-consecutive-wrong stop
+  // rule. Mirrors WISC-V teaching items. A block's own `teachingItems`
+  // overrides this. See lib/engine/staircase.ts and AGENTS.md §8/decision 8.
+  teachingItems?: number;
 }
 
 export function summarize(items: ItemRecord[], mode: "staircase" | "speedBlock"): BlockSummary {

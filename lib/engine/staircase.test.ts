@@ -26,4 +26,28 @@ describe("staircase", () => {
     expect(startStair({ fromProfileCeiling: 5 }, 8).d).toBe(4);
     expect(startStair({ fromProfileCeiling: null }, 8).d).toBe(1);
   });
+
+  describe("teachingItems", () => {
+    it("wrong answers inside the teaching window don't count toward twoWrong; stops only after two consecutive wrong AFTER the window", () => {
+      let s = startStair(1, 8, 2);
+      s = stepStair(s, false); expect(s.done).toBe(false); expect(s.consecutiveWrong).toBe(0); expect(s.d).toBe(1);
+      s = stepStair(s, false); expect(s.done).toBe(false); expect(s.consecutiveWrong).toBe(0); expect(s.d).toBe(1);
+      s = stepStair(s, false); expect(s.done).toBe(false); expect(s.consecutiveWrong).toBe(1);
+      s = stepStair(s, false); expect(s.done).toBe(true); expect(s.reason).toBe("twoWrong");
+      expect(s.items).toBe(4);
+    });
+
+    it("a correct answer inside the teaching window still climbs normally", () => {
+      let s = startStair(1, 8, 2);
+      s = stepStair(s, false); expect(s.d).toBe(1); expect(s.done).toBe(false);
+      s = stepStair(s, true); expect(s.d).toBe(2); expect(s.done).toBe(false); expect(s.consecutiveWrong).toBe(0);
+    });
+
+    it("teachingItems: 0 (default) is unchanged from prior behavior", () => {
+      let s = startStair(1, 8);
+      expect(s.teachingItems).toBe(0);
+      s = stepStair(s, false); s = stepStair(s, false);
+      expect(s.done).toBe(true); expect(s.reason).toBe("twoWrong");
+    });
+  });
 });

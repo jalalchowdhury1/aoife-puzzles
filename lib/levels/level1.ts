@@ -4,6 +4,7 @@ export const level1: LevelConfig = {
   id: 1,
   title: "Find Your Superpowers",
   feedback: "none",
+  teachingItems: 2,
   parts: [
     {
       id: "A",

@@ -21,6 +21,11 @@ export default function HomePage() {
   const [finished, setFinished] = useState(false);
   const [levelCfg, setLevelCfg] = useState<LevelConfig | null>(null);
   const [earned, setEarned] = useState<Record<string, boolean>>({});
+  // Stickers from completed parts of every RELEASED level before her current
+  // one — shown as a small "Earned: ..." row under the current level's own
+  // three stickers, so a finished earlier level's rewards stay visible
+  // instead of disappearing once she moves on.
+  const [earnedStickers, setEarnedStickers] = useState<string[]>([]);
   const [synced, setSynced] = useState(true);
 
   useEffect(() => {
@@ -31,12 +36,20 @@ export default function HomePage() {
       const pos = currentPosition(LEVELS, sessions);
       const cfg = LEVELS.find((l) => l.id === pos.level) ?? null;
       const earnedMap: Record<string, boolean> = {};
+      const priorStickers: string[] = [];
       if (cfg) {
         for (const p of cfg.parts) earnedMap[p.id] = isPartComplete(sessions, cfg.id, p.id);
+        for (const level of LEVELS) {
+          if (level.id >= cfg.id) continue;
+          for (const p of level.parts) {
+            if (isPartComplete(sessions, level.id, p.id)) priorStickers.push(p.sticker);
+          }
+        }
       }
       setFinished(allComplete(sessions));
       setLevelCfg(cfg);
       setEarned(earnedMap);
+      setEarnedStickers(priorStickers);
       setSynced(syncState() === "synced");
       setReady(true);
     });
@@ -77,6 +90,12 @@ export default function HomePage() {
                 </div>
               ))}
             </div>
+          )}
+
+          {earnedStickers.length > 0 && (
+            <p className="text-sm text-ink/50" aria-label={`Earned from earlier levels: ${earnedStickers.join(" ")}`}>
+              Earned: {earnedStickers.join(" ")}
+            </p>
           )}
         </>
       )}

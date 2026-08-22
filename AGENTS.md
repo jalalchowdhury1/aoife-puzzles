@@ -130,7 +130,14 @@ No secrets in the repo. Never print them to a transcript.
 - 2026-08-22: v0.1.0 shipped — Level 1 (3 parts) live; parent page; Telegram summaries.
 - 2026-08-22: Level 2 "Practice Round 1" exists, unlocked after Level 1 (`currentPosition` only surfaces it
   once every Level 1 part is complete). `feedback: "reveal"` + `weighting: "remedial"` — see §7.
-- Cosmetic: the SampleScreen card is narrower than the two Block Builder boards at 1180px wide (boards overflow the white card). Harmless; fix when touching SampleScreen.
+- 2026-08-22: iPad-viewport (1180x713) QA batch — SampleScreen is now a landscape/`lg:` two-column layout
+  (info + Start on the left, sample view right, both vertically centred) so Start is never below the fold;
+  a remedial repeat block (`ResolvedBlock.repeat`) shows a short "One more round!" screen instead of the full
+  sample; PartDone awaits `flushOutbox()` before showing (and polls `syncState()` for 10s after) so the
+  ⏳/☁️ line is never stale; home shows an "Earned: …" row of stickers from completed parts of earlier
+  released levels; Piece Picker cells are 36px; Balance option tiles no longer clip a 4-shape option and the
+  reveal-mode question scale draws level; Block Builder's reveal ring is `ring-4 ring-rose-400 ring-offset-2`
+  (readable on red cells); What's Missing's landscape option column is 64px tiles / 8px gap.
 - `vercel env add` via stdin marks vars *sensitive*: `vercel env pull` on this project returns BLANK values (production still works). To run `scripts/kv-del.mjs`, pull the env from the `aoifes-schedule` project instead.
 - Ideas parked, not promised: Cancellation / Letter-Number Sequencing / Picture Concepts genres;
   per-session "guess rate" proxy; audio-only Arithmetic (`display: "audio"`) in later levels.

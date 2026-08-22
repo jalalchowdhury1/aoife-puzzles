@@ -20,9 +20,11 @@ import {
 } from "@/lib/engine/storage";
 import { computeProfile } from "@/lib/engine/profile";
 import { adaptPart, type ResolvedBlock } from "@/lib/engine/adapt";
+import { speak, warmUpSpeech } from "@/lib/engine/speech";
 import { SampleScreen } from "@/components/SampleScreen";
 import { Countdown } from "@/components/Countdown";
 import { PartDone } from "@/components/PartDone";
+import { BigButton } from "@/components/BigButton";
 
 type Phase = "loading" | "sample" | "item" | "between" | "done";
 
@@ -82,6 +84,33 @@ function BetweenScreen({ feedback, lastCorrect }: { feedback: LevelConfig["feedb
 
 function hasExplanation(item: unknown): item is { explanation: string } {
   return !!item && typeof (item as { explanation?: unknown }).explanation === "string";
+}
+
+// A remedial level's repeat block (ResolvedBlock.repeat, appended by adaptPart
+// for a weak genre — see AGENTS.md §7) is the same genre she just played;
+// showing the full SampleScreen again (instructions + a fresh sample item) is
+// redundant. This is a short beat instead: her name for the genre, "One more
+// round!", and Start — still speaks a short line and still fires the iOS
+// audio-unlock gesture on tap.
+function RepeatScreen({ kidTitle, onStart }: { kidTitle: string; onStart: () => void }) {
+  useEffect(() => {
+    void speak(`One more round of ${kidTitle}`);
+  }, [kidTitle]);
+
+  const handleStart = () => {
+    warmUpSpeech();
+    onStart();
+  };
+
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-cream p-6 text-center">
+      <h1 className="font-bubble text-4xl text-ink">{kidTitle}</h1>
+      <p className="font-bubble text-3xl text-teal-600">One more round!</p>
+      <BigButton onClick={handleStart} tone="teal">
+        Start
+      </BigButton>
+    </div>
+  );
 }
 
 // Level 2 ("reveal" feedback), full-score response: the "Yes!" look, shown
@@ -261,9 +290,15 @@ function PlayRunner() {
       const doneSession: SessionRecord = { ...activeSession, complete: true, endedAt: endedAtIso };
       saveSessionLocal(doneSession);
       enqueue(doneSession);
-      void flushOutbox();
       setSession(doneSession);
-      setPhase("done");
+      // Awaited (via an inner async IIFE — this effect body itself isn't
+      // async) so PartDone's first render already reflects the real sync
+      // outcome instead of the stale "still pending" state right after
+      // `enqueue`. Same reasoning as endBlock's isLastBlock branch below.
+      void (async () => {
+        await flushOutbox();
+        setPhase("done");
+      })();
     } else {
       setPhase("sample");
     }
@@ -321,7 +356,7 @@ function PlayRunner() {
     setPhase("item");
   }
 
-  function endBlock(finalRecords: ItemRecord[]) {
+  async function endBlock(finalRecords: ItemRecord[]) {
     const cfg = resolvedBlocks[blockIndex];
     if (blockEndedRef.current || !cfg || !session) return;
     blockEndedRef.current = true;
@@ -347,11 +382,15 @@ function PlayRunner() {
     setSession(updated);
     saveSessionLocal(updated);
     enqueue(updated);
-    void flushOutbox();
 
     if (isLastBlock) {
+      // Awaited so PartDone's very first render already reflects the real
+      // sync outcome instead of the stale "still pending" state from just
+      // after `enqueue` (see AGENTS.md's sync-icon rule and PartDone.tsx).
+      await flushOutbox();
       setPhase("done");
     } else {
+      void flushOutbox();
       setBlockIndex((b) => b + 1);
       setPhase("sample");
     }
@@ -447,6 +486,11 @@ function PlayRunner() {
   const View = VIEWS[cfg.genre];
 
   if (phase === "sample") {
+    // A remedial level's repeat block (see RepeatScreen above) skips the full
+    // sample screen — she just played this genre.
+    if (cfg.repeat) {
+      return <RepeatScreen kidTitle={genre.kidTitle} onStart={beginBlockItems} />;
+    }
     return <SampleScreen genre={genre} View={View} onStart={beginBlockItems} />;
   }
 

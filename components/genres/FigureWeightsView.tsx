@@ -65,7 +65,18 @@ function Beam({ scale, tilt, revealShapes }: { scale: Scale; tilt: number; revea
       ) : revealShapes ? (
         <PanShapes shapes={revealShapes} cx={rightPan.x} cy={rightPan.y} />
       ) : (
-        <text x={rightPan.x} y={rightPan.y - 14} textAnchor="middle" fontSize={34} fontWeight="bold" fill="#1f2937">
+        // Centred just above the pan tray (same neighborhood PanShapes uses
+        // for real shapes), not up near the beam where it used to sit inside
+        // the string's own span and read as overlapping it.
+        <text
+          x={rightPan.x}
+          y={rightPan.y - 18}
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize={28}
+          fontWeight="bold"
+          fill="#1f2937"
+        >
           ?
         </text>
       )}
@@ -75,17 +86,28 @@ function Beam({ scale, tilt, revealShapes }: { scale: Scale; tilt: number; revea
   );
 }
 
+// Shapes are at least 26px each. The SVG's own width/height are set to the
+// content's exact bounding box (like VisualPuzzlesView's PieceGlyph) instead
+// of stretching a fixed "0 0 100 40" viewBox — a 4-shape option (MAX_PAN in
+// lib/genres/figureWeights.ts) needs up to 116 units, which used to get
+// clipped by that fixed-width viewBox. Sizing the SVG itself to fit means the
+// surrounding tile (below) just needs to be wide enough, never a crop.
+const OPTION_SHAPE = 26;
+const OPTION_GAP = 4;
+const OPTION_HEIGHT = 40;
+
+function optionTileWidth(count: number): number {
+  return count * OPTION_SHAPE + Math.max(0, count - 1) * OPTION_GAP;
+}
+
 function OptionTile({ shapes }: { shapes: Shape[] }) {
-  const size = 26;
-  const gap = 4;
-  const totalWidth = shapes.length * size + (shapes.length - 1) * gap;
-  const startX = 50 - totalWidth / 2;
+  const totalWidth = optionTileWidth(shapes.length);
+  const y = (OPTION_HEIGHT - OPTION_SHAPE) / 2;
   return (
-    <svg viewBox="0 0 100 40" className="w-full h-10">
+    <svg viewBox={`0 0 ${totalWidth} ${OPTION_HEIGHT}`} width={totalWidth} height={OPTION_HEIGHT}>
       {shapes.map((s, i) => {
-        const x = startX + i * (size + gap);
-        const y = 20 - size / 2;
-        return <path key={i} d={shapePath(s, size)} fill={SHAPE_FILL[s]} transform={`translate(${x}, ${y})`} />;
+        const x = i * (OPTION_SHAPE + OPTION_GAP);
+        return <path key={i} d={shapePath(s, OPTION_SHAPE)} fill={SHAPE_FILL[s]} transform={`translate(${x}, ${y})`} />;
       })}
     </svg>
   );
@@ -129,13 +151,20 @@ export default function FigureWeightsView({
           <Beam
             key={i}
             scale={scale}
-            tilt={scale.right === null ? TILT_DEG : 0}
+            // The question scale tilts (empty "?" pan) while she's answering,
+            // but once reveal mode fills that pan with the correct shapes the
+            // scale IS balanced — draw it level instead of still leaning.
+            tilt={scale.right === null && !reveal ? TILT_DEG : 0}
             revealShapes={reveal && scale.right === null ? correctShapes : undefined}
           />
         ))}
       </div>
 
-      <div className="grid grid-cols-5 gap-3 w-full max-w-2xl">
+      {/* flex-wrap, not a fixed grid: OptionTile now sizes its SVG exactly to
+          its shape count, so each tile must be free to grow to that content
+          width (a 4-shape option is noticeably wider than a 1-shape one)
+          instead of being squeezed into an equal-width grid column. */}
+      <div className="flex flex-wrap justify-center gap-3 w-full max-w-3xl">
         {item.options.map((opt, i) => {
           if (reveal) {
             const isCorrect = i === item.answer;

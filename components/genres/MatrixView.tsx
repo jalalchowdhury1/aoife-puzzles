@@ -9,7 +9,12 @@ import { Figure } from "@/components/Figure";
 // data showed a 5-year-old missing near-identical distractors (rotated
 // hexagon, M vs L) when figures rendered too small to compare at a glance.
 const CELL_BOX = 120;
-const OPTION_BOX = 88;
+// Reduced from 88: in landscape the 5 options stack in one column next to
+// the grid (see the comment below), and at 88px + gap-3 that column plus the
+// 3x3 grid + Done button didn't reliably fit an iPad's 713px tall viewport
+// without scrolling. 64px (+ an 8px gap) keeps the option figures legible
+// while the whole screen clears 713px.
+const OPTION_BOX = 64;
 
 /** "What's Missing?" — a matrix (or 1x5 series) of figures with the last cell blank. */
 export default function MatrixView({
@@ -90,12 +95,12 @@ export default function MatrixView({
         {/*
           Portrait: wrap the 5 options in a row (plenty of vertical room).
           Landscape (iPad 1180x713): stack them in a column to the right of
-          the grid instead — a horizontal wrap of 5 88px buttons plus the
-          Done button comfortably clears the grid's height either way, but a
-          column keeps the whole screen well within 713px tall with no
-          scrolling, however many options wrap.
+          the grid instead, at a reduced 64px tile height and 8px gap — 5
+          options (5*64 + 4*8 = 352px) plus the Done button comfortably clears
+          the 3x3 grid's ~384px height, and the whole screen stays well within
+          713px tall with no scrolling.
         */}
-        <div className="flex max-w-md flex-wrap justify-center gap-4 landscape:max-w-none landscape:flex-col landscape:flex-nowrap landscape:gap-3">
+        <div className="flex max-w-md flex-wrap justify-center gap-4 landscape:max-w-none landscape:flex-col landscape:flex-nowrap landscape:gap-2">
           {item.options.map((opt, i) => {
             if (reveal) {
               const isCorrect = i === item.answer;

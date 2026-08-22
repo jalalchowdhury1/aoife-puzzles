@@ -61,6 +61,7 @@ export interface PartConfig { id: string; title: string; sticker: string; blocks
 export interface LevelConfig {
   id: number; title: string; feedback: "none" | "mark" | "reveal"; parts: PartConfig[];
   weighting?: "none" | "remedial";     // remedial = adapt starts/reps/repeats to her profile (lib/engine/adapt.ts)
+  released?: boolean;                  // false = hidden from Play/home until the owner releases it (direct ?level= links still work)
   // Level-wide default count of "teaching items": the first N items of each
   // block get corrective feedback (answer reveal) if missed, and a miss
   // there does not count toward the staircase's two-consecutive-wrong stop

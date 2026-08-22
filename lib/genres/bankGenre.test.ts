@@ -12,10 +12,10 @@ import { INFORMATION_BANK } from "./banks/information";
 import { COMPREHENSION_BANK } from "./banks/comprehension";
 import { ARITHMETIC_BANK } from "./banks/arithmetic";
 
-interface BankLike { id: string; d: Difficulty }
+interface BankLike { id: string; d: Difficulty; explanation?: string }
 
 /** Determinism, exclusion, and widening behavior shared by every bank-backed genre. */
-function testCommonBehavior<I extends { d: Difficulty }>(genre: Genre<I, number>, bank: readonly BankLike[], name: string) {
+function testCommonBehavior<I extends { d: Difficulty; explanation: string }>(genre: Genre<I, number>, bank: readonly BankLike[], name: string) {
   describe(`${name}: generate`, () => {
     it("is deterministic and never widens when nothing is excluded (500 seeds x 10 difficulties)", () => {
       for (let seed = 0; seed < 500; seed++) {
@@ -24,8 +24,13 @@ function testCommonBehavior<I extends { d: Difficulty }>(genre: Genre<I, number>
           const second = genre.generate(seed, d);
           expect(second, `seed ${seed} d ${d}`).toEqual(first);
           expect(first.d, `seed ${seed} d ${d}`).toBe(d);
+          expect(first.explanation.length, `seed ${seed} d ${d}`).toBeGreaterThan(0);
           const id = genre.bankId!(first);
-          expect(bank.some(b => b.id === id), `seed ${seed} d ${d} id ${id}`).toBe(true);
+          const matched = bank.find(b => b.id === id);
+          expect(matched, `seed ${seed} d ${d} id ${id}`).toBeTruthy();
+          if (matched?.explanation !== undefined) {
+            expect(first.explanation, `seed ${seed} d ${d} id ${id}`).toBe(matched.explanation);
+          }
         }
       }
     });

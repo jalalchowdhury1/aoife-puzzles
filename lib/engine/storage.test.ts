@@ -12,6 +12,7 @@ import {
 } from "./storage";
 import { summarize } from "./types";
 import type { ItemRecord, LevelConfig, SessionRecord } from "./types";
+import { LEVELS } from "../levels";
 
 /** Minimal in-memory Storage stand-in; Vitest runs in a plain node environment (no jsdom). */
 class MapStorage {
@@ -216,6 +217,23 @@ describe("currentPosition", () => {
       makeSession({ level: 1, part: "B", complete: true, blocks: [{} as never, {} as never] }),
     ];
     expect(currentPosition(levels, sessions)).toEqual({ level: 1, part: "B", blockIndex: 2 });
+  });
+});
+
+describe("currentPosition against the real LEVELS registry", () => {
+  it("only exposes Level 2 once every Level 1 part is complete", () => {
+    const level1Complete = LEVELS[0].parts.map((part) =>
+      makeSession({ level: 1, part: part.id, complete: true, blocks: part.blocks.map(() => ({} as never)) })
+    );
+    expect(currentPosition(LEVELS, level1Complete)).toEqual({ level: 2, part: "A", blockIndex: 0 });
+  });
+
+  it("stays on Level 1 while any of its parts is still incomplete", () => {
+    const allButLastComplete = LEVELS[0].parts.slice(0, -1).map((part) =>
+      makeSession({ level: 1, part: part.id, complete: true, blocks: part.blocks.map(() => ({} as never)) })
+    );
+    const lastPart = LEVELS[0].parts[LEVELS[0].parts.length - 1];
+    expect(currentPosition(LEVELS, allButLastComplete)).toEqual({ level: 1, part: lastPart.id, blockIndex: 0 });
   });
 });
 

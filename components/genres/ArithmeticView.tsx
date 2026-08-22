@@ -8,12 +8,14 @@ import { speak, speechAvailable } from "@/lib/engine/speech";
 const DIGITS = ["1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
 /** View for Story Sums (Arithmetic). Speaks the problem on mount, then shows a numpad. */
-export function ArithmeticView({ item, disabled, display, onReady, onRespond }: GenreViewProps<ArithmeticItem, number>) {
+export function ArithmeticView({ item, disabled, display, reveal, lastResponse, onReady, onRespond }: GenreViewProps<ArithmeticItem, number>) {
   const [prevItem, setPrevItem] = useState(item);
   const [value, setValue] = useState("");
   const [replayed, setReplayed] = useState(false);
 
-  const showText = display === undefined || display === "both";
+  // In reveal, always show the problem text (regardless of `display`) so she
+  // can re-read what was asked while looking at the answer.
+  const showText = reveal || display === undefined || display === "both";
   const audioFallback = !speechAvailable();
 
   // A fresh item (new object each `generate()` call) means the previous
@@ -26,7 +28,8 @@ export function ArithmeticView({ item, disabled, display, onReady, onRespond }: 
   }
 
   useEffect(() => {
-    if (audioFallback) {
+    // In reveal, never speak — just signal ready, as the contract requires.
+    if (reveal || audioFallback) {
       onReady();
       return;
     }
@@ -37,25 +40,28 @@ export function ArithmeticView({ item, disabled, display, onReady, onRespond }: 
     return () => {
       cancelled = true;
     };
-  }, [item, onReady, audioFallback]);
+  }, [item, onReady, audioFallback, reveal]);
 
   const appendDigit = (d: string) => {
-    if (disabled) return;
+    if (disabled || reveal) return;
     setValue(v => (v.length >= 6 ? v : v + d));
   };
   const backspace = () => {
-    if (disabled) return;
+    if (disabled || reveal) return;
     setValue(v => v.slice(0, -1));
   };
   const listenAgain = () => {
-    if (disabled || replayed) return;
+    if (disabled || reveal || replayed) return;
     setReplayed(true);
     void speak(item.text);
   };
   const handleDone = () => {
-    if (disabled || value === "") return;
+    if (disabled || reveal || value === "") return;
     onRespond(Number(value), { replayed, audioFallback });
   };
+
+  const herAnswer = lastResponse ?? null;
+  const showHerAnswer = reveal === true && herAnswer !== null && herAnswer !== item.answer;
 
   return (
     <div className="flex flex-col items-center gap-6 w-full max-w-xl mx-auto p-4">
@@ -72,9 +78,17 @@ export function ArithmeticView({ item, disabled, display, onReady, onRespond }: 
         </button>
       )}
 
-      <div className="text-[36px] font-bold text-ink min-h-[48px]" aria-live="polite">
-        {value || " "}
-      </div>
+      {reveal ? (
+        <div className="flex flex-col items-center gap-1 min-h-[48px]">
+          <span className="text-lg font-bold text-ink/70">The answer is</span>
+          <span className="text-[40px] font-bold text-ink">{item.answer}</span>
+          {showHerAnswer && <span className="mt-1 text-base font-semibold text-ink/40">You said {herAnswer}</span>}
+        </div>
+      ) : (
+        <div className="text-[36px] font-bold text-ink min-h-[48px]" aria-live="polite">
+          {value || " "}
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-3 w-full max-w-xs">
         {DIGITS.map(d => (

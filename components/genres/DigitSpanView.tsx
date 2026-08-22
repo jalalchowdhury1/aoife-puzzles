@@ -16,7 +16,7 @@ const KEYS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 type Phase = "listening" | "answering";
 
 /** Number Echo (Digit Span): listens to (or watches) a digit sequence, then taps it back per the task. */
-export function DigitSpanView({ item, disabled, onReady, onRespond }: GenreViewProps<DigitSpanItem, number[]>) {
+export function DigitSpanView({ item, disabled, reveal, lastResponse, onReady, onRespond }: GenreViewProps<DigitSpanItem, number[]>) {
   const [presented, setPresented] = useState<DigitSpanItem | null>(null);
   const [phase, setPhase] = useState<Phase>("listening");
   const [replaying, setReplaying] = useState(false);
@@ -86,6 +86,13 @@ export function DigitSpanView({ item, disabled, onReady, onRespond }: GenreViewP
   }, [item]);
 
   useEffect(() => {
+    // In reveal, the answer is simply shown: no listening phase, no speech,
+    // no flashing/timers. Still call onReady() once, as the contract requires
+    // (the runner ignores it in this phase).
+    if (reveal) {
+      if (!readyCalled.current) { readyCalled.current = true; onReady(); }
+      return;
+    }
     // present() stamps a fresh generation id on every call (including the
     // next item's or a Replay's), which auto-invalidates this run's stale()
     // checks, so no cleanup-based cancellation is needed here.
@@ -94,30 +101,86 @@ export function DigitSpanView({ item, disabled, onReady, onRespond }: GenreViewP
       if (!readyCalled.current) { readyCalled.current = true; onReady(); }
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [item]);
+  }, [item, reveal]);
 
   function handleReplay() {
-    if (disabled || replayUsed || replaying) return;
+    if (disabled || reveal || replayUsed || replaying) return;
     setReplayUsed(true);
     setReplaying(true);
     present(() => setReplaying(false));
   }
 
   function handleDigit(n: number) {
-    if (disabled || replaying || phase !== "answering") return;
+    if (disabled || reveal || replaying || phase !== "answering") return;
     setTray(t => (t.length >= item.digits.length ? t : [...t, n]));
   }
 
   function handleBackspace() {
-    if (disabled || replaying || phase !== "answering") return;
+    if (disabled || reveal || replaying || phase !== "answering") return;
     setTray(t => t.slice(0, -1));
   }
 
   function handleDone() {
-    if (disabled || replaying || phase !== "answering" || responded.current) return;
+    if (disabled || reveal || replaying || phase !== "answering" || responded.current) return;
     if (tray.length < 1) return;
     responded.current = true;
     onRespond(tray, { replayed: replayUsed, audioFallback });
+  }
+
+  if (reveal) {
+    const herTray = lastResponse ?? [];
+    const differs = herTray.length !== item.expected.length || herTray.some((n, i) => n !== item.expected[i]);
+    return (
+      <div className="flex flex-col items-center justify-center gap-6 p-6 text-ink">
+        <div className="flex w-full max-w-md flex-col items-center gap-6">
+          <p className="text-center font-bubble text-2xl">{TASK_LABEL[item.task]}</p>
+
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-lg font-semibold text-ink/50">I said</span>
+            <div className="flex flex-wrap justify-center gap-2">
+              {item.digits.map((n, i) => (
+                <div
+                  key={i}
+                  className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-100/60 text-2xl font-bold text-ink/50"
+                >
+                  {n}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-lg font-semibold text-ink/70">So the answer is</span>
+            <div className="flex flex-wrap justify-center gap-2">
+              {item.expected.map((n, i) => (
+                <div
+                  key={i}
+                  className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#eaf9ea] border-4 border-[#6fcf6f] text-3xl font-bold text-ink"
+                >
+                  {n}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {differs && herTray.length > 0 && (
+            <div className="flex flex-col items-center gap-2 opacity-50">
+              <span className="text-base font-semibold text-ink">You tapped</span>
+              <div className="flex flex-wrap justify-center gap-2">
+                {herTray.map((n, i) => (
+                  <div
+                    key={i}
+                    className="flex h-12 w-12 items-center justify-center rounded-xl bg-teal-100 text-xl font-bold text-ink"
+                  >
+                    {n}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
   }
 
   const showListening = phase === "listening" || replaying;

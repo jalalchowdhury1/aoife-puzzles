@@ -19,6 +19,12 @@
 //   - Size distractors at d<=6 must jump a full 2 steps (S<->L), never land
 //     adjacent to the answer (S/M or M/L) — the exact confusion the real
 //     data flagged (rotated hexagon, size M vs L).
+//   - A "stepping" rule (progressRow, and the series alternation's
+//     progressing half) may only ever drive count, size, or rotation — never
+//     colour or shape (2026-08-22, after a d6 item stepped through the
+//     6-colour list: colour/shape have no natural order, so a child can only
+//     guess "what's next"; colour and shape may only take
+//     const/constRow/constCol/dist3 rules).
 import type { Rng } from "../engine/rng";
 import type { Difficulty } from "../engine/types";
 import type { Figure } from "./shapes";
@@ -179,17 +185,32 @@ const PLAN_BY_D: Record<Difficulty, PlanSpec> = {
 };
 
 /**
- * Picks `n` distinct attrs from `pool`, never returning both "shape" and
- * "rot" together — rotation is only ever meaningfully distinct on a
- * triangle, so a rule plan can't simultaneously vary shape independently.
+ * Attributes eligible to drive a "stepping" rule (progressRow, and by
+ * extension the series alternation's progressing half, see buildSeriesFigures)
+ * — count and size always; rotation only ever reaches this pool from d>=5
+ * (no plan's pool includes "rot" before then). Colour and shape are never
+ * eligible: they have no natural order, so a child could only guess at
+ * "what's next" (2026-08-22 fix).
  */
-function pickPlanAttrs(rng: Rng, pool: AttrName[], n: number): AttrName[] {
+const PROGRESSABLE_ATTRS: AttrName[] = ["count", "size", "rot"];
+
+/**
+ * Picks `n` distinct attrs from `pool`, skipping anything already in `avoid`,
+ * and never returning "shape" alongside "rot" (whether the conflicting attr
+ * is in `avoid` or in this same pick) — rotation is only ever meaningfully
+ * distinct on a triangle, so a rule plan can't simultaneously vary shape
+ * independently.
+ */
+function pickDistinctAttrs(rng: Rng, pool: AttrName[], n: number, avoid: AttrName[] = []): AttrName[] {
   const shuffled = rng.shuffle(pool);
   const chosen: AttrName[] = [];
+  const hasRot = avoid.includes("rot");
+  const hasShape = avoid.includes("shape");
   for (const attr of shuffled) {
     if (chosen.length >= n) break;
-    if (attr === "shape" && chosen.includes("rot")) continue;
-    if (attr === "rot" && chosen.includes("shape")) continue;
+    if (avoid.includes(attr) || chosen.includes(attr)) continue;
+    if (attr === "shape" && (hasRot || chosen.includes("rot"))) continue;
+    if (attr === "rot" && (hasShape || chosen.includes("shape"))) continue;
     chosen.push(attr);
   }
   return chosen;
@@ -198,8 +219,23 @@ function pickPlanAttrs(rng: Rng, pool: AttrName[], n: number): AttrName[] {
 /** Turns a difficulty into a concrete set of attribute rules (data-driven; see PLAN_BY_D). */
 export function buildRulePlan(rng: Rng, d: Difficulty): { rows: 2 | 3; rules: AttrRule[] } {
   const spec = PLAN_BY_D[d];
-  const attrs = pickPlanAttrs(rng, spec.pool, spec.kinds.length);
-  let rules: AttrRule[] = spec.kinds.map((kind, i) => ({ attr: attrs[i], kind }));
+
+  // The progressing ("stepping") slot, if this plan has one, is drawn only
+  // from count/size/rot — never colour or shape (see PROGRESSABLE_ATTRS).
+  // The remaining (non-progressing) slots draw from whatever's left in the
+  // pool, colour/shape included.
+  const progressSlots = spec.kinds.filter(kind => kind === "progressRow").length;
+  const progressPool = spec.pool.filter(attr => PROGRESSABLE_ATTRS.includes(attr));
+  const progressAttrs = pickDistinctAttrs(rng, progressPool, progressSlots);
+
+  const otherPool = spec.pool.filter(attr => !progressAttrs.includes(attr));
+  const otherAttrs = pickDistinctAttrs(rng, otherPool, spec.kinds.length - progressSlots, progressAttrs);
+
+  let pi = 0;
+  let oi = 0;
+  let rules: AttrRule[] = spec.kinds.map(kind =>
+    kind === "progressRow" ? { attr: progressAttrs[pi++], kind } : { attr: otherAttrs[oi++], kind }
+  );
 
   if (d === 3 || d === 4) {
     rules = rules.map(r =>
@@ -239,8 +275,9 @@ export function buildGrid(rng: Rng, rows: 2 | 3, rules: AttrRule[], d: Difficult
   }
 
   // Rotation only reads unambiguously on a triangle: whenever rot is a rule
-  // attribute, pin every figure's shape to triangle (pickPlanAttrs already
-  // guarantees "shape" itself isn't also a separate rule attribute here).
+  // attribute, pin every figure's shape to triangle (pickDistinctAttrs
+  // already guarantees "shape" itself isn't also a separate rule attribute
+  // here).
   if (rules.some(r => r.attr === "rot")) {
     indexGrids.shape = fillGrid(rows, cols, SHAPES.indexOf("triangle"));
   }
@@ -276,7 +313,10 @@ function twoValueSet(rng: Rng, attr: AttrName): number[] {
  */
 export function buildSeriesFigures(rng: Rng, d: Difficulty): Figure[] {
   const narrow = d <= 4;
-  const progPool = narrow ? DRAWABLE_ATTRS.filter(a => a !== "rot") : DRAWABLE_ATTRS;
+  // The progressing attribute is a "stepping" rule too — restricted the same
+  // way as buildRulePlan's progressRow slot: never colour or shape, and
+  // rotation only once d>=5 (i.e. only in the non-narrow branch).
+  const progPool = narrow ? PROGRESSABLE_ATTRS.filter(a => a !== "rot") : PROGRESSABLE_ATTRS;
   const progAttr = rng.pick(progPool);
 
   const cols = {} as Record<AttrName, number[]>;

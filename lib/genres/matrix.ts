@@ -18,7 +18,9 @@ export interface MatrixItem {
 
 function generate(seed: number, d: Difficulty): MatrixItem {
   const rng = makeRng(seed);
-  const useSeries = d <= 6 && rng.next() < 0.3;
+  // Series only ever shows up from d3 (a sample-only 2x2 is all she's seen
+  // by d1-2), and at <=30% of seeds even then.
+  const useSeries = d >= 3 && d <= 6 && rng.next() < 0.3;
 
   if (useSeries) {
     const figures = buildSeriesFigures(rng, d);
@@ -29,7 +31,7 @@ function generate(seed: number, d: Difficulty): MatrixItem {
   }
 
   const { rows, rules } = buildRulePlan(rng, d);
-  const grid = buildGrid(rng, rows, rules).flat();
+  const grid = buildGrid(rng, rows, rules, d).flat();
   const visible = grid.slice(0, -1);
   const answerFigure = grid[grid.length - 1];
   const { options, answerIndex } = buildOptions(rng, answerFigure, visible, d);
@@ -47,25 +49,32 @@ function sampleFigure(shape: Figure["shape"], color: string): Figure {
 
 function sample(): { item: MatrixItem; explanation: string } {
   const red = COLORS[0];
+  const teal = COLORS[1];
+  const yellow = COLORS[2];
   const blue = COLORS[3];
 
-  const circleBlue = sampleFigure("circle", blue);
-  const circleRed = sampleFigure("circle", red);
-  const squareRed = sampleFigure("square", red);
+  // Row-constant shape: row 1 is all circles, row 2 is all squares — the
+  // exact d1-2 pattern (a single varying attribute, everything else pinned:
+  // count 1, no rotation, no dot). The missing cell completes row 2.
+  const row1Cell = sampleFigure("circle", red);
+  const row2Visible = sampleFigure("square", blue);
   const answer = sampleFigure("square", blue);
 
-  const triangleBlue = sampleFigure("triangle", blue);
-  const squareTeal = sampleFigure("square", COLORS[1]);
-  const squareBlueLarge: Figure = { ...answer, size: "L" };
-  const squareBlueDot: Figure = { ...answer, dot: true };
-
-  const options = [triangleBlue, answer, squareTeal, squareBlueLarge, squareBlueDot];
+  // Every distractor differs from the answer by shape or color only —
+  // never size/rotation/dot/count — matching the d1-2 distractor rule.
+  const options = [
+    sampleFigure("triangle", blue), // shape differs
+    answer,
+    sampleFigure("square", teal),   // colour differs
+    sampleFigure("star", blue),     // shape differs
+    sampleFigure("square", yellow), // colour differs
+  ];
 
   return {
     item: {
       form: "matrix",
       rows: 2,
-      cells: [circleBlue, circleRed, squareRed, null],
+      cells: [row1Cell, row1Cell, row2Visible, null],
       options,
       answer: 1,
     },

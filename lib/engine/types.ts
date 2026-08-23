@@ -7,7 +7,8 @@ export type GenreId =
   | "fireflyBoxes" | "translator"
   | "fillTheGap" | "whatWouldYouDo"
   | "swapShop"
-  | "animalParade";
+  | "animalParade"
+  | "spotIt" | "whichTwo";
 export type Domain = "VS" | "FR" | "WM" | "PS" | "VC";
 export type Difficulty = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 export const DIFFICULTIES: Difficulty[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];

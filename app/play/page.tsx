@@ -2,13 +2,13 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import type { BlockRecord, GenreViewProps, ItemRecord, LevelConfig, PartConfig, SessionRecord } from "@/lib/engine/types";
+import type { BlockRecord, GenreId, GenreViewProps, ItemRecord, LevelConfig, PartConfig, SessionRecord } from "@/lib/engine/types";
 import { summarize } from "@/lib/engine/types";
 import { LEVELS, RELEASED_LEVELS } from "@/lib/levels";
-import { GENRES } from "@/lib/genres";
+import { GENRES, GENRE_LIST } from "@/lib/genres";
 import { VIEWS } from "@/components/genres";
 import { startStair, stepStair, type StairState } from "@/lib/engine/staircase";
-import { randomSeed } from "@/lib/engine/rng";
+import { randomSeed, makeRng } from "@/lib/engine/rng";
 import {
   ulid,
   loadSessions,
@@ -19,16 +19,39 @@ import {
   currentPosition,
   fetchServerState,
   mergeSessions,
+  profileStart,
 } from "@/lib/engine/storage";
 import { computeProfile } from "@/lib/engine/profile";
 import { adaptPart, type ResolvedBlock } from "@/lib/engine/adapt";
 import { speak, warmUpSpeech } from "@/lib/engine/speech";
+import { pickPraise, type PraiseKind } from "@/lib/engine/praise";
+import { starsForItem, bonusStar, sessionStars, newBests, streakAfter } from "@/lib/engine/rewards";
+import { newBadges } from "@/lib/engine/badges";
+import { KID_NAME } from "@/lib/engine/kid";
 import { SampleScreen } from "@/components/SampleScreen";
 import { Countdown } from "@/components/Countdown";
-import { PartDone } from "@/components/PartDone";
+import { PartDone, type PartDoneRecap } from "@/components/PartDone";
 import { BigButton } from "@/components/BigButton";
+import { Pip, type PipMood } from "@/components/Pip";
+import { PraiseScreen } from "@/components/PraiseScreen";
+import { StarJar } from "@/components/StarJar";
 
-type Phase = "loading" | "sample" | "item" | "between" | "done";
+type Phase = "loading" | "welcome" | "sample" | "item" | "between" | "blockDone" | "done";
+
+interface PipLine {
+  mood: PipMood;
+  line: string;
+}
+
+/** Priority order for what a correct, full-score answer gets praised as. */
+function correctPraiseKind(d: number, streak: number, isNewBest: boolean, cameFromMiss: boolean): PraiseKind {
+  if (d === 10) return "topOfRamp";
+  if (isNewBest) return "newBest";
+  if (streak >= 5) return "streak5";
+  if (streak >= 3) return "streak3";
+  if (cameFromMiss) return "comeback";
+  return "correct";
+}
 
 // How long the "between" transition shows for `none`/`mark` feedback.
 // `reveal` (Level 2) has its own two-speed timing handled by feedbackDelay
@@ -39,8 +62,10 @@ const BETWEEN_MS: Record<"none" | "mark", number> = { none: 600, mark: 1200 };
 // `teaching`: this item was a missed teaching item (see ResolvedBlock.teachingItems
 // / lib/engine/staircase.ts) — it gets the same 4s answer-reveal pause as
 // Level 2's "reveal" feedback even when the level's own feedback is "none".
-function feedbackDelay(feedback: LevelConfig["feedback"], fullScore: boolean, teaching: boolean): number {
-  if (feedback === "reveal") return fullScore ? 1200 : 4000;
+// `fun`: practice levels' PraiseScreen (see components/PraiseScreen.tsx)
+// shows for 1.6s instead of the plain "Yes!" screen's 1.2s.
+function feedbackDelay(feedback: LevelConfig["feedback"], fullScore: boolean, teaching: boolean, fun: boolean): number {
+  if (feedback === "reveal") return fullScore ? (fun ? 1600 : 1200) : 4000;
   if (teaching) return 4000;
   return BETWEEN_MS[feedback];
 }
@@ -117,9 +142,10 @@ function RepeatScreen({ kidTitle, onStart }: { kidTitle: string; onStart: () => 
 
 // Level 2 ("reveal" feedback), full-score response: the "Yes!" look, shown
 // for 1200ms (feedbackDelay) instead of the longer answer-reveal pause.
+// Only used when `fun` is off — see PraiseScreen for the fun-layer version.
 function FullScoreScreen() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3">
+    <div className="flex flex-1 flex-col items-center justify-center gap-3" data-testid="between-feedback">
       <span className="text-8xl" aria-hidden>
         ✅
       </span>
@@ -137,19 +163,49 @@ function RevealAnswerScreen({
   View,
   item,
   lastResponse,
+  captionPip,
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   View: React.ComponentType<GenreViewProps<any, any>>;
   item: unknown;
   lastResponse: unknown;
+  // Fun layer only (see app/play/page.tsx `funOn`): Pip narrates the reveal
+  // ("Ooh, a tricky one!...") instead of the plain "Here is the answer"
+  // caption. null/undefined keeps today's neutral caption exactly (Level 1's
+  // teaching-item misses, and any level with fun off).
+  captionPip?: PipLine | null;
 }) {
   return (
-    <div className="flex flex-1 flex-col items-center gap-4 px-4 pb-4 text-center">
-      <p className="font-bubble text-2xl text-ink">Here is the answer</p>
+    <div className="flex flex-1 flex-col items-center gap-4 px-4 pb-4 text-center" data-testid="between-feedback">
+      {captionPip ? (
+        <Pip mood={captionPip.mood} line={captionPip.line} speak />
+      ) : (
+        <p className="font-bubble text-2xl text-ink">Here is the answer</p>
+      )}
       <div className="w-full max-w-md rounded-3xl bg-white p-4 shadow-lg">
         <View item={item} disabled reveal lastResponse={lastResponse} onReady={() => {}} onRespond={() => {}} />
       </div>
       {hasExplanation(item) && <p className="max-w-md text-lg text-ink/80">{item.explanation}</p>}
+    </div>
+  );
+}
+
+// Fun layer only (funOn): a 2s greeting before the very first sample screen
+// of a part. Tap-skippable like every other fun screen (see handleSkipTap).
+function WelcomeScreen({ line }: { line: string }) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-cream p-6 text-center">
+      <Pip mood="happy" line={line} speak />
+    </div>
+  );
+}
+
+// Fun layer only (funOn): a 2s "you finished a set!" beat between a block
+// ending and the next block's sample/repeat screen. Tap-skippable.
+function BlockDoneScreen({ line }: { line: string }) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-cream p-6 text-center">
+      <Pip mood="proud" line={line} speak />
     </div>
   );
 }
@@ -162,6 +218,16 @@ function PlayRunner() {
   const respondedRef = useRef(false);
   const blockEndedRef = useRef(false);
   const usedBankIdsRef = useRef<string[]>([]);
+
+  // ---- Fun layer (Pip the fox, praise screens, star jar, recap — see
+  // AGENTS.md-adjacent brief 2026-08-23). All of it is gated behind
+  // `funOn` (levelCfg.fun !== false); Level 1 (the diagnostic) is unaffected.
+  const usedLinesRef = useRef<Set<string>>(new Set()); // pickPraise's per-session "don't repeat a line" set
+  const bestDByGenreRef = useRef<Partial<Record<GenreId, number | null>>>({}); // this part's starting personal-best ceiling per genre, for "newBest"
+  const earlierSessionsRef = useRef<SessionRecord[]>([]); // sessions known before THIS part-session, for newBests/newBadges
+  const betweenTimerRef = useRef<number | null>(null); // the pending "advance to next item/phase" timeout
+  const pendingAdvanceRef = useRef<(() => void) | null>(null); // what that timeout will run
+  const advancedRef = useRef(false); // guards a tap-to-skip racing the timer itself
 
   const [ready, setReady] = useState(false);
   const [phase, setPhase] = useState<Phase>("loading");
@@ -200,6 +266,17 @@ function PlayRunner() {
   // one "between" pause even on a level whose own feedback is "none".
   const [teachingReveal, setTeachingReveal] = useState(false);
 
+  // Fun layer state (see usedLinesRef comment above for the gate).
+  const [welcomeLine, setWelcomeLine] = useState<string | null>(null);
+  const [blockDoneLine, setBlockDoneLine] = useState<string | null>(null);
+  const [praiseLine, setPraiseLine] = useState<PipLine | null>(null); // correct-answer PraiseScreen
+  const [praiseCelebrate, setPraiseCelebrate] = useState(false); // small confetti burst at a 5-streak
+  const [missPip, setMissPip] = useState<PipLine | null>(null); // Pip's caption on the answer-reveal screen
+  const [jarStars, setJarStars] = useState(0); // this sitting's star-jar count
+  const [bonusFlash, setBonusFlash] = useState(false); // "✨ Bonus star!" flourish
+  const [recap, setRecap] = useState<PartDoneRecap | null>(null);
+  const [partDoneLine, setPartDoneLine] = useState<string | null>(null);
+
   // Stable across every render so views whose mount effect lists `onReady`
   // as a dependency (ChoiceView, ArithmeticView, PictureSpanView) never
   // re-fire it just because the parent re-rendered.
@@ -207,6 +284,44 @@ function PlayRunner() {
     setStartedAtMs(performance.now());
     setStartedAtEpoch(Date.now());
   }, []);
+
+  // Runs the pending fun-screen transition (blockDone->sample, welcome->sample,
+  // or the between-phase item advance) at most once, whether the timer fired
+  // naturally or she tapped to skip it (owner brief: "all fun screens are
+  // skippable by tap" — never delays a timed item's start since this only
+  // ever governs non-timed interstitial screens).
+  const runPendingAdvance = useCallback(() => {
+    if (advancedRef.current) return;
+    advancedRef.current = true;
+    if (betweenTimerRef.current !== null) {
+      window.clearTimeout(betweenTimerRef.current);
+      betweenTimerRef.current = null;
+    }
+    const fn = pendingAdvanceRef.current;
+    pendingAdvanceRef.current = null;
+    fn?.();
+  }, []);
+
+  const scheduleAdvance = useCallback(
+    (fn: () => void, delay: number) => {
+      advancedRef.current = false;
+      pendingAdvanceRef.current = fn;
+      betweenTimerRef.current = window.setTimeout(runPendingAdvance, delay);
+    },
+    [runPendingAdvance]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (betweenTimerRef.current !== null) window.clearTimeout(betweenTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!bonusFlash) return;
+    const t = setTimeout(() => setBonusFlash(false), 1200);
+    return () => clearTimeout(t);
+  }, [bonusFlash]);
 
   // ---- Resolve where to start: URL params, else currentPosition; ?replay=1
   // starts a fresh session even if the part is already complete. The server
@@ -313,6 +428,16 @@ function PlayRunner() {
       setSession(activeSession);
       setBlockIndex(startBlockIndex);
 
+      // Fun layer setup (no-op cost when levelCfgFound.fun === false): her
+      // starting personal-best ceiling per genre (for "newBest" praise) and
+      // the session list from BEFORE this part-session (for the PartDone
+      // recap's newBests/newBadges — excludes activeSession itself so a
+      // resumed, partially-recorded session doesn't count against its own record).
+      const bestMap: Partial<Record<GenreId, number | null>> = {};
+      for (const g of GENRE_LIST) bestMap[g] = profileStart(g, sessions);
+      bestDByGenreRef.current = bestMap;
+      earlierSessionsRef.current = sessions.filter((s) => s.id !== activeSession.id);
+
       if (startBlockIndex >= blocksForPart.length) {
         // Defensive: every block already recorded but the session was never
         // flagged complete (shouldn't normally happen). Finish it now.
@@ -323,6 +448,12 @@ function PlayRunner() {
         await flushOutbox();   // PartDone's first render reflects the real sync state
         setSession(doneSession);
         setPhase("done");
+      } else if (levelCfgFound.fun !== false && startBlockIndex === 0) {
+        // Welcome: the first sample of a part gets a 2s Pip greeting first.
+        const rng = makeRng(randomSeed());
+        setWelcomeLine(pickPraise({ kind: "welcome", name: KID_NAME }, rng, usedLinesRef.current));
+        scheduleAdvance(() => setPhase("sample"), 2000);
+        setPhase("welcome");
       } else {
         setPhase("sample");
       }
@@ -350,6 +481,9 @@ function PlayRunner() {
     setLastResponse(null);
     setFullScore(false);
     setTeachingReveal(false);
+    setPraiseLine(null);
+    setPraiseCelebrate(false);
+    setMissPip(null);
     setBlockStartedAtIso(new Date().toISOString());
 
     const newSeed = randomSeed();
@@ -392,6 +526,7 @@ function PlayRunner() {
     blockEndedRef.current = true;
 
     const genre = GENRES[cfg.genre];
+    const funOn = levelCfg?.fun !== false;
     const endedAtIso = new Date().toISOString();
     const blockRecord: BlockRecord = {
       genre: cfg.genre,
@@ -418,11 +553,33 @@ function PlayRunner() {
       // sync outcome instead of the stale "still pending" state from just
       // after `enqueue` (see AGENTS.md's sync-icon rule and PartDone.tsx).
       await flushOutbox();
+      if (funOn && levelCfg && partCfg) {
+        const earlier = earlierSessionsRef.current;
+        const after = [...earlier, updated];
+        const partIdx = levelCfg.parts.findIndex((p) => p.id === partCfg.id);
+        const nextPart = levelCfg.parts[partIdx + 1];
+        setRecap({
+          puzzles: updated.blocks.reduce((n, b) => n + b.summary.attempted, 0),
+          stars: sessionStars(updated),
+          bests: newBests(updated, earlier).map((b) => ({ kidTitle: GENRES[b.genre].kidTitle, d: b.ceiling })),
+          badges: newBadges(earlier, after),
+          nextLine: nextPart ? `Tomorrow: ${nextPart.title}` : `You finished ${levelCfg.title}!`,
+        });
+        const rng = makeRng(randomSeed());
+        setPartDoneLine(pickPraise({ kind: "partDone", name: KID_NAME }, rng, usedLinesRef.current));
+      }
       setPhase("done");
     } else {
       void flushOutbox();
       setBlockIndex((b) => b + 1);
-      setPhase("sample");
+      if (funOn) {
+        const rng = makeRng(randomSeed());
+        setBlockDoneLine(pickPraise({ kind: "blockDone", name: KID_NAME, kidTitle: genre.kidTitle }, rng, usedLinesRef.current));
+        scheduleAdvance(() => setPhase("sample"), 2000);
+        setPhase("blockDone");
+      } else {
+        setPhase("sample");
+      }
     }
   }
 
@@ -466,6 +623,16 @@ function PlayRunner() {
     if (meta?.audioFallback !== undefined) record.audioFallback = meta.audioFallback;
     if (isTeachingMiss) record.teaching = true;
 
+    const funOn = levelCfg.fun !== false;
+    if (funOn) {
+      const base = starsForItem(record, genre.mode);
+      const bonus = base > 0 && bonusStar(seed, record.idx);
+      const stars = base + (bonus ? 1 : 0);
+      record.stars = stars;
+      setJarStars((j) => j + stars);
+      setBonusFlash(bonus);
+    }
+
     const newRecords = [...records, record];
     setRecords(newRecords);
     if (bankId) usedBankIdsRef.current = [...usedBankIdsRef.current, bankId];
@@ -481,10 +648,44 @@ function PlayRunner() {
     setLastResponse(timedOut ? null : (response ?? null));
     setFullScore(scoredFull);
     setTeachingReveal(isTeachingMiss);
+
+    // Fun layer: Pip's line for the between-phase screen this item leads to.
+    // Only computed where that screen will actually show (mirrors exactly
+    // where FullScoreScreen/RevealAnswerScreen already render below).
+    if (funOn) {
+      const willPraise = levelCfg.feedback === "reveal" && scoredFull;
+      const willRevealMiss = (levelCfg.feedback === "reveal" && !scoredFull) || isTeachingMiss;
+      const rng = makeRng(randomSeed());
+      if (willPraise) {
+        const cameFromMiss = records.length > 0 && !records[records.length - 1].correct;
+        const streak = streakAfter(newRecords);
+        const prevBest = bestDByGenreRef.current[cfg.genre] ?? null;
+        const isNewBest = prevBest === null || stair!.d > prevBest;
+        if (isNewBest) bestDByGenreRef.current[cfg.genre] = stair!.d;
+        const kind = correctPraiseKind(stair!.d, streak, isNewBest, cameFromMiss);
+        const line = pickPraise(
+          { kind, name: KID_NAME, kidTitle: genre.kidTitle, fast, hard: stair!.d >= 7, streak, stars: record.stars },
+          rng,
+          usedLinesRef.current
+        );
+        setPraiseLine({ mood: kind === "newBest" || kind === "topOfRamp" ? "proud" : "excited", line });
+        setPraiseCelebrate(kind === "streak5");
+        setMissPip(null);
+      } else if (willRevealMiss) {
+        const kind = timedOut ? "timeout" : "miss";
+        const line = pickPraise({ kind, name: KID_NAME, kidTitle: genre.kidTitle }, rng, usedLinesRef.current);
+        setMissPip({ mood: "thinking", line });
+        setPraiseLine(null);
+      } else {
+        setPraiseLine(null);
+        setMissPip(null);
+      }
+    }
+
     setPhase("between");
 
-    const delay = feedbackDelay(levelCfg.feedback, scoredFull, isTeachingMiss);
-    window.setTimeout(() => {
+    const delay = feedbackDelay(levelCfg.feedback, scoredFull, isTeachingMiss, funOn);
+    scheduleAdvance(() => {
       if (newStair.done) endBlock(newRecords);
       else generateNextItem(newStair.d);
     }, delay);
@@ -504,7 +705,32 @@ function PlayRunner() {
   if (phase === "done") {
     const minutes = session ? minutesBetween(session.startedAt, session.endedAt) : 0;
     return (
-      <PartDone part={partCfg} minutes={minutes} synced={syncState() === "synced"} onHome={() => router.push("/")} />
+      <PartDone
+        part={partCfg}
+        minutes={minutes}
+        synced={syncState() === "synced"}
+        onHome={() => router.push("/")}
+        recap={recap}
+        pipLine={partDoneLine}
+      />
+    );
+  }
+
+  const funOn = levelCfg.fun !== false;
+
+  if (phase === "welcome") {
+    return (
+      <div className="flex flex-1" onClick={runPendingAdvance}>
+        <WelcomeScreen line={welcomeLine ?? ""} />
+      </div>
+    );
+  }
+
+  if (phase === "blockDone") {
+    return (
+      <div className="flex flex-1" onClick={runPendingAdvance}>
+        <BlockDoneScreen line={blockDoneLine ?? ""} />
+      </div>
     );
   }
 
@@ -521,7 +747,7 @@ function PlayRunner() {
     if (cfg.repeat) {
       return <RepeatScreen kidTitle={genre.kidTitle} onStart={beginBlockItems} />;
     }
-    return <SampleScreen genre={genre} View={View} onStart={beginBlockItems} />;
+    return <SampleScreen genre={genre} View={View} onStart={beginBlockItems} fun={funOn} />;
   }
 
   return (
@@ -529,7 +755,7 @@ function PlayRunner() {
       <div className="flex items-center justify-between gap-4 px-4 pt-4">
         <span className="font-bubble text-lg text-ink/70">{partCfg.title}</span>
         {genre.mode === "staircase" && <ProgressDots total={cfg.maxItems} filled={records.length} />}
-        <span aria-hidden className="w-0" />
+        {funOn ? <StarJar stars={jarStars} bonus={bonusFlash} /> : <span aria-hidden className="w-0" />}
       </div>
 
       {genre.timing.kind === "block" && (
@@ -542,7 +768,13 @@ function PlayRunner() {
         </div>
       )}
 
-      <div className="flex flex-1 flex-col items-center justify-center">
+      <div
+        className="flex flex-1 flex-col items-center justify-center"
+        // Fun screens are tap-skippable (owner brief); the "item" phase is
+        // never affected since a timed item's own controls are what respond
+        // to a tap, and onClick here is a no-op while phase === "item".
+        onClick={phase === "between" && funOn ? runPendingAdvance : undefined}
+      >
         {phase === "item" ? (
           <>
             {genre.timing.kind === "item" && (
@@ -565,14 +797,18 @@ function PlayRunner() {
           </>
         ) : levelCfg.feedback === "reveal" ? (
           fullScore ? (
-            <FullScoreScreen />
+            funOn && praiseLine ? (
+              <PraiseScreen mood={praiseLine.mood} line={praiseLine.line} celebrate={praiseCelebrate} />
+            ) : (
+              <FullScoreScreen />
+            )
           ) : (
-            <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} />
+            <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} captionPip={funOn ? missPip : null} />
           )
         ) : teachingReveal ? (
           // A missed teaching item on a level whose own feedback is "none"
           // (Level 1): still show the answer, just this once.
-          <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} />
+          <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} captionPip={funOn ? missPip : null} />
         ) : (
           <BetweenScreen feedback={levelCfg.feedback} lastCorrect={lastCorrect} />
         )}

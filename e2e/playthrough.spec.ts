@@ -227,10 +227,11 @@ async function clickAndExpectRemount(page: Page, control: Locator): Promise<void
 test.describe("play-through", () => {
   test("plays every genre block in the hidden QA level and reaches the end", async ({ page }) => {
     // 13 genres, several with multi-second "reveal"/listening/exposure
-    // pauses by design (see comments below) — comfortably finishes well
-    // under the spec's ~3 minute budget, but well past Playwright's 30s
-    // per-test default.
-    test.setTimeout(150_000);
+    // pauses by design (see comments below), plus the fun layer's
+    // welcome/blockDone/praise interstitials (level 99 defaults to
+    // fun: true — see app/play/page.tsx) — comfortably finishes within the
+    // spec's ~3 minute budget, but well past Playwright's 30s per-test default.
+    test.setTimeout(180_000);
 
     await stubBrowser(page);
     await page.goto(QA_URL);
@@ -271,9 +272,13 @@ test.describe("play-through", () => {
           await spec.answer(page);
 
           // levelQa uses feedback: "reveal", so every answer (right or
-          // wrong) is followed by one of these two screens before the next
-          // item (or the block end) appears — the "item advances" signal.
-          await expect(page.getByText(/Yes!|Here is the answer/)).toBeVisible({ timeout: 6_000 });
+          // wrong) is followed by one of FullScoreScreen/PraiseScreen or
+          // RevealAnswerScreen before the next item (or the block end)
+          // appears — the "item advances" signal. All three carry the same
+          // testid regardless of which praise line the fun layer picked
+          // (level 99 defaults to fun: true — see AGENTS.md's fun-layer
+          // brief), so this doesn't depend on exact text like "Yes!".
+          await expect(page.getByTestId("between-feedback")).toBeVisible({ timeout: 6_000 });
         }
       }
 

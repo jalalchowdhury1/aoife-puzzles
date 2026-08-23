@@ -5,10 +5,17 @@ import { useRouter } from "next/navigation";
 import { RELEASED_LEVELS as LEVELS } from "@/lib/levels";
 import { loadSessions, currentPosition, syncState, flushOutbox, fetchServerState, mergeSessions } from "@/lib/engine/storage";
 import type { LevelConfig, SessionRecord } from "@/lib/engine/types";
+import { dayStreak, totalStars } from "@/lib/engine/rewards";
 import { BigButton } from "@/components/BigButton";
 
 function isPartComplete(sessions: SessionRecord[], level: number, part: string): boolean {
   return sessions.some((s) => s.level === level && s.part === part && s.complete);
+}
+
+/** Local calendar day ("YYYY-MM-DD") for the day-streak calculation — her device's own clock, not UTC. */
+function todayLocal(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 function allComplete(sessions: SessionRecord[]): boolean {
@@ -26,6 +33,8 @@ export default function HomePage() {
   // three stickers, so a finished earlier level's rewards stay visible
   // instead of disappearing once she moves on.
   const [earnedStickers, setEarnedStickers] = useState<string[]>([]);
+  const [streak, setStreak] = useState(0);
+  const [stars, setStars] = useState(0);
   const [synced, setSynced] = useState(true);
   // True once we've asked the server and it did NOT answer in time — the
   // page is running on local storage alone. See AGENTS.md §2/§5: the server
@@ -57,6 +66,8 @@ export default function HomePage() {
       setLevelCfg(cfg);
       setEarned(earnedMap);
       setEarnedStickers(priorStickers);
+      setStreak(dayStreak(sessions, todayLocal()));
+      setStars(totalStars(sessions));
       setSynced(syncState() === "synced");
       setServerOffline(!state);
       setReady(true);
@@ -107,6 +118,17 @@ export default function HomePage() {
           )}
         </>
       )}
+
+      {(streak > 0 || stars > 0) && (
+        <div className="flex items-center gap-4 font-bubble text-lg text-ink">
+          {streak > 0 && <span aria-label={`${streak} days in a row`}>🔥 {streak} days in a row</span>}
+          {stars > 0 && <span aria-label={`${stars} total stars`}>⭐ {stars} total stars</span>}
+        </div>
+      )}
+
+      <BigButton onClick={() => router.push("/stickers")} tone="plain">
+        Sticker Book
+      </BigButton>
 
       <div className="flex items-center gap-1">
         <span className="text-2xl" aria-label={synced ? "Saved" : "Will save when back online"}>

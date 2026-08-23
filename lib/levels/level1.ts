@@ -6,6 +6,7 @@ export const level1: LevelConfig = {
   feedback: "none",
   fun: false, // diagnostic: no right/wrong feedback, so praise stays neutral ("neutralNext")
   teachingItems: 2,
+  fun: false, // the diagnostic: no Pip, no stars, no praise screens — see AGENTS.md decision #8/#14 and LevelConfig.fun
   parts: [
     {
       id: "A",

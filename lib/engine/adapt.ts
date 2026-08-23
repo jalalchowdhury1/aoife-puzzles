@@ -16,6 +16,7 @@ export interface ResolvedBlock extends BlockConfig {
   /** Multiplier on per-item time caps (weak genres in remedial levels get 1.5× — learning a format under a 30 s cap just produces time-outs). Speed blocks ignore it. */
   timeScale: number;
   teachingItems: number;
+  stepUp: number;
 }
 
 // Genres scored by throughput (perMinute), not a staircase ceiling. Their
@@ -108,19 +109,22 @@ export function adaptPart(part: PartConfig, level: LevelConfig, profile: Profile
       start = 1;
       maxItems = 8;
     } else {
+      // Practice starts WELL below her best (owner, 2026-08-23: "progress needs to be
+      // very slow and one step at a time"): weak → 1, typical → ceiling − 3, strong → ceiling − 2.
       const baseStart =
-        strength === "weak" ? (ceiling === null ? 1 : ceiling - 2)
-        : strength === "typical" ? (ceiling === null ? 1 : ceiling - 1)
-        : (ceiling === null ? 1 : ceiling);
+        strength === "weak" ? 1
+        : strength === "typical" ? (ceiling === null ? 1 : ceiling - 3)
+        : (ceiling === null ? 1 : ceiling - 2);
       start = clamp(baseStart);
       const baseMax = strength === "weak" ? 10 : strength === "typical" ? 8 : 6;
       maxItems = block.maxItems !== undefined ? Math.min(block.maxItems, baseMax) : baseMax;
     }
 
     const teachingItems = block.teachingItems ?? level.teachingItems ?? 0;
+    const stepUp = block.stepUp ?? level.stepUp ?? 1;
 
     const timeScale = level.weighting === "remedial" && strength === "weak" ? 1.5 : 1;
-    return { ...block, start, maxItems, strength, teachingItems, timeScale };
+    return { ...block, start, maxItems, strength, teachingItems, timeScale, stepUp };
   });
 
   if (!remedial) return resolved;

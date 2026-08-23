@@ -356,7 +356,7 @@ function PlayRunner() {
     setSeed(newSeed);
 
     if (genre.mode === "staircase") {
-      const st = startStair(cfg.start, cfg.maxItems, cfg.teachingItems);
+      const st = startStair(cfg.start, cfg.maxItems, cfg.teachingItems, cfg.stepUp);
       setStair(st);
       setItem(genre.generate(newSeed, st.d, { excludeBankIds: [] }));
       setBlockStartMs(null);

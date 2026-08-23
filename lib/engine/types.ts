@@ -59,6 +59,7 @@ export interface SessionRecord {
 export interface BlockConfig {
   genre: GenreId; start?: number | "fromProfile"; maxItems?: number; display?: "audio" | "both";
   teachingItems?: number;              // overrides the level-wide teachingItems for this block
+  stepUp?: number;                     // overrides the level-wide stepUp for this block
   // Overrides a speed genre's block-length countdown (normally SPEED_BLOCK_MS
   // = 120s). Only meaningful for `mode: "speedBlock"` genres (coding,
   // symbolSearch); staircase genres ignore it. Used by the hidden QA level
@@ -72,6 +73,7 @@ export interface LevelConfig {
   id: number; title: string; feedback: "none" | "mark" | "reveal"; parts: PartConfig[];
   weighting?: "none" | "remedial";     // remedial = adapt starts/reps/repeats to her profile (lib/engine/adapt.ts)
   released?: boolean;                  // false = hidden from Play/home until the owner releases it (direct ?level= links still work)
+  stepUp?: number;                     // correct-in-a-row needed per step (1 = diagnostic, 2 = practice)
   // Level-wide default count of "teaching items": the first N items of each
   // block get corrective feedback (answer reveal) if missed, and a miss
   // there does not count toward the staircase's two-consecutive-wrong stop

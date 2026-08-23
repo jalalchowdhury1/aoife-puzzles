@@ -68,12 +68,12 @@ describe("adaptPart", () => {
     const resolved = adaptPart(part, remedialLevel, profile);
 
     const digitSpan = resolved.find((b) => b.genre === "digitSpan" && !b.repeat)!;
-    expect(digitSpan.start).toBe(1); // max(1, ceiling 3 - 2)
+    expect(digitSpan.start).toBe(1); // weak: always 1
     expect(digitSpan.maxItems).toBe(10);
     expect(digitSpan.strength).toBe("weak");
 
     const blockDesign = resolved.find((b) => b.genre === "blockDesign")!;
-    expect(blockDesign.start).toBe(8); // max(1, ceiling 8)
+    expect(blockDesign.start).toBe(6); // strong: ceiling 8 - 2 (practice starts well below her best)
     expect(blockDesign.maxItems).toBe(6);
     expect(blockDesign.strength).toBe("strong");
 

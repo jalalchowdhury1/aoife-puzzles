@@ -51,3 +51,20 @@ describe("staircase", () => {
     });
   });
 });
+
+describe("stepUp (slow progression)", () => {
+  it("with stepUp 2, difficulty only rises after two correct in a row; a miss resets the streak", () => {
+    let s = startStair(3, 10, 0, 2);
+    s = stepStair(s, true);  expect(s.d).toBe(3);
+    s = stepStair(s, true);  expect(s.d).toBe(4);
+    s = stepStair(s, true);  expect(s.d).toBe(4);
+    s = stepStair(s, false); expect(s.d).toBe(4); expect(s.done).toBe(false);
+    s = stepStair(s, true);  expect(s.d).toBe(4);
+    s = stepStair(s, true);  expect(s.d).toBe(5);
+    expect(s.ceiling).toBe(4);
+  });
+  it("stepUp 1 is the old behaviour", () => {
+    let s = startStair(1, 8, 0, 1);
+    s = stepStair(s, true); expect(s.d).toBe(2);
+  });
+});

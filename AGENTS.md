@@ -77,11 +77,17 @@ components/{BigButton,Countdown,SampleScreen,PartDone,Figure,ParentTable}.tsx
 lib/levels/    level1.ts, level2.ts + index.ts (LEVELS) — levels are DATA
 ```
 
-Genre ↔ subtest map: blockDesign=Block Design (VS) · visualPuzzles=Visual Puzzles (VS) ·
-matrix=Matrix Reasoning (FR) · figureWeights=Figure Weights (FR) · arithmetic=Arithmetic (FR/QRI) ·
-digitSpan=Digit Span (WM) · pictureSpan=Picture Span (WM) · coding=Coding A (PS) · symbolSearch=Symbol
-Search A (PS) · similarities / vocabulary / information / comprehension (VC).
-EGAI bundle = SI VC IN CO BD MR FW AR (Pearson TR#5, verified). CPI bundle = DS PS CD SS.
+Genre ↔ skill map (decision #16, 2026-08-23 — cousins, not replicas):
+mosaic=Mosaic Maker (build from a model, VS) · fixPicture=Fix the Picture (mental assembly, VS) ·
+patternTrain=Pattern Train + pictureSudoku=Picture Sudoku (rule induction, FR) · swapShop=Swap Shop (quantitative
+substitution, FR) · arithmetic=Story Sums (FR) · animalParade=Animal Parade (auditory sequence memory, WM) ·
+fireflyBoxes=Firefly Boxes (visuospatial sequence memory, WM) · translator=Translator (lookup speed, PS) ·
+spotIt=Spot It (scan speed, PS) · whichTwo=Which Two Belong? (categories, VC) · fillTheGap=Fill the Gap (word
+knowledge, VC) · information=Do You Know (VC) · whatWouldYouDo=What Would You Do? (social reasoning, VC).
+RETIRED (code kept for her Level 1/2 history, `retired: true`, never in a level): blockDesign, visualPuzzles,
+matrix, figureWeights, digitSpan, pictureSpan, coding, symbolSearch, similarities, vocabulary, comprehension.
+Levels: 1 = diagnostic (retired genres, fun off) · 2 = RETIRED practice (unreleased) · 3 = "Pip's Games"
+(all 14 active genres, three parts, stepUp 2, teaching items, reveal, fun on) · 99 = hidden QA level.
 
 Data flow: runner builds `SessionRecord` (one per part attempt) → after every block: `saveSessionLocal` +
 `enqueue` + `flushOutbox` → `POST /api/sessions` → Upstash `aoife_puzzles:session:<ulid>` +
@@ -274,9 +280,12 @@ curl -s -H "x-parent-key: $(grep PARENT_KEY ~/PycharmProjects/.secrets/aoife-puz
 curl -s -H "x-parent-key: …" "https://aoife-puzzles.vercel.app/api/sessions?level=1" | jq .   # raw sessions
 ```
 
-**"Add a genre"** → `lib/genres/<id>.ts` (pure: generate/score/sample/timing/mode) + `.test.ts` (500 seeds
-× 10 d) + `components/genres/<Id>View.tsx` + register in `lib/genres/index.ts` AND `components/genres/index.tsx`
-(VIEWS) + add `GenreId` to `types.ts` + put it in a level. Domain roll-ups in `profile.ts` need the new id too.
+**"Add a genre"** → `lib/genres/<id>.ts` (pure: generate/score/sample/timing/mode + `audit(item)` HTML) +
+`.test.ts` + `lib/genres/fairness/<id>.test.ts` (500 seeds × 10 d, named rules) + `components/genres/<Id>View.tsx`
+(answers carry `data-testid="answer-option"`, submit is a "Done" button) + append the id to `GenreId` in `types.ts`
++ register in `lib/genres/index.ts` (with its `e2e` plan) AND `components/genres/index.tsx` (VIEWS) + add it to
+`DOMAIN_GENRES`/bundles in `profile.ts` + put it in a level. The QA level, audit page and Playwright play-through
+pick it up from `GENRE_LIST` automatically. It must be a COUSIN of a WISC-V task, never a replica (decision #16).
 
 **"Replay a part"** → parent page → Replay links (`/play?level=1&part=A&replay=1`). The first run stays
 the diagnostic of record; replays are separate sessions.

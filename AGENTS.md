@@ -181,6 +181,7 @@ No secrets in the repo. Never print them to a transcript.
   in her profile." line when any block was flagged. `components/ParentTable.tsx` also marks a per-genre row
   "⚠️ some results excluded" when that genre has any excluded block.
 - Symbol Search item score is 1/0; the block-level "correct − incorrect" is derivable from `BlockSummary`.
+- **Difficulty scales have history.** When a genre's ramp is rebuilt, add an entry to `SCALE_CHANGES` in `lib/engine/scale.ts` (genre, cutover ISO time, old→new map). `computeProfile` remaps pre-cutover ceilings so her record stays comparable; raw sessions in KV are never rewritten. 2026-08-23: Piece Picker (old d1 = new d5) and Balance (old d4 = new d6).
 - `.claude/` (agent worktrees) and `.npm-cache/` are gitignored and ESLint-ignored; keep them that way.
 
 ## 6. State / TODO

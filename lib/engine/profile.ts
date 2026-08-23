@@ -1,4 +1,5 @@
 import type { SessionRecord, GenreId, Domain } from "./types";
+import { remapSession } from "./scale";
 import { EXCLUDING_CODES, type QualityFlagCode } from "./quality";
 
 export interface GenreStats { attempted: number; correct: number; points: number; max: number; ceiling: number | null; medianMs: number; timeouts: number; perMinute?: number; trend: { date: string; ceiling: number | null; points: number; max: number; flagged?: boolean }[] }
@@ -49,7 +50,8 @@ function bundleValue(list: GenreId[], genres: Partial<Record<GenreId, GenreStats
 }
 
 export function computeProfile(sessions: SessionRecord[]): Profile {
-  const sorted = [...sessions].sort((a, b) => a.startedAt.localeCompare(b.startedAt));
+  // Old-scale results are mapped onto the current ramps first (lib/engine/scale.ts).
+  const sorted = sessions.map(remapSession).sort((a, b) => a.startedAt.localeCompare(b.startedAt));
   const genres: Partial<Record<GenreId, GenreStats>> = {};
   const msByGenre: Partial<Record<GenreId, number[]>> = {};
   const flags: ProfileFlag[] = [];

@@ -15,7 +15,10 @@ describe("difficulty scale history", () => {
     const s: SessionRecord = { id: "x", level: 1, part: "A", startedAt: "2026-08-22T18:13:00Z", device: { ua: "", w: 1, h: 1 }, complete: true, appVersion: "t", blocks: [
       { genre: "visualPuzzles", mode: "staircase", startedAt: "", endedAt: "", items: [], summary: { attempted: 4, correct: 2, points: 2, max: 4, ceiling: 2, medianMs: 0, timeouts: 1 } },
       { genre: "matrix", mode: "staircase", startedAt: "", endedAt: "", items: [], summary: { attempted: 8, correct: 7, points: 7, max: 8, ceiling: 7, medianMs: 0, timeouts: 0 } } ] };
+    s.blocks[0].startedAt = "2026-08-22T18:15:00Z";
     const r = remapSession(s);
+    const late: SessionRecord = { ...s, blocks: [{ ...s.blocks[0], startedAt: "2026-08-23T15:00:00Z" }] };
+    expect(remapSession(late).blocks[0].summary.ceiling).toBe(2);   // block after cutover: untouched
     expect(r.blocks[0].summary.ceiling).toBe(6);
     expect(r.blocks[1].summary.ceiling).toBe(7);
   });

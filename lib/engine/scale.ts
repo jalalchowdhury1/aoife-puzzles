@@ -27,5 +27,7 @@ export function remapBlock(block: BlockRecord, startedAt: string): BlockRecord {
 }
 
 export function remapSession(s: SessionRecord): SessionRecord {
-  return { ...s, blocks: s.blocks.map(b => remapBlock(b, s.startedAt)) };
+  // Per BLOCK: a part can straddle a cutover (her 2026-08-23 Part A did — the last
+  // Balance round was played on the new ramp inside a session that began before it).
+  return { ...s, blocks: s.blocks.map(b => remapBlock(b, b.startedAt || s.startedAt)) };
 }

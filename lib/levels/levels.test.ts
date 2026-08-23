@@ -118,8 +118,8 @@ describe("Level 99 (hidden QA level)", () => {
 
 import { RELEASED_LEVELS } from "./index";
 describe("release gating", () => {
-  it("levels 1 and 3 are released; Level 2 (replica formats) is retired (decision #16)", () => {
-    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3]);
+  it("levels 1, 3 and 4 are released; Level 2 (replica formats) is retired (decision #16)", () => {
+    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3, 4]);
   });
   it("Level 3 uses every ACTIVE genre exactly once and only active genres", () => {
     const level3 = LEVELS.find((l) => l.id === 3)!;
@@ -131,5 +131,46 @@ describe("release gating", () => {
 
   it("the hidden QA level (99) is never in RELEASED_LEVELS", () => {
     expect(RELEASED_LEVELS.map((l) => l.id)).not.toContain(99);
+  });
+});
+
+describe("Level 4 (Pip's Power-Ups — owner decision #18)", () => {
+  const level4 = LEVELS.find((l) => l.id === 4)!;
+
+  it("exists, is released, and is a single short part", () => {
+    expect(level4).toBeDefined();
+    expect(level4.released).toBe(true);
+    expect(level4.parts).toHaveLength(1);
+    expect(level4.parts[0].blocks).toHaveLength(4);
+  });
+
+  it("covers exactly the four Level 3 pain points", () => {
+    const genres = level4.parts[0].blocks.map((b) => b.genre);
+    expect(genres).toEqual(["swapShop", "pictureSudoku", "fireflyBoxes", "arithmetic"]);
+  });
+
+  // Bug this prevents: a start above the "30% under the Not-fun peak" rule
+  // silently recreating the frustration the level exists to undo.
+  it("starts 30% under each Not-fun / timeout peak (rounded down), never above", () => {
+    const peaks: Record<string, number> = { swapShop: 8, pictureSudoku: 4, fireflyBoxes: 6, arithmetic: 10 };
+    for (const block of level4.parts[0].blocks) {
+      const peak = peaks[block.genre];
+      expect(typeof block.start).toBe("number");
+      expect(block.start as number).toBeLessThanOrEqual(Math.floor(peak * 0.7));
+      expect(block.start as number).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("is win-heavy by construction: stepUp 2, fast lane OFF, reveal feedback, no teaching items", () => {
+    expect(level4.stepUp).toBe(2);
+    expect(level4.fastLane).toBe(false);
+    expect(level4.feedback).toBe("reveal");
+    expect(level4.teachingItems).toBe(0);
+    expect(level4.weighting).toBe("none");
+  });
+
+  it("gives Story Sums the 1.5x clock (her d10 losses were timeouts, not maths)", () => {
+    const arith = level4.parts[0].blocks.find((b) => b.genre === "arithmetic")!;
+    expect(arith.timeScale).toBe(1.5);
   });
 });

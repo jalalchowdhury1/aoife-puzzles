@@ -193,3 +193,22 @@ describe("rebuilt ramps start from level 1", () => {
     expect(startAfter).toBeGreaterThan(1);
   });
 });
+
+describe("BlockConfig.timeScale override (Level 4 time relief)", () => {
+  // Bug this prevents: a hand-set block timeScale being ignored on a
+  // non-remedial level, so the child still loses top items to the clock.
+  it("passes an explicit block timeScale through on a weighting:none level", () => {
+    const level = {
+      id: 98, title: "t", feedback: "reveal", weighting: "none", stepUp: 2,
+      parts: [{ id: "A", title: "t", sticker: "x", blocks: [
+        { genre: "arithmetic", start: 7, timeScale: 1.5 },
+        { genre: "swapShop", start: 5 },
+      ] }],
+    } as const;
+    const resolved = adaptPart(level.parts[0] as never, level as never, computeProfile([]));
+    expect(resolved[0].timeScale).toBe(1.5);
+    expect(resolved[1].timeScale).toBe(1);
+    expect(resolved[0].start).toBe(7);
+    expect(resolved[1].start).toBe(5);
+  });
+});

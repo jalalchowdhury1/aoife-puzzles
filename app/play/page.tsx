@@ -684,7 +684,7 @@ function PlayRunner() {
       return;
     }
 
-    const newStair = stepStair(stair!, finalScore.correct, fast === true);
+    const newStair = stepStair(stair!, finalScore.correct, fast === true && levelCfg?.fastLane !== false);
     setStair(newStair);
     setLastCorrect(finalScore.correct);
     setLastResponse(timedOut ? null : (response ?? null));

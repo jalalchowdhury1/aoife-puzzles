@@ -126,7 +126,7 @@ export function adaptPart(part: PartConfig, level: LevelConfig, profile: Profile
     const teachingItems = block.teachingItems ?? level.teachingItems ?? 0;
     const stepUp = block.stepUp ?? level.stepUp ?? 1;
 
-    const timeScale = level.weighting === "remedial" && strength === "weak" ? 1.5 : 1;
+    const timeScale = block.timeScale ?? (level.weighting === "remedial" && strength === "weak" ? 1.5 : 1);
     return { ...block, start, maxItems, strength, teachingItems, timeScale, stepUp };
   });
 

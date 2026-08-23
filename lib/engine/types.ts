@@ -105,6 +105,11 @@ export interface BlockConfig {
   // through a real 2-minute speed block. See app/play/page.tsx's block
   // Countdown (`cfg.blockMs ?? genre.timing.ms`).
   blockMs?: number;
+  // Multiplies this block's per-item time limit (timed staircase genres only).
+  // 1.5 = 50% more thinking time. Overrides the remedial default; used by
+  // confidence levels where a strong genre's top items were lost to the
+  // clock, not the maths (Level 4: her two d10 Story Sums TIMEOUTS).
+  timeScale?: number;
 }
 export interface PartConfig { id: string; title: string; sticker: string; blocks: BlockConfig[] }
 export interface LevelConfig {
@@ -124,6 +129,11 @@ export interface LevelConfig {
   // correctness-free "neutralNext" praise lines instead of celebrating
   // right/wrong answers she is never shown. See lib/engine/praise.ts.
   fun?: boolean;
+  // false disables the fast lane (staircase climbs ONLY on stepUp-in-a-row,
+  // never per fast answer). Owner decision #18: on a confidence-building
+  // level the whole point is a slow, win-heavy ramp — the fast lane would
+  // rush her straight back to the frontier that made her tap "Not fun".
+  fastLane?: boolean;
 }
 
 export function summarize(items: ItemRecord[], mode: "staircase" | "speedBlock"): BlockSummary {

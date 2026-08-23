@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { LEVELS } from "@/lib/levels";
 import { loadSessions, fetchServerState, mergeSessions } from "@/lib/engine/storage";
 import type { SessionRecord } from "@/lib/engine/types";
-import { computeBadges, BADGE_CATALOG, type Badge } from "@/lib/engine/badges";
+import { computeBadges, BADGE_DEFS as BADGE_CATALOG, type Badge } from "@/lib/engine/badges";
 import { BigButton } from "@/components/BigButton";
 
 function isPartComplete(sessions: SessionRecord[], level: number, part: string): boolean {

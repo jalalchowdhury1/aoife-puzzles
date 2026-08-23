@@ -11,6 +11,7 @@ import { EXCLUDING_CODES, type QualityFlagCode } from "@/lib/engine/quality";
 import { LEVELS } from "@/lib/levels";
 import { Tabs, type TabDef } from "@/components/parent/Tabs";
 import { DomainBars } from "@/components/parent/DomainBars";
+import { EngagementChart } from "@/components/parent/EngagementChart";
 import { SkillCard } from "@/components/parent/SkillCard";
 import { MatrixGrid, MatrixLegend } from "@/components/parent/MatrixGrid";
 import { ItemLog } from "@/components/parent/ItemLog";
@@ -306,6 +307,11 @@ function OverviewTab({ insights, streak }: { insights: Insights; streak: number 
             ))}
           </ul>
         )}
+      </section>
+
+      <section>
+        <h2 className="mb-2 font-bubble text-xl text-ink">Engagement</h2>
+        <EngagementChart byDate={insights.engagement.byDate} />
       </section>
 
       <section>

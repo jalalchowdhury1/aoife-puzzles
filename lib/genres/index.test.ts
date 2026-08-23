@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { GENRES, GENRE_LIST } from "./index";
+import { GENRES, GENRE_LIST, RETIRED_GENRE_IDS } from "./index";
+import type { GenreId } from "../engine/types";
 import { DIFFICULTIES } from "../engine/types";
 
 // 50 seeds, spread out rather than sequential, mirroring the per-genre test files.
@@ -13,8 +14,11 @@ describe("GENRES registry", () => {
     }
   });
 
-  it("GENRE_LIST and the registry's keys are the same set", () => {
-    expect(new Set(Object.keys(GENRES))).toEqual(new Set(GENRE_LIST));
+  it("GENRE_LIST = the registry's ACTIVE (non-retired) genres; retired replicas stay registered for history (decision #16)", () => {
+    const active = (Object.keys(GENRES) as GenreId[]).filter((g) => !GENRES[g].retired);
+    expect(new Set(active)).toEqual(new Set(GENRE_LIST));
+    for (const g of GENRE_LIST) expect(GENRES[g].e2e, `${g} needs an e2e plan`).toBeDefined();
+    expect(RETIRED_GENRE_IDS.length).toBe(11);
   });
 });
 

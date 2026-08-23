@@ -38,7 +38,7 @@ const SEEDS = [1, 2, 3];
 // from each generator's own difficulty-band comments (matrixRules.ts,
 // blockDesign.ts's `band()`, visualPuzzles.ts's `bandFor()`, the bank
 // modules' header comments, etc.), not re-derived here.
-const RAMP: Record<GenreId, string> = {
+const RAMP: Partial<Record<GenreId, string>> = {
   matrix:
     "d1-2: 2x2 grid, one of shape/colour varies. d3-4: count or size (S/L only) progresses. d5-8: 3x3 grids mixing more attributes, Latin squares from d7. d9-10: two Latin-square attributes plus a dot column.",
   visualPuzzles:
@@ -251,7 +251,7 @@ function renderArithmeticItem(item: ArithmeticItem): string {
   return `<div class="prompt">${esc(item.text)}</div><div class="answer correct">answer: ${item.answer}</div>`;
 }
 
-const RENDERERS: Record<GenreId, (item: unknown) => string> = {
+const RENDERERS: Partial<Record<GenreId, (item: unknown) => string>> = {
   matrix: item => renderMatrix(item as MatrixItem),
   visualPuzzles: item => renderVisualPuzzles(item as VisualPuzzlesItem),
   blockDesign: item => renderBlockDesign(item as BlockDesignItem),
@@ -324,7 +324,8 @@ function buildPage(): string {
 
   const sections = GENRE_LIST.map(id => {
     const genre = GENRES[id];
-    const render = RENDERERS[id];
+    const render = genre.audit ? (item: unknown) => genre.audit!(item) : RENDERERS[id];
+    if (!render) throw new Error(`no renderer for ${id}`);
     const dBlocks = DIFFICULTIES.map(d => {
       const cards = SEEDS.map(seed => {
         const item = genre.generate(seed, d);
@@ -336,7 +337,7 @@ function buildPage(): string {
     return (
       `<section id="${id}">` +
       `<h2>${esc(genre.kidTitle)} <span class="subtest">${esc(genre.subtest)} &middot; ${id}</span></h2>` +
-      `<p class="ramp">${esc(RAMP[id])}</p>` +
+      `<p class="ramp">${esc(RAMP[id] ?? genre.instructions)}</p>` +
       dBlocks +
       `</section>`
     );

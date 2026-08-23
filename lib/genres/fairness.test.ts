@@ -7,7 +7,7 @@
 // every genre's full 500-seed x 10-difficulty sweep exactly once, so the many
 // rules here don't each pay the cost of re-generating it.
 import { describe, it, expect } from "vitest";
-import { GENRES, GENRE_LIST } from "./index";
+import { GENRES, RETIRED_GENRE_IDS } from "./index";
 import { DIFFICULTIES, type Difficulty, type GenreId } from "../engine/types";
 import { makeRng } from "../engine/rng";
 
@@ -44,7 +44,8 @@ const SEEDS = Array.from({ length: 500 }, (_, i) => i + 1);
 interface Cached { seed: number; d: Difficulty; item: unknown }
 
 const ITEMS: Record<GenreId, Cached[]> = {} as Record<GenreId, Cached[]>;
-for (const id of GENRE_LIST) {
+const CACHED_GENRES: GenreId[] = [...RETIRED_GENRE_IDS, "arithmetic", "information"];   // legacy suite: retired replicas + the two bank genres kept active; new genres live in fairness/<id>.test.ts
+for (const id of CACHED_GENRES) {
   const genre = GENRES[id];
   const list: Cached[] = [];
   for (const d of DIFFICULTIES) {
@@ -117,7 +118,9 @@ function choiceProbe(): GenreProbe {
 }
 const CHOICE_PROBE = choiceProbe();
 
-const PROBES: Record<GenreId, GenreProbe> = {
+// Legacy (retired) genres keep their probes here; every ACTIVE genre has its own
+// rules in lib/genres/fairness/<id>.test.ts (decision #16).
+const PROBES: Partial<Record<GenreId, GenreProbe>> = {
   matrix: {
     candidates: () => [0, 1, 2, 3, 4],
     correct: item => (item as MatrixItem).answer,
@@ -199,11 +202,12 @@ const PROBES: Record<GenreId, GenreProbe> = {
     wrongs: item => [!(item as SymbolSearchItem).present],
   },
 };
+const PROBED_GENRES = Object.keys(PROBES) as GenreId[];
 
 describe("ALL genres — universal validity rules (owner decision #14: validity is sacred)", () => {
   it("generate(seed, d) is pure and deterministic for every genre — a reload mid-block, a replay, or re-fetching /api/state must never show a different puzzle than the one that was actually scored", () => {
     const RESAMPLE = Array.from({ length: 40 }, (_, i) => i * 251 + 7);
-    for (const id of GENRE_LIST) {
+    for (const id of PROBED_GENRES) {
       const genre = GENRES[id];
       for (const d of DIFFICULTIES) {
         for (const seed of RESAMPLE) {
@@ -214,20 +218,20 @@ describe("ALL genres — universal validity rules (owner decision #14: validity 
   });
 
   it("every rendered option/piece list has no two entries a child would see as identical — a duplicate distractor makes two taps look the same while only one is credited, which is unfair rather than merely hard", () => {
-    for (const id of GENRE_LIST) {
-      const probe = PROBES[id];
+    for (const id of PROBED_GENRES) {
+      const probe = PROBES[id]!;
       if (!probe.optionKeys) continue;
       for (const { item, seed, d } of ITEMS[id]) {
         const keys = probe.optionKeys(item);
         expect(new Set(keys).size, `${id} seed${seed} d${d}`).toBe(keys.length);
       }
     }
-  });
+  }, 60_000);
 
   it("exactly one candidate response earns full credit per item, wherever the response space is small enough to enumerate — two full-credit answers would silently double her real odds of a 'correct' mark on the staircase", () => {
-    for (const id of GENRE_LIST) {
+    for (const id of PROBED_GENRES) {
       const genre = GENRES[id];
-      const probe = PROBES[id];
+      const probe = PROBES[id]!;
       if (!probe.candidates) continue;
       for (const { item, seed, d } of ITEMS[id]) {
         const cands = probe.candidates(item);
@@ -238,12 +242,12 @@ describe("ALL genres — universal validity rules (owner decision #14: validity 
         expect(fullScoreCount, `${id} seed${seed} d${d}`).toBe(1);
       }
     }
-  });
+  }, 60_000);
 
   it("score() marks the recorded answer correct and a representative wrong answer incorrect for every genre — this is the literal contract the staircase, ceiling, and profile all read, not just what generate() intends", () => {
-    for (const id of GENRE_LIST) {
+    for (const id of PROBED_GENRES) {
       const genre = GENRES[id];
-      const probe = PROBES[id];
+      const probe = PROBES[id]!;
       for (const { item, seed, d } of ITEMS[id]) {
         const correctResult = genre.score(item, probe.correct(item));
         expect(correctResult.correct, `${id} seed${seed} d${d} (correct response)`).toBe(true);
@@ -253,12 +257,12 @@ describe("ALL genres — universal validity rules (owner decision #14: validity 
         }
       }
     }
-  });
+  }, 60_000);
 
   it("sample() — the untimed, feedback-free item every block opens with — scores correct when answered with its own displayed answer, so the worked example she sees actually teaches the right pattern", () => {
-    for (const id of GENRE_LIST) {
+    for (const id of PROBED_GENRES) {
       const genre = GENRES[id];
-      const probe = PROBES[id];
+      const probe = PROBES[id]!;
       const { item } = genre.sample();
       const result = genre.score(item, probe.correct(item));
       expect(result.correct, id).toBe(true);

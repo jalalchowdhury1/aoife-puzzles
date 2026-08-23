@@ -1,5 +1,5 @@
 import type { BlockConfig, LevelConfig } from "../engine/types";
-import { GENRE_LIST } from "../genres";
+import { GENRES, GENRE_LIST } from "../genres";
 
 // Hidden QA level (id 99): every genre in GENRE_LIST exactly once, capped at
 // maxItems: 2, so the automated Playwright play-through (e2e/playthrough.spec.ts)
@@ -13,7 +13,7 @@ import { GENRE_LIST } from "../genres";
 // (SPEED_BLOCK_MS) countdown; `blockMs: 4000` here shortens ONLY this level's
 // speed blocks so the e2e run stays fast (see BlockConfig.blockMs / the
 // runner's `cfg.blockMs ?? genre.timing.ms` in app/play/page.tsx).
-const SPEED_GENRES = new Set(["coding", "symbolSearch"]);
+const SPEED_GENRES = new Set(GENRE_LIST.filter((g) => GENRES[g].mode === "speedBlock"));
 
 const blocks: BlockConfig[] = GENRE_LIST.map((genre) => ({
   genre,

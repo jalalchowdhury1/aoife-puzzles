@@ -3,6 +3,8 @@ import type { GenreId, GenreViewProps } from "@/lib/engine/types";
 // active (decision #16)
 import MosaicView from "./MosaicView";
 import FixPictureView from "./FixPictureView";
+import PatternTrainView from "./PatternTrainView";
+import PictureSudokuView from "./PictureSudokuView";
 import SwapShopView from "./SwapShopView";
 import ArithmeticView from "./ArithmeticView";
 import AnimalParadeView from "./AnimalParadeView";
@@ -26,6 +28,8 @@ import SymbolSearchView from "./SymbolSearchView";
 export const VIEWS: Record<GenreId, ComponentType<GenreViewProps<any, any>>> = {
   mosaic: MosaicView,
   fixPicture: FixPictureView,
+  patternTrain: PatternTrainView,
+  pictureSudoku: PictureSudokuView,
   swapShop: SwapShopView,
   arithmetic: ArithmeticView,
   animalParade: AnimalParadeView,

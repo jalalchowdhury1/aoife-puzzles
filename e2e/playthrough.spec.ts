@@ -70,144 +70,65 @@ interface GenreTestSpec {
   answer: (page: Page) => Promise<void>;
 }
 
-const choiceSpec: GenreTestSpec = {
-  assertItem: async (page) => {
-    await expect(page.getByTestId("choice-option")).toHaveCount(4);
-  },
-  answer: async (page) => {
-    await page.getByTestId("choice-option").first().click();
-    await page.getByRole("button", DONE).click();
-  },
-};
 
-const SPECS: Record<GenreId, GenreTestSpec> = {
-  blockDesign: {
-    // Block Builder: "Your board" + Done. The default all-white board is
-    // itself a valid (if usually wrong) response — Done isn't gated on any
-    // particular selection, so no board taps are needed to answer.
-    assertItem: async (page) => {
-      await expect(page.getByText("Your board")).toBeVisible();
-      await expect(page.getByRole("button", DONE)).toBeVisible();
-    },
-    answer: async (page) => {
-      await page.getByRole("button", DONE).click();
-    },
-  },
-  visualPuzzles: {
-    // Piece Picker: optionCount is 3, 4, or 6 depending on difficulty (see
-    // bandOptionsFor in lib/genres/visualPuzzles.ts) and Done needs exactly
-    // pieceCount (2 or 3) picked — read both off the "Tap N pieces" line the
-    // view renders rather than hard-coding either.
-    assertItem: async (page) => {
-      await expect(page.getByText(/^Tap \d pieces$/)).toBeVisible();
-      const count = await page.getByTestId("piece-option").count();
-      expect([3, 4, 6]).toContain(count);
-    },
-    answer: async (page) => {
-      const label = await page.getByText(/^Tap \d pieces$/).textContent();
-      const pieceCount = Number(label!.match(/\d+/)![0]);
-      const pieces = page.getByTestId("piece-option");
-      for (let i = 0; i < pieceCount; i++) {
-        await pieces.nth(i).click();
-      }
-      await page.getByRole("button", DONE).click();
-    },
-  },
-  matrix: {
-    // What's Missing?: a "?" blank cell + 5 options.
-    assertItem: async (page) => {
-      await expect(page.getByText("?", { exact: true })).toBeVisible();
-      await expect(page.getByTestId("matrix-option")).toHaveCount(5);
-    },
-    answer: async (page) => {
-      await page.getByTestId("matrix-option").first().click();
-      await page.getByRole("button", DONE).click();
-    },
-  },
-  figureWeights: {
-    // Balance: option count varies by difficulty since the 2026-08-23 ramp
-    // (3 at d1, 4 from d2 up — see lib/genres/figureWeights.ts), so this just
-    // waits for at least one option and picks whichever is first.
-    assertItem: async (page) => {
-      await expect(page.getByTestId("weight-option").first()).toBeVisible();
-    },
-    answer: async (page) => {
-      await page.getByTestId("weight-option").first().click();
-      await page.getByRole("button", DONE).click();
-    },
-  },
-  arithmetic: {
-    // Story Sums: a numpad (the QA block has no `display` set, so the
-    // problem text also shows immediately — the numpad itself always renders).
-    assertItem: async (page) => {
-      await expect(page.getByRole("button", { name: "5", exact: true })).toBeVisible();
-    },
-    answer: async (page) => {
-      await page.getByRole("button", { name: "5", exact: true }).click();
-      await page.getByRole("button", DONE).click();
-    },
-  },
-  digitSpan: {
-    // Number Echo: either a one-time "New rule" intro (tap Ready) or,
-    // after ~1s/digit of "listening", the numpad. QA's block starts at d1
-    // (always the "forward" task) so the intro never actually triggers here,
-    // but this stays defensive in case that ever changes.
-    assertItem: async (page) => {
-      const readyBtn = page.getByRole("button", { name: "Ready", exact: true });
-      if (await readyBtn.isVisible().catch(() => false)) {
-        await readyBtn.click();
-      }
-      await expect(page.getByRole("button", { name: "1", exact: true })).toBeVisible({ timeout: 10_000 });
-    },
-    answer: async (page) => {
-      await page.getByRole("button", { name: "1", exact: true }).click();
-      await page.getByRole("button", { name: /Done/ }).click();
-    },
-  },
-  pictureSpan: {
-    // Picture Memory: the exposure (no controls) is shown first, then the
-    // picker grid — wait for at least one picture choice to appear.
-    assertItem: async (page) => {
-      await expect(page.getByTestId("picture-choice").first()).toBeVisible({ timeout: 8_000 });
-    },
-    answer: async (page) => {
-      await page.getByTestId("picture-choice").first().click();
-      await page.getByRole("button", DONE).click();
-    },
-  },
-  coding: {
-    // Secret Code (speed block): 5 mark buttons.
-    assertItem: async (page) => {
-      await expect(page.getByTestId("mark-option")).toHaveCount(5);
-    },
-    answer: async (page) => {
-      await page.getByTestId("mark-option").first().click();
-    },
-  },
-  symbolSearch: {
-    // Symbol Hunt (speed block): YES / NO.
-    assertItem: async (page) => {
-      await expect(page.getByRole("button", { name: "YES", exact: true })).toBeVisible();
-      await expect(page.getByRole("button", { name: "NO", exact: true })).toBeVisible();
-    },
-    answer: async (page) => {
-      await page.getByRole("button", { name: "YES", exact: true }).click();
-    },
-  },
-  similarities: choiceSpec,
-  vocabulary: choiceSpec,
-  information: choiceSpec,
-  comprehension: choiceSpec,
-};
+/**
+ * Generic driver (decision #16): every genre declares how it is answered via
+ * `genre.e2e` (lib/engine/types.ts E2EPlan); views expose
+ * data-testid="answer-option" on tappable answers and a "Done" button.
+ * A rule-intro screen ("Ready" button) may precede an item — it is clicked through.
+ */
+async function clickReadyIfShown(page: Page): Promise<void> {
+  const ready = page.getByRole("button", { name: "Ready", exact: true });
+  if (await ready.isVisible({ timeout: 1500 }).catch(() => false)) await ready.click();
+}
+function specFor(id: GenreId): GenreTestSpec {
+  const genre = GENRES[id];
+  const plan = genre.e2e;
+  if (!plan) throw new Error(`genre ${id} has no e2e plan`);
+  const options = (page: Page) => page.getByTestId("answer-option");
+  const done = (page: Page) => page.getByRole("button", DONE);
+  switch (plan.kind) {
+    case "options":
+      return {
+        assertItem: async (page) => { await clickReadyIfShown(page); await expect(options(page).first()).toBeVisible({ timeout: 15_000 }); },
+        answer: async (page) => {
+          for (let k = 0; k < plan.pick; k++) await options(page).first().click();
+          await done(page).click();
+        },
+      };
+    case "tapOnly":
+      return {
+        assertItem: async (page) => { await expect(options(page).first()).toBeVisible({ timeout: 15_000 }); },
+        answer: async (page) => { await options(page).first().click(); },
+      };
+    case "numpad":
+      return {
+        assertItem: async (page) => { await expect(page.getByRole("button", { name: "1", exact: true })).toBeVisible({ timeout: 15_000 }); },
+        answer: async (page) => { await page.getByRole("button", { name: "1", exact: true }).click(); await done(page).click(); },
+      };
+    case "buildThenDone":
+      return {
+        assertItem: async (page) => { await expect(done(page)).toBeVisible({ timeout: 15_000 }); },
+        answer: async (page) => { await done(page).click(); },
+      };
+    case "sequence":
+      return {
+        // exposure / listening first; answer-options appear only in the tapping phase
+        assertItem: async (page) => { await clickReadyIfShown(page); await expect(options(page).first()).toBeVisible({ timeout: 20_000 }); },
+        answer: async (page) => {
+          for (let k = 0; k < plan.taps; k++) await options(page).nth(k % Math.max(1, await options(page).count())).click();
+          await done(page).click();
+        },
+      };
+  }
+}
+function speedControl(page: Page): Locator {
+  return page.getByTestId("answer-option").first();
+}
 
 /** The one control to click for a speed-block "answer" — used both to answer
  * and, via its DOM identity, to prove the next item actually mounted (see
  * clickAndExpectRemount). */
-function speedControl(page: Page, id: GenreId): Locator {
-  if (id === "coding") return page.getByTestId("mark-option").first();
-  if (id === "symbolSearch") return page.getByRole("button", { name: "YES", exact: true });
-  throw new Error(`speedControl: ${id} is not a speed genre`);
-}
 
 /**
  * Clicks `control` and confirms the runner actually advanced to a new item:
@@ -239,7 +160,7 @@ test.describe("play-through", () => {
     for (let i = 0; i < GENRE_LIST.length; i++) {
       const id = GENRE_LIST[i];
       const genre = GENRES[id];
-      const spec = SPECS[id];
+      const spec = specFor(id);
       const isLast = i === GENRE_LIST.length - 1;
       const isSpeed = genre.mode === "speedBlock";
       const isTimed = genre.timing.kind !== "none";
@@ -256,7 +177,7 @@ test.describe("play-through", () => {
         await expect(page.getByTestId("countdown")).toBeVisible();
 
         for (let k = 0; k < 3; k++) {
-          await clickAndExpectRemount(page, speedControl(page, id));
+          await clickAndExpectRemount(page, speedControl(page));
         }
       } else {
         // ---- staircase block: maxItems: 2, so exactly two items per block ----

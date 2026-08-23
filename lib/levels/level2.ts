@@ -11,7 +11,7 @@ export const level2: LevelConfig = {
   weighting: "remedial",
   fun: true, // full praise variety, stars and badges (owner brief 2026-08-23: "make it more fun")
   stepUp: 2, // two correct in a row before the next step (2026-08-23: "very slow, one step at a time")
-  released: true, // released 2026-08-22 after reviewing her Level 1 + replay data
+  released: false, // RETIRED 2026-08-23 (decision #16): replica formats; her Part A data stays as history
   teachingItems: 2,
   parts: [
     {

@@ -23,7 +23,7 @@ export interface ResolvedBlock extends BlockConfig {
 // start/maxItems are unused by the runner (a speed block streams items on a
 // wall-clock timer), so remedial mode leaves them at the neutral 1/8 instead
 // of doing ceiling math that doesn't apply to them.
-const SPEED_GENRES = new Set<GenreId>(["coding", "symbolSearch"]);
+const SPEED_GENRES = new Set<GenreId>(["coding", "symbolSearch", "translator", "spotIt"]);
 
 const ALL_GENRES: GenreId[] = (Object.keys(DOMAIN_GENRES) as Domain[]).flatMap((d) => DOMAIN_GENRES[d]);
 

@@ -96,7 +96,7 @@ function earnedAtBigThinker(sessions: SessionRecord[]): string | null {
   const sorted = sortByStartedAt(sessions).map(remapSession);
   for (const s of sorted) {
     for (const block of s.blocks) {
-      if (block.genre !== "comprehension" || block.mode !== "staircase" || blockExcluded(block)) continue;
+      if ((block.genre !== "comprehension" && block.genre !== "whatWouldYouDo") || block.mode !== "staircase" || blockExcluded(block)) continue;
       const { ceiling, points, max } = block.summary;
       if (ceiling !== null && ceiling >= 8 && max > 0 && points === max) return s.startedAt;
     }
@@ -175,49 +175,49 @@ export const BADGE_DEFS: BadgeDef[] = [
     name: "Pattern Detective",
     emoji: "🔍",
     blurb: "You are excellent at spotting patterns.",
-    test: (s) => earnedAtForCeiling(s, "matrix", 6),
+    test: (s) => earnedAtForAnyCeiling(s, [{ genre: "patternTrain", threshold: 6 }, { genre: "pictureSudoku", threshold: 6 }, { genre: "matrix", threshold: 6 }]),
   },
   {
     id: "patternMaster",
     name: "Pattern Master",
     emoji: "🕵️",
     blurb: "You solve even the trickiest patterns.",
-    test: (s) => earnedAtForCeiling(s, "matrix", 9),
+    test: (s) => earnedAtForAnyCeiling(s, [{ genre: "patternTrain", threshold: 9 }, { genre: "pictureSudoku", threshold: 9 }, { genre: "matrix", threshold: 9 }]),
   },
   {
     id: "blockBuilder",
     name: "Block Builder",
     emoji: "🧱",
     blurb: "You build shapes out of blocks like a pro.",
-    test: (s) => earnedAtForCeiling(s, "blockDesign", 5),
+    test: (s) => earnedAtForAnyCeiling(s, [{ genre: "mosaic", threshold: 5 }, { genre: "blockDesign", threshold: 5 }]),
   },
   {
     id: "blockMaster",
     name: "Block Master",
     emoji: "🏗️",
     blurb: "You are a true master of building shapes.",
-    test: (s) => earnedAtForCeiling(s, "blockDesign", 8),
+    test: (s) => earnedAtForAnyCeiling(s, [{ genre: "mosaic", threshold: 8 }, { genre: "blockDesign", threshold: 8 }]),
   },
   {
     id: "piecePro",
     name: "Piece Pro",
     emoji: "🧩",
     blurb: "You fit puzzle pieces together so well.",
-    test: (s) => earnedAtForCeiling(s, "visualPuzzles", 5),
+    test: (s) => earnedAtForAnyCeiling(s, [{ genre: "fixPicture", threshold: 5 }, { genre: "visualPuzzles", threshold: 5 }]),
   },
   {
     id: "pieceWizard",
     name: "Piece Wizard",
     emoji: "✨",
     blurb: "You are a wizard at putting pieces together.",
-    test: (s) => earnedAtForCeiling(s, "visualPuzzles", 8),
+    test: (s) => earnedAtForAnyCeiling(s, [{ genre: "fixPicture", threshold: 8 }, { genre: "visualPuzzles", threshold: 8 }]),
   },
   {
     id: "balanceBrain",
     name: "Balance Brain",
     emoji: "⚖️",
     blurb: "You figured out how the scales balance.",
-    test: (s) => earnedAtForCeiling(s, "figureWeights", 6),
+    test: (s) => earnedAtForAnyCeiling(s, [{ genre: "swapShop", threshold: 6 }, { genre: "figureWeights", threshold: 6 }]),
   },
   {
     id: "memoryChampion",
@@ -226,6 +226,8 @@ export const BADGE_DEFS: BadgeDef[] = [
     blurb: "Your memory is super strong.",
     test: (s) =>
       earnedAtForAnyCeiling(s, [
+        { genre: "animalParade", threshold: 5 },
+        { genre: "fireflyBoxes", threshold: 5 },
         { genre: "digitSpan", threshold: 5 },
         { genre: "pictureSpan", threshold: 6 },
       ]),
@@ -237,6 +239,8 @@ export const BADGE_DEFS: BadgeDef[] = [
     blurb: "You are lightning fast at these puzzles.",
     test: (s) =>
       earnedAtForAnySpeed(s, [
+        { genre: "translator", threshold: 30 },
+        { genre: "spotIt", threshold: 30 },
         { genre: "coding", threshold: 30 },
         { genre: "symbolSearch", threshold: 30 },
       ]),
@@ -246,7 +250,7 @@ export const BADGE_DEFS: BadgeDef[] = [
     name: "Word Wizard",
     emoji: "📖",
     blurb: "You know so many words and what they mean.",
-    test: (s) => earnedAtForCeiling(s, "vocabulary", 6),
+    test: (s) => earnedAtForAnyCeiling(s, [{ genre: "fillTheGap", threshold: 6 }, { genre: "vocabulary", threshold: 6 }]),
   },
   {
     id: "bigThinker",

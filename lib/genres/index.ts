@@ -10,6 +10,8 @@ import { translator, audit as auditTranslator } from "./translator";
 import { spotIt, audit as auditSpotIt, e2ePlan as e2eSpotIt } from "./spotIt";
 import { whichTwo, audit as auditWhichTwo, e2ePlan as e2eWhichTwo } from "./whichTwo";
 import { fillTheGap, audit as auditFillTheGap } from "./fillTheGap";
+import { patternTrain, audit as auditPatternTrain } from "./patternTrain";
+import { pictureSudoku, audit as auditPictureSudoku } from "./pictureSudoku";
 import { information } from "./information";
 import { whatWouldYouDo, audit as auditWhatWouldYouDo } from "./whatWouldYouDo";
 // ---- retired replica genres (kept so her Level 1/2 history still renders) ----
@@ -35,6 +37,8 @@ export const GENRES: Record<GenreId, AnyGenre> = {
   // active
   mosaic: withHooks(mosaic, { kind: "buildThenDone" }, auditMosaic),
   fixPicture: withHooks(fixPicture, { kind: "options", pick: 1 }, auditFixPicture),
+  patternTrain: withHooks(patternTrain, { kind: "options", pick: 1 }, auditPatternTrain),
+  pictureSudoku: withHooks(pictureSudoku, { kind: "options", pick: 1 }, auditPictureSudoku),
   swapShop: withHooks(swapShop, { kind: "options", pick: 1 }, auditSwapShop),
   arithmetic: withHooks(arithmetic, { kind: "numpad" }),
   animalParade: withHooks(animalParade, { kind: "sequence", taps: 2 }, auditAnimalParade),
@@ -61,7 +65,7 @@ export const GENRES: Record<GenreId, AnyGenre> = {
 
 /** Active genres in the order levels/QA/audit use them (retired ones are NOT here). */
 export const GENRE_LIST: GenreId[] = [
-  "mosaic", "fixPicture", "swapShop", "arithmetic",
+  "mosaic", "fixPicture", "patternTrain", "pictureSudoku", "swapShop", "arithmetic",
   "animalParade", "fireflyBoxes", "translator", "spotIt",
   "whichTwo", "fillTheGap", "information", "whatWouldYouDo",
 ];

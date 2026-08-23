@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GENRE_LIST } from "../genres";
+import { GENRES, GENRE_LIST } from "../genres";
 import type { GenreId } from "../engine/types";
 import { LEVELS } from "./index";
 
@@ -15,7 +15,7 @@ describe("LEVELS registry", () => {
       it("only references genre ids that exist in the registry", () => {
         for (const part of level.parts) {
           for (const block of part.blocks) {
-            expect(GENRE_LIST).toContain(block.genre);
+            expect(Object.keys(GENRES)).toContain(block.genre);
           }
         }
       });
@@ -49,8 +49,10 @@ describe("Level 1", () => {
     expect(level1.weighting).toBeUndefined();
   });
 
-  it("uses every genre in GENRE_LIST exactly once across all parts", () => {
-    usesEveryGenreOnce(level1);
+  it("used each of the 13 original (now retired) genres exactly once — kept as history (decision #16)", () => {
+    const all = level1.parts.flatMap((p) => p.blocks.map((b) => b.genre));
+    expect(all.length).toBe(13);
+    expect(new Set(all).size).toBe(13);
   });
 });
 
@@ -76,7 +78,7 @@ describe("Level 2 (Practice Round 1)", () => {
 
   it("covers every genre, and Part D (added 2026-08-23) repeats only the two rebuilt-ramp genres", () => {
     const all = level2.parts.flatMap((p) => p.blocks.map((b) => b.genre));
-    for (const g of GENRE_LIST) expect(all).toContain(g);
+    expect(new Set(all).size).toBe(13);
     const partD = level2.parts.find((p) => p.id === "D")!;
     expect(partD.blocks.map((b) => b.genre)).toEqual(["visualPuzzles", "figureWeights"]);
     const dupes = all.filter((g, i) => all.indexOf(g) !== i);
@@ -105,7 +107,7 @@ describe("Level 99 (hidden QA level)", () => {
 
   it("shortens only the two speed genres' block window via blockMs", () => {
     for (const block of levelQa.parts[0].blocks) {
-      if (block.genre === "coding" || block.genre === "symbolSearch") {
+      if (GENRES[block.genre].mode === "speedBlock") {
         expect(block.blockMs).toBe(4000);
       } else {
         expect(block.blockMs).toBeUndefined();
@@ -116,8 +118,15 @@ describe("Level 99 (hidden QA level)", () => {
 
 import { RELEASED_LEVELS } from "./index";
 describe("release gating", () => {
-  it("levels 1 and 2 are released (Level 2 reviewed 2026-08-22)", () => {
-    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 2]);
+  it("levels 1 and 3 are released; Level 2 (replica formats) is retired (decision #16)", () => {
+    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3]);
+  });
+  it("Level 3 uses every ACTIVE genre exactly once and only active genres", () => {
+    const level3 = LEVELS.find((l) => l.id === 3)!;
+    const all = level3.parts.flatMap((p) => p.blocks.map((b) => b.genre));
+    expect(new Set(all)).toEqual(new Set(GENRE_LIST));
+    expect(all.length).toBe(GENRE_LIST.length);
+    for (const g of all) expect(GENRES[g].retired).toBeFalsy();
   });
 
   it("the hidden QA level (99) is never in RELEASED_LEVELS", () => {

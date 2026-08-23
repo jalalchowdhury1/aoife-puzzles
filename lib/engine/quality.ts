@@ -13,6 +13,7 @@
 //     to backfill flags on sessions written before this feature shipped,
 //     without a KV migration.
 import { digitSpan } from "../genres/digitSpan";
+import { animalParade } from "../genres/animalParade";
 import type { BlockRecord, ItemRecord, SessionRecord } from "./types";
 
 export type QualityFlagCode =
@@ -73,6 +74,16 @@ export function flagBlock(block: BlockRecord): QualityFlag[] {
   // Number Echo, 2026-08-22: two backward items answered in 3 s with the digits in
   // FORWARD order — the new rule, not her memory, was the problem. Detect a wrong
   // non-forward item whose response is exactly the digits as spoken.
+  if (block.genre === "animalParade") {
+    const ruleMisses = block.items.filter(i => {
+      if (i.correct || i.timedOut || !Array.isArray(i.response)) return false;
+      const item = animalParade.generate(i.seed, i.d) as { animals: string[]; task: string };
+      return item.task !== "same" && item.animals.length === i.response.length && item.animals.every((v, k) => v === (i.response as string[])[k]);
+    });
+    if (ruleMisses.length >= 1) {
+      flags.push({ code: "rule-not-understood", detail: `${ruleMisses.length} ${ruleMisses.length === 1 ? "answer" : "answers"} given in the spoken order on a backward or size item — the rule, not memory.` });
+    }
+  }
   if (block.genre === "digitSpan") {
     const ruleMisses = block.items.filter(i => {
       if (i.correct || i.timedOut || !Array.isArray(i.response)) return false;

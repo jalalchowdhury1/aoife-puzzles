@@ -11,12 +11,19 @@ export interface DomainStat { value: number | null; z: number | null; flag: "str
 // below (it still appears in that genre's `trend`, marked `flagged: true`).
 export interface ProfileFlag { sessionId: string; part: string; genre: GenreId; code: QualityFlagCode; detail: string }
 export interface Profile { sessions: number; genres: Partial<Record<GenreId, GenreStats>>; domains: Record<Domain, DomainStat>; bundles: { egai: number | null; cpi: number | null }; computedAt: string; flags: ProfileFlag[] }
-export const DOMAIN_GENRES: Record<Domain, GenreId[]> = { VS: ["blockDesign", "visualPuzzles"], FR: ["matrix", "figureWeights", "arithmetic"], WM: ["digitSpan", "pictureSpan"], PS: ["coding", "symbolSearch"], VC: ["similarities", "vocabulary", "information", "comprehension"] };
-export const EGAI: GenreId[] = ["similarities", "vocabulary", "information", "comprehension", "blockDesign", "matrix", "figureWeights", "arithmetic"];
-export const CPI: GenreId[] = ["digitSpan", "pictureSpan", "coding", "symbolSearch"];
+export const DOMAIN_GENRES: Record<Domain, GenreId[]> = {
+  VS: ["mosaic", "fixPicture", "blockDesign", "visualPuzzles"],
+  FR: ["patternTrain", "pictureSudoku", "swapShop", "arithmetic", "matrix", "figureWeights"],
+  WM: ["animalParade", "fireflyBoxes", "digitSpan", "pictureSpan"],
+  PS: ["translator", "spotIt", "coding", "symbolSearch"],
+  VC: ["whichTwo", "fillTheGap", "information", "whatWouldYouDo", "similarities", "vocabulary", "comprehension"],
+};
+// Cousin bundles (decision #16): the EGAI-like bundle = verbal + construction + rule induction + quantitative; CPI-like = memory + speed.
+export const EGAI: GenreId[] = ["whichTwo", "fillTheGap", "information", "whatWouldYouDo", "mosaic", "patternTrain", "pictureSudoku", "swapShop", "arithmetic", "similarities", "vocabulary", "comprehension", "blockDesign", "matrix", "figureWeights"];
+export const CPI: GenreId[] = ["animalParade", "fireflyBoxes", "translator", "spotIt", "digitSpan", "pictureSpan", "coding", "symbolSearch"];
 // Per-minute rates that count as "full marks" for a 6-year-old on these 120 s blocks.
 // Calibrated 2026-08-22: her second runs were 33/min (coding) and 30/min (symbol search) with ~1 error.
-const SPEED_CEILING_PER_MIN: Partial<Record<GenreId, number>> = { coding: 45, symbolSearch: 40 };
+const SPEED_CEILING_PER_MIN: Partial<Record<GenreId, number>> = { coding: 45, symbolSearch: 40, translator: 45, spotIt: 40 };
 
 const DOMAIN_KEYS: Domain[] = ["VS", "FR", "WM", "PS", "VC"];
 const VC_GENRES = new Set<GenreId>(DOMAIN_GENRES.VC);

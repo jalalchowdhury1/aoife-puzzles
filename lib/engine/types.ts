@@ -3,7 +3,8 @@ import type { QualityFlag } from "./quality";
 export type GenreId =
   | "blockDesign" | "visualPuzzles" | "matrix" | "figureWeights" | "arithmetic"
   | "digitSpan" | "pictureSpan" | "coding" | "symbolSearch"
-  | "similarities" | "vocabulary" | "information" | "comprehension";
+  | "similarities" | "vocabulary" | "information" | "comprehension"
+  | "fireflyBoxes" | "translator";
 export type Domain = "VS" | "FR" | "WM" | "PS" | "VC";
 export type Difficulty = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 export const DIFFICULTIES: Difficulty[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];

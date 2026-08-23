@@ -22,6 +22,7 @@ export type QualityFlagCode =
   | "mass-timeouts"
   | "speed-accuracy"
   | "rule-not-understood"
+  | "not-fun"
   | "abandoned";
 
 export interface QualityFlag { code: QualityFlagCode; detail: string }
@@ -74,6 +75,10 @@ export function flagBlock(block: BlockRecord): QualityFlag[] {
   // Number Echo, 2026-08-22: two backward items answered in 3 s with the digits in
   // FORWARD order — the new rule, not her memory, was the problem. Detect a wrong
   // non-forward item whose response is exactly the digits as spoken.
+  const bails = block.items.filter(i => i.bailed).length;
+  if (bails > 0) {
+    flags.push({ code: "not-fun", detail: `She tapped Not fun ${bails === 1 ? "once" : bails + " times"} — wind the difficulty or format down next time.` });
+  }
   if (block.genre === "animalParade") {
     const ruleMisses = block.items.filter(i => {
       if (i.correct || i.timedOut || !Array.isArray(i.response)) return false;

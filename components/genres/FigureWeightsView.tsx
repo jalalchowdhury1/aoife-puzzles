@@ -145,70 +145,79 @@ export default function FigureWeightsView({
   const correctShapes = reveal ? item.options[item.answer] : undefined;
 
   return (
-    <div className="flex flex-col items-center gap-6 p-4">
-      <div className="flex flex-wrap justify-center gap-4">
-        {item.scales.map((scale, i) => (
-          <Beam
-            key={i}
-            scale={scale}
-            // The question scale tilts (empty "?" pan) while she's answering,
-            // but once reveal mode fills that pan with the correct shapes the
-            // scale IS balanced — draw it level instead of still leaning.
-            tilt={scale.right === null && !reveal ? TILT_DEG : 0}
-            revealShapes={reveal && scale.right === null ? correctShapes : undefined}
-          />
-        ))}
-      </div>
+    // QA 2026-08-23: the scales + options live in their OWN
+    // flex-1/min-h-0/overflow-y-auto region, so they scroll *internally* if
+    // ever taller than the available space, instead of pushing Done below
+    // the fold — Done is a plain sibling AFTER that region, never part of
+    // the scroll, so it's always fully visible without scrolling.
+    <div className="flex min-h-full w-full flex-col items-center">
+      <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-6 overflow-y-auto p-4 pb-2">
+        <div className="flex flex-wrap justify-center gap-4">
+          {item.scales.map((scale, i) => (
+            <Beam
+              key={i}
+              scale={scale}
+              // The question scale tilts (empty "?" pan) while she's answering,
+              // but once reveal mode fills that pan with the correct shapes the
+              // scale IS balanced — draw it level instead of still leaning.
+              tilt={scale.right === null && !reveal ? TILT_DEG : 0}
+              revealShapes={reveal && scale.right === null ? correctShapes : undefined}
+            />
+          ))}
+        </div>
 
-      {/* flex-wrap, not a fixed grid: OptionTile now sizes its SVG exactly to
-          its shape count, so each tile must be free to grow to that content
-          width (a 4-shape option is noticeably wider than a 1-shape one)
-          instead of being squeezed into an equal-width grid column. */}
-      <div className="flex flex-wrap justify-center gap-3 w-full max-w-3xl">
-        {item.options.map((opt, i) => {
-          if (reveal) {
-            const isCorrect = i === item.answer;
-            const isWrongPick = !isCorrect && lastResponse === i;
-            const revealClass = isCorrect
-              ? "border-[#6fcf6f] bg-[#6fcf6f]/15"
-              : isWrongPick
-                ? "border-rose-400 bg-white"
-                : "border-teal-100 bg-white opacity-40";
+        {/* flex-wrap, not a fixed grid: OptionTile now sizes its SVG exactly to
+            its shape count, so each tile must be free to grow to that content
+            width (a 4-shape option is noticeably wider than a 1-shape one)
+            instead of being squeezed into an equal-width grid column. */}
+        <div className="flex flex-wrap justify-center gap-3 w-full max-w-3xl">
+          {item.options.map((opt, i) => {
+            if (reveal) {
+              const isCorrect = i === item.answer;
+              const isWrongPick = !isCorrect && lastResponse === i;
+              const revealClass = isCorrect
+                ? "border-[#6fcf6f] bg-[#6fcf6f]/15"
+                : isWrongPick
+                  ? "border-rose-400 bg-white"
+                  : "border-teal-100 bg-white opacity-40";
+              return (
+                <div
+                  key={i}
+                  className={`min-h-16 min-w-16 rounded-2xl border-4 flex items-center justify-center p-2 ${revealClass}`}
+                >
+                  <OptionTile shapes={opt} />
+                </div>
+              );
+            }
             return (
-              <div
+              <button
                 key={i}
-                className={`min-h-16 min-w-16 rounded-2xl border-4 flex items-center justify-center p-2 ${revealClass}`}
+                type="button"
+                data-testid="weight-option"
+                disabled={disabled}
+                onClick={() => setSelected(i)}
+                aria-pressed={selected === i}
+                className={`min-h-16 min-w-16 rounded-2xl border-4 flex items-center justify-center p-2 bg-white ${
+                  selected === i ? "border-teal-400" : "border-teal-100"
+                }`}
               >
                 <OptionTile shapes={opt} />
-              </div>
+              </button>
             );
-          }
-          return (
-            <button
-              key={i}
-              type="button"
-              data-testid="weight-option"
-              disabled={disabled}
-              onClick={() => setSelected(i)}
-              aria-pressed={selected === i}
-              className={`min-h-16 min-w-16 rounded-2xl border-4 flex items-center justify-center p-2 bg-white ${
-                selected === i ? "border-teal-400" : "border-teal-100"
-              }`}
-            >
-              <OptionTile shapes={opt} />
-            </button>
-          );
-        })}
+          })}
+        </div>
       </div>
 
-      <button
-        type="button"
-        disabled={disabled || selected === null}
-        onClick={submit}
-        className="min-h-16 min-w-32 px-8 rounded-full bg-teal-400 text-white text-2xl font-bubble disabled:opacity-40"
-      >
-        Done
-      </button>
+      <div className="w-full shrink-0 bg-cream px-4 pb-4 pt-3 shadow-[0_-8px_16px_-10px_rgba(0,0,0,0.15)]">
+        <button
+          type="button"
+          disabled={disabled || selected === null}
+          onClick={submit}
+          className="mx-auto block min-h-16 min-w-32 px-8 rounded-full bg-teal-400 text-white text-2xl font-bubble disabled:opacity-40"
+        >
+          Done
+        </button>
+      </div>
     </div>
   );
 }

@@ -52,6 +52,7 @@ const FLAG_CODE_LABEL: Record<QualityFlagCode, string> = {
   "rapid-wrong": "Rapid wrong answers",
   "speed-accuracy": "Low accuracy (speed block)",
   "rule-not-understood": "Rule not understood (answered in spoken order)",
+  "not-fun": "She tapped Not fun (her call, not ability)",
   abandoned: "Abandoned",
 };
 const EXCLUDING_FLAG_CODES = EXCLUDING_CODES;

@@ -12,6 +12,7 @@ const MIN_SIZES: Record<PraiseKind, number> = {
   correct: 60, miss: 20, timeout: 12, streak3: 10, streak5: 10, newBest: 12,
   firstOfGenre: 8, topOfRamp: 8, comeback: 10, blockDone: 12, partDone: 10,
   welcome: 12, neutralNext: 12,
+    bail: 8,
 };
 
 const BANNED_WORDS = ["wrong", "bad", "fail", "oops", "sorry", "mistake", "incorrect"];

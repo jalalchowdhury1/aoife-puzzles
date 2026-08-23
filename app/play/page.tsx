@@ -60,13 +60,17 @@ function correctPraiseKind(d: number, streak: number, isNewBest: boolean, cameFr
 const BETWEEN_MS: Record<"none" | "mark", number> = { none: 600, mark: 1200 };
 
 // `teaching`: this item was a missed teaching item (see ResolvedBlock.teachingItems
-// / lib/engine/staircase.ts) — it gets the same 4s answer-reveal pause as
+// / lib/engine/staircase.ts) — it gets the same 5s answer-reveal pause as
 // Level 2's "reveal" feedback even when the level's own feedback is "none".
 // `fun`: practice levels' PraiseScreen (see components/PraiseScreen.tsx)
 // shows for 1.6s instead of the plain "Yes!" screen's 1.2s.
+// QA 2026-08-23: the answer-reveal pause was 4000ms, which sometimes wasn't
+// enough time to notice (let alone scroll to) the correct answer before it
+// auto-advanced — bumped to 5000ms alongside the reveal-target scrollIntoView
+// added to ChoiceView/WhichTwoView.
 function feedbackDelay(feedback: LevelConfig["feedback"], fullScore: boolean, teaching: boolean, fun: boolean): number {
-  if (feedback === "reveal") return fullScore ? (fun ? 1600 : 1200) : 4000;
-  if (teaching) return 4000;
+  if (feedback === "reveal") return fullScore ? (fun ? 1600 : 1200) : 5000;
+  if (teaching) return 5000;
   return BETWEEN_MS[feedback];
 }
 
@@ -92,7 +96,7 @@ function ProgressDots({ total, filled }: { total: number; filled: number }) {
 function BetweenScreen({ feedback, lastCorrect }: { feedback: LevelConfig["feedback"]; lastCorrect: boolean | null }) {
   if (feedback === "mark") {
     return (
-      <div className="flex flex-1 items-center justify-center">
+      <div className="flex flex-1 items-center justify-center-safe">
         <span className="text-8xl" aria-hidden>
           {lastCorrect ? "✅" : "❌"}
         </span>
@@ -103,7 +107,7 @@ function BetweenScreen({ feedback, lastCorrect }: { feedback: LevelConfig["feedb
   // "reveal" is rendered directly by PlayRunner via RevealAnswerScreen /
   // FullScoreScreen below): neutral transition, no ticks/crosses/answers.
   return (
-    <div className="flex flex-1 items-center justify-center">
+    <div className="flex flex-1 items-center justify-center-safe">
       <span className="font-bubble text-4xl text-ink">Next!</span>
     </div>
   );
@@ -130,7 +134,7 @@ function RepeatScreen({ kidTitle, onStart }: { kidTitle: string; onStart: () => 
   };
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-cream p-6 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center-safe gap-6 bg-cream p-6 text-center">
       <h1 className="font-bubble text-4xl text-ink">{kidTitle}</h1>
       <p className="font-bubble text-3xl text-teal-600">One more round!</p>
       <BigButton onClick={handleStart} tone="teal">
@@ -145,7 +149,7 @@ function RepeatScreen({ kidTitle, onStart }: { kidTitle: string; onStart: () => 
 // Only used when `fun` is off — see PraiseScreen for the fun-layer version.
 function FullScoreScreen() {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3" data-testid="between-feedback">
+    <div className="flex flex-1 flex-col items-center justify-center-safe gap-3" data-testid="between-feedback">
       <span className="text-8xl" aria-hidden>
         ✅
       </span>
@@ -157,7 +161,7 @@ function FullScoreScreen() {
 // A response worth less than full points (or a time-out): re-renders the
 // same genre View, disabled, with `reveal` and `lastResponse` set so the
 // view can show the correct answer against her own response. Shown for
-// 4000ms (feedbackDelay). Used for Level 2's ("reveal" feedback) misses, and
+// 5000ms (feedbackDelay). Used for Level 2's ("reveal" feedback) misses, and
 // also for a missed teaching item on any level (see `teachingReveal`).
 function RevealAnswerScreen({
   View,
@@ -194,7 +198,7 @@ function RevealAnswerScreen({
 // of a part. Tap-skippable like every other fun screen (see handleSkipTap).
 function WelcomeScreen({ line }: { line: string }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-cream p-6 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center-safe gap-6 bg-cream p-6 text-center">
       <Pip mood="happy" line={line} speak />
     </div>
   );
@@ -204,7 +208,7 @@ function WelcomeScreen({ line }: { line: string }) {
 // ending and the next block's sample/repeat screen. Tap-skippable.
 function BlockDoneScreen({ line }: { line: string }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 bg-cream p-6 text-center">
+    <div className="flex flex-1 flex-col items-center justify-center-safe gap-6 bg-cream p-6 text-center">
       <Pip mood="proud" line={line} speak />
     </div>
   );
@@ -276,6 +280,14 @@ function PlayRunner() {
   const [bonusFlash, setBonusFlash] = useState(false); // "✨ Bonus star!" flourish
   const [recap, setRecap] = useState<PartDoneRecap | null>(null);
   const [partDoneLine, setPartDoneLine] = useState<string | null>(null);
+  // QA 2026-08-23: true for ~400ms right after ANY interstitial (welcome/
+  // blockDone/between-praise/between-reveal) advances — by timer or by
+  // tap-skip — so a fast double-tap can't land on the next screen's own
+  // controls before she's actually seen it (repro: an Animal Parade animal
+  // and a Swap Shop option both got pre-selected this way). See
+  // runPendingAdvance below, which is the one place every such advance
+  // funnels through.
+  const [inputShield, setInputShield] = useState(false);
 
   // Stable across every render so views whose mount effect lists `onReady`
   // as a dependency (ChoiceView, ArithmeticView, PictureSpanView) never
@@ -299,6 +311,7 @@ function PlayRunner() {
     }
     const fn = pendingAdvanceRef.current;
     pendingAdvanceRef.current = null;
+    setInputShield(true);
     fn?.();
   }, []);
 
@@ -322,6 +335,12 @@ function PlayRunner() {
     const t = setTimeout(() => setBonusFlash(false), 1200);
     return () => clearTimeout(t);
   }, [bonusFlash]);
+
+  useEffect(() => {
+    if (!inputShield) return;
+    const t = window.setTimeout(() => setInputShield(false), 400);
+    return () => window.clearTimeout(t);
+  }, [inputShield]);
 
   // ---- Resolve where to start: URL params, else currentPosition; ?replay=1
   // starts a fresh session even if the part is already complete. The server
@@ -704,9 +723,15 @@ function PlayRunner() {
     return <div className="flex flex-1 bg-cream" />;
   }
 
+  // QA 2026-08-23 (buttons below the fold at short viewport heights): every
+  // phase below renders into `body`, then the single return at the bottom
+  // wraps it with the tap shield overlay — so the shield can sit on top no
+  // matter which phase it followed (see `inputShield`/runPendingAdvance).
+  let body: React.ReactNode;
+
   if (phase === "done") {
     const minutes = session ? minutesBetween(session.startedAt, session.endedAt) : 0;
-    return (
+    body = (
       <PartDone
         part={partCfg}
         minutes={minutes}
@@ -716,113 +741,141 @@ function PlayRunner() {
         pipLine={partDoneLine}
       />
     );
-  }
+  } else {
+    const funOn = levelCfg.fun !== false;
 
-  const funOn = levelCfg.fun !== false;
+    if (phase === "welcome") {
+      body = (
+        <div className="flex flex-1 min-h-0" onClick={runPendingAdvance}>
+          <WelcomeScreen line={welcomeLine ?? ""} />
+        </div>
+      );
+    } else if (phase === "blockDone") {
+      body = (
+        <div className="flex flex-1 min-h-0" onClick={runPendingAdvance}>
+          <BlockDoneScreen line={blockDoneLine ?? ""} />
+        </div>
+      );
+    } else {
+      const cfg = resolvedBlocks[blockIndex];
+      if (!cfg) {
+        body = <div className="flex flex-1 bg-cream" />;
+      } else {
+        const genre = GENRES[cfg.genre];
+        const View = VIEWS[cfg.genre];
 
-  if (phase === "welcome") {
-    return (
-      <div className="flex flex-1" onClick={runPendingAdvance}>
-        <WelcomeScreen line={welcomeLine ?? ""} />
-      </div>
-    );
-  }
+        if (phase === "sample") {
+          // A remedial level's repeat block (see RepeatScreen above) skips
+          // the full sample screen — she just played this genre.
+          body = cfg.repeat ? (
+            <RepeatScreen kidTitle={genre.kidTitle} onStart={beginBlockItems} />
+          ) : (
+            <SampleScreen genre={genre} View={View} onStart={beginBlockItems} fun={funOn} />
+          );
+        } else {
+          body = (
+            <div className="flex min-h-0 flex-1 flex-col bg-cream">
+              <div className="flex items-center justify-between gap-4 px-4 pt-4">
+                <span className="font-bubble text-lg text-ink/70">{partCfg.title}</span>
+                {genre.mode === "staircase" && <ProgressDots total={cfg.maxItems} filled={records.length} />}
+                {funOn ? <StarJar stars={jarStars} bonus={bonusFlash} /> : <span aria-hidden className="w-0" />}
+              </div>
 
-  if (phase === "blockDone") {
-    return (
-      <div className="flex flex-1" onClick={runPendingAdvance}>
-        <BlockDoneScreen line={blockDoneLine ?? ""} />
-      </div>
-    );
-  }
+              {genre.timing.kind === "block" && (
+                <div className="px-4 pt-2">
+                  {/* cfg.blockMs (BlockConfig.blockMs) overrides the genre's normal
+                      120s speed-block window — only set by the hidden QA level
+                      (lib/levels/levelQa.ts) so its e2e play-through doesn't have to
+                      sit through a real speed block. */}
+                  <Countdown totalMs={cfg.blockMs ?? genre.timing.ms} startedAt={blockStartMs} onExpire={() => endBlock(records)} />
+                </div>
+              )}
 
-  const cfg = resolvedBlocks[blockIndex];
-  if (!cfg) {
-    return <div className="flex flex-1 bg-cream" />;
-  }
-  const genre = GENRES[cfg.genre];
-  const View = VIEWS[cfg.genre];
-
-  if (phase === "sample") {
-    // A remedial level's repeat block (see RepeatScreen above) skips the full
-    // sample screen — she just played this genre.
-    if (cfg.repeat) {
-      return <RepeatScreen kidTitle={genre.kidTitle} onStart={beginBlockItems} />;
+              {/* QA 2026-08-23: this is now the ONLY scrolling region on the
+                  play screen (header/countdown above stay fixed) — every
+                  view's own action row pins itself to the bottom of this
+                  container via `sticky bottom-0`, so it's always visible
+                  without scrolling even when the stimulus above it is tall
+                  enough to need a scroll (see e.g. FireflyBoxesView,
+                  ChoiceView, WhichTwoView, PictureSudokuView). */}
+              <div
+                className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto"
+                // Fun screens are tap-skippable (owner brief); the "item" phase is
+                // never affected since a timed item's own controls are what respond
+                // to a tap, and onClick here is a no-op while phase === "item".
+                onClick={phase === "between" && funOn ? runPendingAdvance : undefined}
+              >
+                {phase === "item" ? (
+                  <>
+                    {genre.timing.kind === "item" && (
+                      <div className="w-full max-w-md px-4 pb-2">
+                        <Countdown
+                          totalMs={genre.timing.ms(stair!.d) * (cfg.timeScale ?? 1)}
+                          startedAt={startedAtEpoch}
+                          onExpire={() => finishItem(null, true)}
+                        />
+                      </div>
+                    )}
+                    <View
+                      key={`${blockIndex}-${itemIdx}`}
+                      item={item}
+                      disabled={false}
+                      display={cfg.display}
+                      onReady={handleReady}
+                      onRespond={handleRespond}
+                    />
+                  </>
+                ) : levelCfg.feedback === "reveal" ? (
+                  fullScore ? (
+                    funOn && praiseLine ? (
+                      <PraiseScreen mood={praiseLine.mood} line={praiseLine.line} celebrate={praiseCelebrate} />
+                    ) : (
+                      <FullScoreScreen />
+                    )
+                  ) : (
+                    <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} captionPip={funOn ? missPip : null} />
+                  )
+                ) : teachingReveal ? (
+                  // A missed teaching item on a level whose own feedback is "none"
+                  // (Level 1): still show the answer, just this once.
+                  <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} captionPip={funOn ? missPip : null} />
+                ) : (
+                  <BetweenScreen feedback={levelCfg.feedback} lastCorrect={lastCorrect} />
+                )}
+              </div>
+            </div>
+          );
+        }
+      }
     }
-    return <SampleScreen genre={genre} View={View} onStart={beginBlockItems} fun={funOn} />;
   }
 
   return (
-    <div className="flex flex-1 flex-col bg-cream">
-      <div className="flex items-center justify-between gap-4 px-4 pt-4">
-        <span className="font-bubble text-lg text-ink/70">{partCfg.title}</span>
-        {genre.mode === "staircase" && <ProgressDots total={cfg.maxItems} filled={records.length} />}
-        {funOn ? <StarJar stars={jarStars} bonus={bonusFlash} /> : <span aria-hidden className="w-0" />}
-      </div>
-
-      {genre.timing.kind === "block" && (
-        <div className="px-4 pt-2">
-          {/* cfg.blockMs (BlockConfig.blockMs) overrides the genre's normal
-              120s speed-block window — only set by the hidden QA level
-              (lib/levels/levelQa.ts) so its e2e play-through doesn't have to
-              sit through a real speed block. */}
-          <Countdown totalMs={cfg.blockMs ?? genre.timing.ms} startedAt={blockStartMs} onExpire={() => endBlock(records)} />
-        </div>
-      )}
-
-      <div
-        className="flex flex-1 flex-col items-center justify-center"
-        // Fun screens are tap-skippable (owner brief); the "item" phase is
-        // never affected since a timed item's own controls are what respond
-        // to a tap, and onClick here is a no-op while phase === "item".
-        onClick={phase === "between" && funOn ? runPendingAdvance : undefined}
-      >
-        {phase === "item" ? (
-          <>
-            {genre.timing.kind === "item" && (
-              <div className="w-full max-w-md px-4 pb-2">
-                <Countdown
-                  totalMs={genre.timing.ms(stair!.d) * (cfg.timeScale ?? 1)}
-                  startedAt={startedAtEpoch}
-                  onExpire={() => finishItem(null, true)}
-                />
-              </div>
-            )}
-            <View
-              key={`${blockIndex}-${itemIdx}`}
-              item={item}
-              disabled={false}
-              display={cfg.display}
-              onReady={handleReady}
-              onRespond={handleRespond}
-            />
-          </>
-        ) : levelCfg.feedback === "reveal" ? (
-          fullScore ? (
-            funOn && praiseLine ? (
-              <PraiseScreen mood={praiseLine.mood} line={praiseLine.line} celebrate={praiseCelebrate} />
-            ) : (
-              <FullScoreScreen />
-            )
-          ) : (
-            <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} captionPip={funOn ? missPip : null} />
-          )
-        ) : teachingReveal ? (
-          // A missed teaching item on a level whose own feedback is "none"
-          // (Level 1): still show the answer, just this once.
-          <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} captionPip={funOn ? missPip : null} />
-        ) : (
-          <BetweenScreen feedback={levelCfg.feedback} lastCorrect={lastCorrect} />
-        )}
-      </div>
-    </div>
+    <>
+      {body}
+      {/* QA 2026-08-23 (tap-skip landing on the next screen's controls): a
+          transparent, input-swallowing shield for ~400ms after ANY
+          interstitial advances to the next screen, whether that happened by
+          timer or by tap-skip (see runPendingAdvance/inputShield above).
+          Purely a pointer-events catcher — it never delays onReady or the
+          countdown, which run underneath unaffected. */}
+      {inputShield && <div className="fixed inset-0 z-40" aria-hidden="true" />}
+    </>
   );
 }
 
 export default function PlayPage() {
+  // QA 2026-08-23 (buttons below the fold at short viewport heights): a hard
+  // h-dvh cap on the whole play screen, instead of relying on the body's
+  // min-h-dvh (a minimum, not a cap) — every phase below fills this via
+  // flex-1, and the one phase with genuinely tall content (the item/between
+  // screen) scrolls internally instead of pushing its action row off the
+  // visible viewport. See app/globals.css / app/layout.tsx for the outer shell.
   return (
-    <Suspense fallback={<div className="flex flex-1 bg-cream" />}>
-      <PlayRunner />
-    </Suspense>
+    <div className="flex h-dvh flex-col bg-cream">
+      <Suspense fallback={<div className="flex flex-1 bg-cream" />}>
+        <PlayRunner />
+      </Suspense>
+    </div>
   );
 }

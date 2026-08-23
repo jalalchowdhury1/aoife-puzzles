@@ -119,62 +119,71 @@ export function VisualPuzzlesView({
   const pickedSet = reveal ? new Set(lastResponse ?? []) : null;
 
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-6 bg-cream p-4">
-      <TargetSilhouette item={item} />
+    // QA 2026-08-23: the target + pieces live in their OWN
+    // flex-1/min-h-0/overflow-y-auto region, so they scroll *internally* if
+    // ever taller than the available space, instead of pushing Done below
+    // the fold — Done is a plain sibling AFTER that region, never part of
+    // the scroll, so it's always fully visible without scrolling.
+    <div className="flex min-h-full w-full flex-col items-center bg-cream">
+      <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-6 overflow-y-auto p-4 pb-2">
+        <TargetSilhouette item={item} />
 
-      {/* pieceCount is always 2 or 3 — never a singular "piece". */}
-      {!reveal && <p className="text-lg font-semibold text-ink/70">Tap {item.pieceCount} pieces</p>}
+        {/* pieceCount is always 2 or 3 — never a singular "piece". */}
+        {!reveal && <p className="text-lg font-semibold text-ink/70">Tap {item.pieceCount} pieces</p>}
 
-      {/* max-w wide enough that 6 tiles at CELL_PX=36 fit across the 1180px
-          iPad viewport in one row when the pieces are small; flex-wrap still
-          drops to two rows for larger (d>=7) pieces without clipping anything. */}
-      <div className="flex w-full max-w-[68rem] flex-wrap items-center justify-center gap-4">
-        {item.pieces.map((piece, i) => {
-          if (reveal) {
-            const isCorrect = answerSet!.has(i);
-            const isWrongPick = !isCorrect && pickedSet!.has(i);
-            const revealClass = isCorrect
-              ? "bg-[#6fcf6f]/15 ring-4 ring-[#6fcf6f]"
-              : isWrongPick
-                ? "bg-white ring-4 ring-rose-400"
-                : "bg-white ring-2 ring-teal-100 opacity-40";
+        {/* max-w wide enough that 6 tiles at CELL_PX=36 fit across the 1180px
+            iPad viewport in one row when the pieces are small; flex-wrap still
+            drops to two rows for larger (d>=7) pieces without clipping anything. */}
+        <div className="flex w-full max-w-[68rem] flex-wrap items-center justify-center gap-4">
+          {item.pieces.map((piece, i) => {
+            if (reveal) {
+              const isCorrect = answerSet!.has(i);
+              const isWrongPick = !isCorrect && pickedSet!.has(i);
+              const revealClass = isCorrect
+                ? "bg-[#6fcf6f]/15 ring-4 ring-[#6fcf6f]"
+                : isWrongPick
+                  ? "bg-white ring-4 ring-rose-400"
+                  : "bg-white ring-2 ring-teal-100 opacity-40";
+              return (
+                <div
+                  key={i}
+                  className={`flex min-h-16 min-w-16 items-center justify-center rounded-2xl p-2 ${revealClass}`}
+                >
+                  <PieceGlyph piece={piece} />
+                </div>
+              );
+            }
+            const isSelected = selected.includes(i);
             return (
-              <div
+              <button
                 key={i}
-                className={`flex min-h-16 min-w-16 items-center justify-center rounded-2xl p-2 ${revealClass}`}
+                type="button"
+                data-testid="piece-option"
+                disabled={disabled}
+                aria-pressed={isSelected}
+                onClick={() => toggle(i)}
+                className={`flex min-h-16 min-w-16 items-center justify-center rounded-2xl bg-white p-2 transition ${
+                  isSelected ? "ring-4 ring-teal-600" : "ring-2 ring-teal-100"
+                }`}
               >
                 <PieceGlyph piece={piece} />
-              </div>
+              </button>
             );
-          }
-          const isSelected = selected.includes(i);
-          return (
-            <button
-              key={i}
-              type="button"
-              data-testid="piece-option"
-              disabled={disabled}
-              aria-pressed={isSelected}
-              onClick={() => toggle(i)}
-              className={`flex min-h-16 min-w-16 items-center justify-center rounded-2xl bg-white p-2 transition ${
-                isSelected ? "ring-4 ring-teal-600" : "ring-2 ring-teal-100"
-              }`}
-            >
-              <PieceGlyph piece={piece} />
-            </button>
-          );
-        })}
+          })}
+        </div>
       </div>
 
       {!disabled && (
-        <button
-          type="button"
-          disabled={selected.length !== item.pieceCount || submitted}
-          onClick={handleDone}
-          className="rounded-full bg-teal-400 px-12 py-5 text-2xl font-bold text-white transition active:scale-95 disabled:bg-teal-100 disabled:text-ink/40"
-        >
-          Done
-        </button>
+        <div className="w-full shrink-0 bg-cream pb-4 pt-3 shadow-[0_-8px_16px_-10px_rgba(0,0,0,0.15)]">
+          <button
+            type="button"
+            disabled={selected.length !== item.pieceCount || submitted}
+            onClick={handleDone}
+            className="mx-auto block rounded-full bg-teal-400 px-12 py-5 text-2xl font-bold text-white transition active:scale-95 disabled:bg-teal-100 disabled:text-ink/40"
+          >
+            Done
+          </button>
+        </div>
       )}
     </div>
   );

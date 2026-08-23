@@ -60,7 +60,7 @@ export function PictureSpanView({
   if (reveal) {
     const tapped = lastResponse ?? [];
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-8 p-6">
+      <div className="flex flex-1 flex-col items-center justify-center-safe gap-8 p-6">
         <p className="text-2xl text-ink">Here they are, in order.</p>
         <div className="flex flex-wrap items-center justify-center gap-6">
           {item.shown.map((icon, i) => (
@@ -104,7 +104,7 @@ export function PictureSpanView({
 
   if (phase === "show") {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-8 p-8">
+      <div className="flex flex-1 flex-col items-center justify-center-safe gap-8 p-8">
         <div className="flex flex-wrap items-center justify-center gap-6">
           {item.shown.map((icon, i) => (
             <div
@@ -120,51 +120,60 @@ export function PictureSpanView({
     );
   }
 
+  // QA 2026-08-23: the tray + 4-choice grid live in their OWN
+  // flex-1/min-h-0/overflow-y-auto region, so they scroll *internally* if
+  // ever taller than the available space, instead of pushing Done below the
+  // fold — Done is a plain sibling AFTER that region, never part of the
+  // scroll, so it's always fully visible without scrolling.
   return (
-    <div className="flex flex-1 flex-col items-center gap-6 p-6">
-      <p className="text-2xl text-ink">Tap them back in the same order.</p>
+    <div className="flex min-h-full w-full flex-col items-center">
+      <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-6 overflow-y-auto p-6 pb-2">
+        <p className="text-2xl text-ink">Tap them back in the same order.</p>
 
-      <div className="flex min-h-24 w-full max-w-xl flex-wrap items-center justify-center gap-3 rounded-2xl bg-teal-100 p-3">
-        {tray.length === 0 && <span className="text-2xl text-ink/60">Your tray is empty</span>}
-        {tray.map((icon, i) => (
-          <button
-            key={`${icon}-${i}`}
-            type="button"
-            onClick={removeLast}
-            disabled={disabled}
-            aria-label="Remove last picture"
-            className="flex items-center justify-center rounded-xl bg-cream text-4xl"
-            style={{ width: 64, height: 64 }}
-          >
-            <span>{icon}</span>
-          </button>
-        ))}
+        <div className="flex min-h-24 w-full max-w-xl flex-wrap items-center justify-center gap-3 rounded-2xl bg-teal-100 p-3">
+          {tray.length === 0 && <span className="text-2xl text-ink/60">Your tray is empty</span>}
+          {tray.map((icon, i) => (
+            <button
+              key={`${icon}-${i}`}
+              type="button"
+              onClick={removeLast}
+              disabled={disabled}
+              aria-label="Remove last picture"
+              className="flex items-center justify-center rounded-xl bg-cream text-4xl"
+              style={{ width: 64, height: 64 }}
+            >
+              <span>{icon}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-4 gap-4">
+          {item.choices.map((icon, i) => (
+            <button
+              key={`${icon}-${i}`}
+              type="button"
+              data-testid="picture-choice"
+              onClick={() => tapChoice(icon)}
+              disabled={disabled}
+              className="flex items-center justify-center rounded-2xl bg-white text-5xl shadow"
+              style={{ width: 80, height: 80 }}
+            >
+              <span>{icon}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-4">
-        {item.choices.map((icon, i) => (
-          <button
-            key={`${icon}-${i}`}
-            type="button"
-            data-testid="picture-choice"
-            onClick={() => tapChoice(icon)}
-            disabled={disabled}
-            className="flex items-center justify-center rounded-2xl bg-white text-5xl shadow"
-            style={{ width: 80, height: 80 }}
-          >
-            <span>{icon}</span>
-          </button>
-        ))}
+      <div className="w-full shrink-0 bg-cream px-6 pb-4 pt-3 shadow-[0_-8px_16px_-10px_rgba(0,0,0,0.15)]">
+        <button
+          type="button"
+          onClick={submit}
+          disabled={disabled || tray.length === 0}
+          className="mx-auto block rounded-full bg-teal-400 px-10 py-4 text-2xl font-bold text-white disabled:opacity-40"
+        >
+          Done
+        </button>
       </div>
-
-      <button
-        type="button"
-        onClick={submit}
-        disabled={disabled || tray.length === 0}
-        className="rounded-full bg-teal-400 px-10 py-4 text-2xl font-bold text-white disabled:opacity-40"
-      >
-        Done
-      </button>
     </div>
   );
 }

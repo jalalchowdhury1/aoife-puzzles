@@ -4,7 +4,16 @@ import { useEffect, useState } from "react";
 import type { GenreViewProps } from "@/lib/engine/types";
 import type { PictureSudokuItem } from "@/lib/genres/pictureSudoku";
 
-const CELL_BOX = 88;
+// QA 2026-08-23: CELL_BOX was a fixed 88px, which on a 4x4+ grid pushed the
+// options row + Done below the fold at a 536px-tall viewport (iPad landscape
+// with browser chrome). Viewport-aware so the grid shrinks there but still
+// stays legible by a real iPad's 713px height. These are display tiles, not
+// tap targets (the OPTION_BOX buttons below are), so they aren't held to the
+// 64px tap-target minimum the way FireflyBoxesView's grid cells are.
+const CELL_BOX = "min(10vh, 64px)";
+// 0.55 * CELL_BOX, expressed the same way (scalar multiplication distributes
+// over min()) since CELL_BOX is now a CSS expression, not a number.
+const CELL_FONT_SIZE = "min(5.5vh, 35px)";
 const OPTION_BOX = 76;
 
 /** Picture Sudoku: a small grid where every row/column holds each picture once; one box is a "?". */
@@ -45,10 +54,16 @@ export default function PictureSudokuView({
   const correctSymbol = item.options[item.answer];
 
   return (
-    <div className="flex min-h-full flex-col items-center justify-center gap-8 p-4">
+    // QA 2026-08-23: the grid + options live in their OWN
+    // flex-1/min-h-0/overflow-y-auto region, so they scroll *internally* if
+    // ever taller than the available space, instead of pushing Done below
+    // the fold — Done is a plain sibling AFTER that region, never part of
+    // the scroll, so it's always fully visible without scrolling.
+    <div className="flex min-h-full w-full flex-col items-center">
+      <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-8 overflow-y-auto p-4 pb-2">
       <div
         className="grid gap-2"
-        style={{ gridTemplateColumns: `repeat(${item.n}, ${CELL_BOX}px)` }}
+        style={{ gridTemplateColumns: `repeat(${item.n}, ${CELL_BOX})` }}
       >
         {item.cells.map((cell, i) => {
           if (cell !== null) {
@@ -56,7 +71,7 @@ export default function PictureSudokuView({
               <div
                 key={i}
                 className="flex items-center justify-center rounded-2xl bg-white shadow-sm"
-                style={{ width: CELL_BOX, height: CELL_BOX, fontSize: CELL_BOX * 0.55 }}
+                style={{ width: CELL_BOX, height: CELL_BOX, fontSize: CELL_FONT_SIZE }}
               >
                 {cell}
               </div>
@@ -67,7 +82,7 @@ export default function PictureSudokuView({
               <div
                 key={i}
                 className="flex items-center justify-center rounded-2xl bg-white shadow-sm ring-4 ring-[#6fcf6f]"
-                style={{ width: CELL_BOX, height: CELL_BOX, fontSize: CELL_BOX * 0.55 }}
+                style={{ width: CELL_BOX, height: CELL_BOX, fontSize: CELL_FONT_SIZE }}
               >
                 {correctSymbol}
               </div>
@@ -93,46 +108,47 @@ export default function PictureSudokuView({
         })}
       </div>
 
-      <div className="flex flex-col items-center gap-6">
-        <div className="flex flex-wrap justify-center gap-4">
-          {item.options.map((opt, i) => {
-            if (reveal) {
-              const isCorrect = i === item.answer;
-              const isWrongPick = !isCorrect && lastResponse === i;
-              const revealClass = isCorrect
-                ? "border-[#6fcf6f] bg-[#6fcf6f]/15"
-                : isWrongPick
-                  ? "border-rose-400 bg-white"
-                  : "border-transparent bg-white opacity-40";
-              return (
-                <div
-                  key={i}
-                  className={`flex items-center justify-center rounded-2xl border-4 ${revealClass}`}
-                  style={{ width: OPTION_BOX, height: OPTION_BOX, fontSize: OPTION_BOX * 0.5 }}
-                >
-                  {opt}
-                </div>
-              );
-            }
+      <div className="flex flex-wrap justify-center gap-4">
+        {item.options.map((opt, i) => {
+          if (reveal) {
+            const isCorrect = i === item.answer;
+            const isWrongPick = !isCorrect && lastResponse === i;
+            const revealClass = isCorrect
+              ? "border-[#6fcf6f] bg-[#6fcf6f]/15"
+              : isWrongPick
+                ? "border-rose-400 bg-white"
+                : "border-transparent bg-white opacity-40";
             return (
-              <button
+              <div
                 key={i}
-                type="button"
-                data-testid="answer-option"
-                onClick={() => pick(i)}
-                disabled={disabled}
-                aria-pressed={selected === i}
-                className={`flex items-center justify-center rounded-2xl border-4 bg-white transition-colors ${
-                  selected === i ? "border-teal-600 bg-teal-100" : "border-transparent"
-                }`}
+                className={`flex items-center justify-center rounded-2xl border-4 ${revealClass}`}
                 style={{ width: OPTION_BOX, height: OPTION_BOX, fontSize: OPTION_BOX * 0.5 }}
               >
                 {opt}
-              </button>
+              </div>
             );
-          })}
-        </div>
+          }
+          return (
+            <button
+              key={i}
+              type="button"
+              data-testid="answer-option"
+              onClick={() => pick(i)}
+              disabled={disabled}
+              aria-pressed={selected === i}
+              className={`flex items-center justify-center rounded-2xl border-4 bg-white transition-colors ${
+                selected === i ? "border-teal-600 bg-teal-100" : "border-transparent"
+              }`}
+              style={{ width: OPTION_BOX, height: OPTION_BOX, fontSize: OPTION_BOX * 0.5 }}
+            >
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+      </div>
 
+      <div className="flex w-full shrink-0 justify-center bg-cream px-4 pb-4 pt-3 shadow-[0_-8px_16px_-10px_rgba(0,0,0,0.15)]">
         <button
           type="button"
           data-testid="done"

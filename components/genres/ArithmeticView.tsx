@@ -64,33 +64,41 @@ export function ArithmeticView({ item, disabled, display, reveal, lastResponse, 
   const showHerAnswer = reveal === true && herAnswer !== null && herAnswer !== item.answer;
 
   return (
-    <div className="flex flex-col items-center gap-6 w-full max-w-xl mx-auto p-4">
-      {showText ? (
-        <p className="text-[28px] leading-snug font-bold text-center text-ink">{item.text}</p>
-      ) : (
-        <button
-          type="button"
-          onClick={listenAgain}
-          disabled={disabled || replayed}
-          className="min-h-[72px] px-6 rounded-2xl bg-teal-100 text-[22px] font-bold text-ink disabled:opacity-40"
-        >
-          👂 Listen again
-        </button>
-      )}
+    // QA 2026-08-23: the problem text/answer display lives in its OWN
+    // flex-1/min-h-0/overflow-y-auto region, so it scrolls *internally* if
+    // ever taller than the available space, instead of pushing the numpad
+    // (which is where Done lives) below the fold — the numpad is a plain
+    // sibling AFTER that region, never part of the scroll, so it's always
+    // fully visible without scrolling.
+    <div className="flex min-h-full w-full max-w-xl mx-auto flex-col items-center">
+      <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-6 overflow-y-auto p-4 pb-2">
+        {showText ? (
+          <p className="text-[28px] leading-snug font-bold text-center text-ink">{item.text}</p>
+        ) : (
+          <button
+            type="button"
+            onClick={listenAgain}
+            disabled={disabled || replayed}
+            className="min-h-[72px] px-6 rounded-2xl bg-teal-100 text-[22px] font-bold text-ink disabled:opacity-40"
+          >
+            👂 Listen again
+          </button>
+        )}
 
-      {reveal ? (
-        <div className="flex flex-col items-center gap-1 min-h-[48px]">
-          <span className="text-lg font-bold text-ink/70">The answer is</span>
-          <span className="text-[40px] font-bold text-ink">{item.answer}</span>
-          {showHerAnswer && <span className="mt-1 text-base font-semibold text-ink/40">You said {herAnswer}</span>}
-        </div>
-      ) : (
-        <div className="text-[36px] font-bold text-ink min-h-[48px]" aria-live="polite">
-          {value || " "}
-        </div>
-      )}
+        {reveal ? (
+          <div className="flex flex-col items-center gap-1 min-h-[48px]">
+            <span className="text-lg font-bold text-ink/70">The answer is</span>
+            <span className="text-[40px] font-bold text-ink">{item.answer}</span>
+            {showHerAnswer && <span className="mt-1 text-base font-semibold text-ink/40">You said {herAnswer}</span>}
+          </div>
+        ) : (
+          <div className="text-[36px] font-bold text-ink min-h-[48px]" aria-live="polite">
+            {value || " "}
+          </div>
+        )}
+      </div>
 
-      <div className="grid grid-cols-3 gap-3 w-full max-w-xs">
+      <div className="grid w-full max-w-xs shrink-0 grid-cols-3 gap-3 bg-cream pb-4 pt-3 shadow-[0_-8px_16px_-10px_rgba(0,0,0,0.15)]">
         {DIGITS.map(d => (
           <button
             key={d}

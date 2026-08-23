@@ -66,7 +66,12 @@ export function BlockDesignView({
   const boardCaption = reveal ? "This is the matching pattern" : "Your board";
 
   return (
-    <div className="flex h-full w-full flex-col landscape:flex-row items-center justify-center gap-8 bg-cream p-4">
+    // QA 2026-08-23: landscape:items-stretch (rather than -center) so each
+    // column gets the full row height, letting the board column's Done
+    // button pin to the bottom (mt-auto + sticky bottom-0, same pattern as
+    // every other view) instead of risking being pushed below the fold on a
+    // big board.
+    <div className="flex min-h-full w-full flex-col landscape:flex-row items-center landscape:items-stretch justify-center-safe gap-8 bg-cream p-4">
       <div className="flex flex-col items-center gap-2">
         <div className="text-2xl font-bold text-ink">Picture</div>
         <div
@@ -79,43 +84,52 @@ export function BlockDesignView({
         </div>
       </div>
 
-      <div className="flex flex-col items-center gap-4">
-        <div className="text-2xl font-bold text-ink">{boardCaption}</div>
-        <div
-          className="grid rounded-lg bg-teal-100 p-2"
-          style={{ gridTemplateColumns: `repeat(${item.n}, ${CELL}px)`, gap: 4 }}
-        >
-          {displayBoard.map((face, i) => {
-            const missed = reveal && !!lastResponse && lastResponse[i] !== item.grid[i];
-            return (
-              <button
-                key={i}
-                type="button"
-                disabled={disabled}
-                onClick={() => cycle(i)}
-                aria-label={`Board square ${i + 1}`}
-                // A rose border-2 sitting flush against a red ("R"/diagonal)
-                // cell is nearly invisible — the ring is drawn OUTSIDE the
-                // cell with a gap (ring-offset-2), so it reads against any
-                // face color instead of blending into red ones.
-                className={`overflow-hidden rounded-md border-2 border-teal-600 ${
-                  missed ? "ring-4 ring-rose-400 ring-offset-2" : ""
-                }`}
-                style={{ width: CELL, height: CELL }}
-              >
-                <FaceCell face={face} size={CELL} />
-              </button>
-            );
-          })}
+      {/* QA 2026-08-23: the board lives in its OWN
+          flex-1/min-h-0/overflow-y-auto region, so it scrolls *internally*
+          if ever taller than the available space, instead of pushing Done
+          below the fold — Done is a plain sibling AFTER that region, never
+          part of the scroll, so it's always fully visible without scrolling. */}
+      <div className="flex min-h-0 flex-1 landscape:flex-none flex-col items-center">
+        <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-4 overflow-y-auto pb-2">
+          <div className="text-2xl font-bold text-ink">{boardCaption}</div>
+          <div
+            className="grid rounded-lg bg-teal-100 p-2"
+            style={{ gridTemplateColumns: `repeat(${item.n}, ${CELL}px)`, gap: 4 }}
+          >
+            {displayBoard.map((face, i) => {
+              const missed = reveal && !!lastResponse && lastResponse[i] !== item.grid[i];
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => cycle(i)}
+                  aria-label={`Board square ${i + 1}`}
+                  // A rose border-2 sitting flush against a red ("R"/diagonal)
+                  // cell is nearly invisible — the ring is drawn OUTSIDE the
+                  // cell with a gap (ring-offset-2), so it reads against any
+                  // face color instead of blending into red ones.
+                  className={`overflow-hidden rounded-md border-2 border-teal-600 ${
+                    missed ? "ring-4 ring-rose-400 ring-offset-2" : ""
+                  }`}
+                  style={{ width: CELL, height: CELL }}
+                >
+                  <FaceCell face={face} size={CELL} />
+                </button>
+              );
+            })}
+          </div>
         </div>
         {!disabled && (
-          <button
-            type="button"
-            onClick={submit}
-            className="min-h-16 rounded-full bg-teal-400 px-10 text-2xl font-bold text-ink"
-          >
-            Done
-          </button>
+          <div className="w-full shrink-0 bg-cream pb-2 pt-3">
+            <button
+              type="button"
+              onClick={submit}
+              className="mx-auto block min-h-16 rounded-full bg-teal-400 px-10 text-2xl font-bold text-ink"
+            >
+              Done
+            </button>
+          </div>
         )}
       </div>
     </div>

@@ -121,7 +121,11 @@ export default function HomePage() {
 
       {(streak > 0 || stars > 0) && (
         <div className="flex items-center gap-4 font-bubble text-lg text-ink">
-          {streak > 0 && <span aria-label={`${streak} days in a row`}>🔥 {streak} days in a row</span>}
+          {streak > 0 && (
+            <span aria-label={`${streak} day${streak === 1 ? "" : "s"} in a row`}>
+              🔥 {streak} day{streak === 1 ? "" : "s"} in a row
+            </span>
+          )}
           {stars > 0 && <span aria-label={`${stars} total stars`}>⭐ {stars} total stars</span>}
         </div>
       )}

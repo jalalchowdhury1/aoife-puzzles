@@ -56,6 +56,7 @@ export interface ItemRecord {
   idx: number; seed: number; d: Difficulty; points: number; max: number; correct: boolean;
   ms: number; timedOut: boolean; response: unknown; bankId?: string;
   fast?: boolean; audioFallback?: boolean; replayed?: boolean;
+  bailed?: boolean;                    // she tapped "Not fun" on this item (agency, not ability)
   teaching?: boolean;                  // a teaching-item that revealed the answer (see BlockConfig.teachingItems)
   stars?: number;                      // stars earned on this item (0 when none); see lib/engine/rewards.ts
 }

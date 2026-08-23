@@ -68,3 +68,20 @@ describe("stepUp (slow progression)", () => {
     s = stepStair(s, true); expect(s.d).toBe(2);
   });
 });
+
+describe("fast lane (ceiling probing while flawless)", () => {
+  it("climbs on every fast correct while no miss yet, then falls back to stepUp 2", () => {
+    let s = startStair(3, 10, 0, 2);
+    s = stepStair(s, true, true);  expect(s.d).toBe(4);   // fast + flawless: immediate climb
+    s = stepStair(s, true, true);  expect(s.d).toBe(5);
+    s = stepStair(s, true, false); expect(s.d).toBe(5);   // slow correct: fast lane needs fast answers
+    s = stepStair(s, true, false); expect(s.d).toBe(6);   // two in a row
+    s = stepStair(s, false);       expect(s.d).toBe(6);
+    s = stepStair(s, true, true);  expect(s.d).toBe(6);   // after a miss the fast lane is closed
+    s = stepStair(s, true, true);  expect(s.d).toBe(7);
+  });
+  it("fast lane is inactive when stepUp is 1 (diagnostic unchanged)", () => {
+    let s = startStair(1, 8, 0, 1);
+    s = stepStair(s, true, false); expect(s.d).toBe(2);
+  });
+});

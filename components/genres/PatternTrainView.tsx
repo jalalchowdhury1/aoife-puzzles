@@ -47,51 +47,56 @@ export default function PatternTrainView({
   const correctFigure = item.options[item.answer];
 
   return (
-    <div className="flex min-h-full flex-col items-center justify-center gap-8 p-4">
-      <div className="flex w-full max-w-full items-end gap-2 overflow-x-auto px-2 py-2">
-        <span className="shrink-0" style={{ fontSize: CAR_BOX * 0.7, lineHeight: 1 }} aria-hidden>
-          🚂
-        </span>
+    // QA 2026-08-23: the train + options live in their OWN
+    // flex-1/min-h-0/overflow-y-auto region, so they scroll *internally* if
+    // ever taller than the available space, instead of pushing Done below
+    // the fold — Done is a plain sibling AFTER that region, never part of
+    // the scroll, so it's always fully visible without scrolling.
+    <div className="flex min-h-full w-full flex-col items-center">
+      <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-8 overflow-y-auto p-4 pb-2">
+        <div className="flex w-full max-w-full items-end gap-2 overflow-x-auto px-2 py-2">
+          <span className="shrink-0" style={{ fontSize: CAR_BOX * 0.7, lineHeight: 1 }} aria-hidden>
+            🚂
+          </span>
 
-        {item.cars.map((car, i) => (
-          <div key={i} className="flex shrink-0 flex-col items-center">
-            <div
-              className="flex items-center justify-center rounded-2xl bg-white shadow-sm"
-              style={{ width: CAR_BOX, height: CAR_BOX }}
-            >
-              <Figure f={car} box={CAR_BOX * 0.75} />
+          {item.cars.map((car, i) => (
+            <div key={i} className="flex shrink-0 flex-col items-center">
+              <div
+                className="flex items-center justify-center rounded-2xl bg-white shadow-sm"
+                style={{ width: CAR_BOX, height: CAR_BOX }}
+              >
+                <Figure f={car} box={CAR_BOX * 0.75} />
+              </div>
+              <div className="-mt-1 flex gap-4">
+                <span className="rounded-full bg-ink/60" style={{ width: WHEEL, height: WHEEL }} />
+                <span className="rounded-full bg-ink/60" style={{ width: WHEEL, height: WHEEL }} />
+              </div>
             </div>
+          ))}
+
+          <div className="flex shrink-0 flex-col items-center">
+            {reveal ? (
+              <div
+                className="flex items-center justify-center rounded-2xl bg-white shadow-sm ring-4 ring-[#6fcf6f]"
+                style={{ width: CAR_BOX, height: CAR_BOX }}
+              >
+                <Figure f={correctFigure} box={CAR_BOX * 0.75} />
+              </div>
+            ) : (
+              <div
+                className="flex items-center justify-center rounded-2xl border-4 border-dashed border-teal-400 text-3xl font-bubble text-teal-600"
+                style={{ width: CAR_BOX, height: CAR_BOX }}
+              >
+                ?
+              </div>
+            )}
             <div className="-mt-1 flex gap-4">
               <span className="rounded-full bg-ink/60" style={{ width: WHEEL, height: WHEEL }} />
               <span className="rounded-full bg-ink/60" style={{ width: WHEEL, height: WHEEL }} />
             </div>
           </div>
-        ))}
-
-        <div className="flex shrink-0 flex-col items-center">
-          {reveal ? (
-            <div
-              className="flex items-center justify-center rounded-2xl bg-white shadow-sm ring-4 ring-[#6fcf6f]"
-              style={{ width: CAR_BOX, height: CAR_BOX }}
-            >
-              <Figure f={correctFigure} box={CAR_BOX * 0.75} />
-            </div>
-          ) : (
-            <div
-              className="flex items-center justify-center rounded-2xl border-4 border-dashed border-teal-400 text-3xl font-bubble text-teal-600"
-              style={{ width: CAR_BOX, height: CAR_BOX }}
-            >
-              ?
-            </div>
-          )}
-          <div className="-mt-1 flex gap-4">
-            <span className="rounded-full bg-ink/60" style={{ width: WHEEL, height: WHEEL }} />
-            <span className="rounded-full bg-ink/60" style={{ width: WHEEL, height: WHEEL }} />
-          </div>
         </div>
-      </div>
 
-      <div className="flex flex-col items-center gap-6">
         <div className="flex flex-wrap justify-center gap-4">
           {item.options.map((opt, i) => {
             if (reveal) {
@@ -130,7 +135,9 @@ export default function PatternTrainView({
             );
           })}
         </div>
+      </div>
 
+      <div className="flex w-full shrink-0 justify-center bg-cream px-4 pb-4 pt-3 shadow-[0_-8px_16px_-10px_rgba(0,0,0,0.15)]">
         <button
           type="button"
           data-testid="done"

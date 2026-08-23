@@ -180,7 +180,7 @@ export function DigitSpanView({ item, disabled, reveal, lastResponse, onReady, o
     const herTray = lastResponse ?? [];
     const differs = herTray.length !== item.expected.length || herTray.some((n, i) => n !== item.expected[i]);
     return (
-      <div className="flex flex-col items-center justify-center gap-6 p-6 text-ink">
+      <div className="flex flex-col items-center justify-center-safe gap-6 p-6 text-ink">
         <div className="flex w-full max-w-md flex-col items-center gap-6">
           <p className="text-center font-bubble text-2xl">{TASK_LABEL[item.task]}</p>
 
@@ -236,7 +236,7 @@ export function DigitSpanView({ item, disabled, reveal, lastResponse, onReady, o
     const task = item.task as RuleTask;
     const example = INTRO_EXAMPLE[task];
     return (
-      <div className="flex flex-col items-center justify-center gap-6 p-6 text-ink">
+      <div className="flex flex-col items-center justify-center-safe gap-6 p-6 text-ink">
         <div className="flex w-full max-w-md flex-col items-center gap-6">
           <p className="text-center font-bubble text-3xl">{INTRO_HEADING[task]}</p>
 
@@ -280,9 +280,9 @@ export function DigitSpanView({ item, disabled, reveal, lastResponse, onReady, o
 
   const showListening = phase === "listening" || replaying;
 
-  return (
-    <div className="flex flex-col items-center justify-center gap-6 p-6 text-ink">
-      {showListening ? (
+  if (showListening) {
+    return (
+      <div className="flex min-h-full w-full flex-col items-center justify-center-safe gap-6 p-6 text-ink">
         <div className="flex flex-col items-center gap-4">
           <div className="text-7xl" aria-hidden>👂</div>
           <p className="font-bubble text-3xl">Listening…</p>
@@ -292,7 +292,19 @@ export function DigitSpanView({ item, disabled, reveal, lastResponse, onReady, o
             </div>
           )}
         </div>
-      ) : (
+      </div>
+    );
+  }
+
+  // QA 2026-08-23: the tray + 9-key numpad live in their OWN
+  // flex-1/min-h-0/overflow-y-auto region, so they scroll *internally* if
+  // ever taller than the available space, instead of pushing the action row
+  // below the fold — ⌫/Replay/Done are a plain sibling AFTER that region,
+  // never part of the scroll, so they're always fully visible without
+  // scrolling.
+  return (
+    <div className="flex min-h-full w-full flex-col items-center text-ink">
+      <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-6 overflow-y-auto p-6 pb-2">
         <div className="flex w-full max-w-md flex-col items-center gap-6">
           <p className="text-center font-bubble text-2xl">{TASK_LABEL[item.task]}</p>
 
@@ -321,35 +333,35 @@ export function DigitSpanView({ item, disabled, reveal, lastResponse, onReady, o
               </button>
             ))}
           </div>
-
-          <div className="flex gap-3">
-            <button
-              type="button"
-              disabled={disabled || tray.length === 0}
-              onClick={handleBackspace}
-              className="min-h-[72px] min-w-[72px] rounded-2xl bg-rose-400 px-4 text-2xl font-bold text-white disabled:opacity-40"
-            >
-              ⌫
-            </button>
-            <button
-              type="button"
-              disabled={disabled || replayUsed}
-              onClick={handleReplay}
-              className="min-h-[72px] min-w-[72px] rounded-2xl bg-sky-300 px-4 text-2xl font-bold text-ink disabled:opacity-40"
-            >
-              🔁 Replay
-            </button>
-            <button
-              type="button"
-              disabled={disabled || tray.length < 1}
-              onClick={handleDone}
-              className="min-h-[72px] min-w-[72px] rounded-2xl bg-amber-400 px-4 text-2xl font-bold text-ink disabled:opacity-40"
-            >
-              ✔ Done
-            </button>
-          </div>
         </div>
-      )}
+      </div>
+
+      <div className="flex w-full shrink-0 items-center justify-center gap-3 bg-cream px-6 pb-4 pt-3 shadow-[0_-8px_16px_-10px_rgba(0,0,0,0.15)]">
+        <button
+          type="button"
+          disabled={disabled || tray.length === 0}
+          onClick={handleBackspace}
+          className="min-h-[72px] min-w-[72px] rounded-2xl bg-rose-400 px-4 text-2xl font-bold text-white disabled:opacity-40"
+        >
+          ⌫
+        </button>
+        <button
+          type="button"
+          disabled={disabled || replayUsed}
+          onClick={handleReplay}
+          className="min-h-[72px] min-w-[72px] rounded-2xl bg-sky-300 px-4 text-2xl font-bold text-ink disabled:opacity-40"
+        >
+          🔁 Replay
+        </button>
+        <button
+          type="button"
+          disabled={disabled || tray.length < 1}
+          onClick={handleDone}
+          className="min-h-[72px] min-w-[72px] rounded-2xl bg-amber-400 px-4 text-2xl font-bold text-ink disabled:opacity-40"
+        >
+          ✔ Done
+        </button>
+      </div>
     </div>
   );
 }

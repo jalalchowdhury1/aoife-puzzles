@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { GenreViewProps } from "@/lib/engine/types";
 import type { WhichTwoItem, WhichTwoResponse } from "@/lib/genres/whichTwo";
 
@@ -16,6 +16,7 @@ export function WhichTwoView({
   const [prevItem, setPrevItem] = useState(item);
   const [pair, setPair] = useState<number[]>([]);
   const [reason, setReason] = useState<number | null>(null);
+  const bestReasonRef = useRef<HTMLDivElement | null>(null);
 
   // A fresh item (new object each `generate()` call) means the previous
   // picks no longer apply. Reset during render rather than in an effect,
@@ -29,6 +30,14 @@ export function WhichTwoView({
   useEffect(() => {
     onReady();
   }, [item, onReady]);
+
+  // QA 2026-08-23: this is a two-stage layout (tiles, then reasons) — on
+  // reveal the best reason could sit below the fold, and the reveal
+  // auto-advances after a few seconds regardless, so she'd never actually
+  // see it. Scroll it into view the moment reveal renders.
+  useEffect(() => {
+    if (reveal) bestReasonRef.current?.scrollIntoView({ block: "center" });
+  }, [reveal, item]);
 
   function toggleTile(i: number) {
     if (disabled || reveal) return;
@@ -93,6 +102,7 @@ export function WhichTwoView({
             return (
               <div
                 key={i}
+                ref={isBest ? bestReasonRef : undefined}
                 className={`min-h-[56px] flex items-center rounded-2xl px-4 py-3 text-lg text-left font-body border-4 text-ink ${cls}`}
               >
                 {r.text}
@@ -105,62 +115,72 @@ export function WhichTwoView({
   }
 
   return (
-    <div className="flex flex-col items-center gap-6 w-full max-w-xl mx-auto p-4">
-      <p className="text-xl text-ink text-center">Tap the two that go together.</p>
+    // QA 2026-08-23: the stimulus (tiles, then reasons — a two-stage layout)
+    // lives in its OWN flex-1/min-h-0/overflow-y-auto region, so it scrolls
+    // *internally* if it's ever taller than the available space, instead of
+    // pushing Done below the fold — Done is a plain sibling AFTER that
+    // region, never part of the scroll, so it's always fully visible
+    // without scrolling.
+    <div className="flex min-h-full w-full max-w-xl mx-auto flex-col items-center">
+      <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-6 overflow-y-auto p-4 pb-2">
+        <p className="text-xl text-ink text-center">Tap the two that go together.</p>
 
-      <div className="flex flex-wrap items-center justify-center gap-3">
-        {item.items.map((opt, i) => {
-          const isSelected = pair.includes(i);
-          const canPick = isSelected || pair.length < 2;
-          return (
-            <button
-              key={i}
-              type="button"
-              data-testid={!isSelected && pair.length < 2 ? "answer-option" : undefined}
-              onClick={() => toggleTile(i)}
-              disabled={disabled || !canPick}
-              aria-pressed={isSelected}
-              className={`flex flex-col items-center justify-center gap-1 rounded-2xl border-4 p-3 transition-colors disabled:opacity-40 ${
-                isSelected ? "bg-teal-400 border-teal-600 text-white" : "bg-white border-teal-100 text-ink"
-              }`}
-              style={{ width: 120, minHeight: 88 }}
-            >
-              {opt.emoji && <span className="text-3xl">{opt.emoji}</span>}
-              <span className="text-lg font-body text-center">{opt.text}</span>
-            </button>
-          );
-        })}
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          {item.items.map((opt, i) => {
+            const isSelected = pair.includes(i);
+            const canPick = isSelected || pair.length < 2;
+            return (
+              <button
+                key={i}
+                type="button"
+                data-testid={!isSelected && pair.length < 2 ? "answer-option" : undefined}
+                onClick={() => toggleTile(i)}
+                disabled={disabled || !canPick}
+                aria-pressed={isSelected}
+                className={`flex flex-col items-center justify-center gap-1 rounded-2xl border-4 p-3 transition-colors disabled:opacity-40 ${
+                  isSelected ? "bg-teal-400 border-teal-600 text-white" : "bg-white border-teal-100 text-ink"
+                }`}
+                style={{ width: 120, minHeight: 88 }}
+              >
+                {opt.emoji && <span className="text-3xl">{opt.emoji}</span>}
+                <span className="text-lg font-body text-center">{opt.text}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {showReasons && (
+          <div className="flex flex-col gap-3 w-full">
+            <p className="text-lg text-ink text-center">Why do they go together?</p>
+            {item.reasons.map((r, i) => (
+              <button
+                key={i}
+                type="button"
+                data-testid="answer-option"
+                onClick={() => chooseReason(i)}
+                disabled={disabled}
+                className={`min-h-[64px] rounded-2xl px-4 py-3 text-lg text-left font-body border-4 transition-colors ${
+                  reason === i ? "bg-amber-400 border-amber-600 text-ink" : "bg-white border-teal-100 text-ink"
+                }`}
+              >
+                {r.text}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {showReasons && (
-        <div className="flex flex-col gap-3 w-full">
-          <p className="text-lg text-ink text-center">Why do they go together?</p>
-          {item.reasons.map((r, i) => (
-            <button
-              key={i}
-              type="button"
-              data-testid="answer-option"
-              onClick={() => chooseReason(i)}
-              disabled={disabled}
-              className={`min-h-[64px] rounded-2xl px-4 py-3 text-lg text-left font-body border-4 transition-colors ${
-                reason === i ? "bg-amber-400 border-amber-600 text-ink" : "bg-white border-teal-100 text-ink"
-              }`}
-            >
-              {r.text}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <button
-        type="button"
-        data-testid="done"
-        onClick={submit}
-        disabled={disabled || pair.length !== 2 || reason === null}
-        className="min-h-[64px] px-10 rounded-full bg-teal-400 text-[22px] font-bold text-white disabled:opacity-40"
-      >
-        Done
-      </button>
+      <div className="flex w-full shrink-0 justify-center bg-cream px-4 pb-4 pt-3 shadow-[0_-8px_16px_-10px_rgba(0,0,0,0.15)]">
+        <button
+          type="button"
+          data-testid="done"
+          onClick={submit}
+          disabled={disabled || pair.length !== 2 || reason === null}
+          className="min-h-[64px] px-10 rounded-full bg-teal-400 text-[22px] font-bold text-white disabled:opacity-40"
+        >
+          Done
+        </button>
+      </div>
     </div>
   );
 }

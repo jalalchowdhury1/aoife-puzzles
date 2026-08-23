@@ -10,7 +10,8 @@ import type { Rng } from "./rng";
 export type PraiseKind =
   | "correct" | "miss" | "timeout" | "streak3" | "streak5" | "newBest"
   | "firstOfGenre" | "topOfRamp" | "comeback" | "blockDone" | "partDone"
-  | "welcome" | "neutralNext";
+  | "welcome" | "neutralNext"
+  | "bail";
 
 export type PraiseContext = {
   kind: PraiseKind;
@@ -281,6 +282,16 @@ export const PRAISE_BANK: Record<PraiseKind, string[]> & { correctFast: string[]
     "Next up, another puzzle.",
     "Let us see what is next.",
     "Here comes the next one, {name}.",
+  ],
+  bail: [
+    "No problem at all. That one can wait for another day.",
+    "Good call, {name}. Let us find a puzzle you like more.",
+    "That one is for another day. On to something new!",
+    "Pip did not love that one either. Next puzzle!",
+    "Thanks for telling me! Let us play a different one.",
+    "Some puzzles are like that. Off we go to the next!",
+    "Okay! Saving that one for later. Here comes a new game.",
+    "You are the boss of playtime. New puzzle coming up!",
   ],
 };
 

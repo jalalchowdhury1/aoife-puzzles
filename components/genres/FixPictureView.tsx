@@ -117,57 +117,66 @@ export function FixPictureView({
   const tapLabel = item.pieceCount === 1 ? "Tap 1 piece" : "Tap 2 pieces";
 
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-6 bg-cream p-4">
-      <PictureGrid item={item} reveal={reveal} />
+    // QA 2026-08-23: the picture + pieces live in their OWN
+    // flex-1/min-h-0/overflow-y-auto region, so they scroll *internally* if
+    // ever taller than the available space, instead of pushing Done below
+    // the fold — Done is a plain sibling AFTER that region, never part of
+    // the scroll, so it's always fully visible without scrolling.
+    <div className="flex min-h-full w-full flex-col items-center bg-cream">
+      <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-6 overflow-y-auto p-4 pb-2">
+        <PictureGrid item={item} reveal={reveal} />
 
-      {!reveal && <p className="text-lg font-semibold text-ink/70">{tapLabel}</p>}
-      {reveal && <p className="text-2xl text-ink">Here is the piece that fits.</p>}
+        {!reveal && <p className="text-lg font-semibold text-ink/70">{tapLabel}</p>}
+        {reveal && <p className="text-2xl text-ink">Here is the piece that fits.</p>}
 
-      <div className="flex w-full max-w-[60rem] flex-wrap items-center justify-center gap-4">
-        {item.options.map((piece, i) => {
-          if (reveal) {
-            const isCorrect = answerSet!.has(i);
-            const isWrongPick = !isCorrect && pickedSet!.has(i);
-            const revealClass = isCorrect
-              ? "bg-[#6fcf6f]/15 ring-4 ring-[#6fcf6f]"
-              : isWrongPick
-                ? "bg-white ring-4 ring-rose-400"
-                : "bg-white ring-2 ring-teal-100 opacity-40";
+        <div className="flex w-full max-w-[60rem] flex-wrap items-center justify-center gap-4">
+          {item.options.map((piece, i) => {
+            if (reveal) {
+              const isCorrect = answerSet!.has(i);
+              const isWrongPick = !isCorrect && pickedSet!.has(i);
+              const revealClass = isCorrect
+                ? "bg-[#6fcf6f]/15 ring-4 ring-[#6fcf6f]"
+                : isWrongPick
+                  ? "bg-white ring-4 ring-rose-400"
+                  : "bg-white ring-2 ring-teal-100 opacity-40";
+              return (
+                <div key={i} className={`flex min-h-16 min-w-16 items-center justify-center rounded-2xl p-2 ${revealClass}`}>
+                  <PieceGlyph piece={piece} />
+                </div>
+              );
+            }
+            const isSelected = selected.includes(i);
             return (
-              <div key={i} className={`flex min-h-16 min-w-16 items-center justify-center rounded-2xl p-2 ${revealClass}`}>
+              <button
+                key={i}
+                type="button"
+                data-testid="answer-option"
+                disabled={disabled}
+                aria-pressed={isSelected}
+                onClick={() => toggle(i)}
+                className={`flex min-h-16 min-w-16 items-center justify-center rounded-2xl bg-white p-2 transition ${
+                  isSelected ? "ring-4 ring-teal-600" : "ring-2 ring-teal-100"
+                }`}
+              >
                 <PieceGlyph piece={piece} />
-              </div>
+              </button>
             );
-          }
-          const isSelected = selected.includes(i);
-          return (
-            <button
-              key={i}
-              type="button"
-              data-testid="answer-option"
-              disabled={disabled}
-              aria-pressed={isSelected}
-              onClick={() => toggle(i)}
-              className={`flex min-h-16 min-w-16 items-center justify-center rounded-2xl bg-white p-2 transition ${
-                isSelected ? "ring-4 ring-teal-600" : "ring-2 ring-teal-100"
-              }`}
-            >
-              <PieceGlyph piece={piece} />
-            </button>
-          );
-        })}
+          })}
+        </div>
       </div>
 
       {!disabled && (
-        <button
-          type="button"
-          data-testid="done"
-          disabled={selected.length !== item.pieceCount || submitted}
-          onClick={handleDone}
-          className="rounded-full bg-teal-400 px-12 py-5 text-2xl font-bold text-white transition active:scale-95 disabled:bg-teal-100 disabled:text-ink/40"
-        >
-          Done
-        </button>
+        <div className="w-full shrink-0 bg-cream pb-4 pt-3 shadow-[0_-8px_16px_-10px_rgba(0,0,0,0.15)]">
+          <button
+            type="button"
+            data-testid="done"
+            disabled={selected.length !== item.pieceCount || submitted}
+            onClick={handleDone}
+            className="mx-auto block rounded-full bg-teal-400 px-12 py-5 text-2xl font-bold text-white transition active:scale-95 disabled:bg-teal-100 disabled:text-ink/40"
+          >
+            Done
+          </button>
+        </div>
       )}
     </div>
   );

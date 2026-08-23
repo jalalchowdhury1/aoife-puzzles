@@ -11,6 +11,13 @@ type Phase = "intro" | "exposure" | "tap";
 
 const CELLS = Array.from({ length: GRID_SIZE }, (_, i) => i);
 
+// QA 2026-08-23: was a fixed 88px, which pushed the tap grid + tray + action
+// row below the fold at a 536px-tall viewport (iPad landscape with browser
+// chrome). Viewport-aware so it shrinks there but still clears the 64px
+// minimum tap-target size at a real iPad's 713px height (min(11vh, 72px) is
+// ~59px at 536 and the full 72px by 713).
+const CELL_SIZE = "min(11vh, 72px)";
+
 // The "backward" rule gets a one-time worked-example intro the first time it
 // is played in this page session (mirrors DigitSpanView's introShown set),
 // so she sees the new idea demonstrated instead of inferring it mid-item.
@@ -138,7 +145,7 @@ export function FireflyBoxesView({
   if (reveal) {
     const herTaps = lastResponse ?? [];
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-6 p-6 text-ink">
+      <div className="flex flex-1 flex-col items-center justify-center-safe gap-6 p-6 text-ink">
         <p className="text-2xl text-ink">Here is the order.</p>
         <div className="grid grid-cols-3 gap-3">
           {CELLS.map(i => {
@@ -150,7 +157,7 @@ export function FireflyBoxesView({
                 className={`relative flex items-center justify-center rounded-2xl ${
                   isTarget ? "bg-[#6fcf6f]" : "bg-ink/10"
                 }`}
-                style={{ width: 88, height: 88 }}
+                style={{ width: CELL_SIZE, height: CELL_SIZE }}
               >
                 {isTarget && <span className="font-bubble text-3xl text-white">{orderIdx + 1}</span>}
               </div>
@@ -181,7 +188,7 @@ export function FireflyBoxesView({
 
   if (phase === "intro") {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-6 p-6 text-ink">
+      <div className="flex flex-1 flex-col items-center justify-center-safe gap-6 p-6 text-ink">
         <p className="text-center font-bubble text-3xl">New rule! Tap them backward</p>
 
         <div className="flex flex-col items-center gap-2">
@@ -219,7 +226,7 @@ export function FireflyBoxesView({
 
   if (phase === "exposure") {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-6 p-6">
+      <div className="flex flex-1 flex-col items-center justify-center-safe gap-6 p-6">
         <div className="grid grid-cols-3 gap-3">
           {CELLS.map(i => (
             <div
@@ -227,7 +234,7 @@ export function FireflyBoxesView({
               className={`flex items-center justify-center rounded-2xl transition-colors ${
                 lit === i ? "bg-amber-300" : "bg-ink/10"
               }`}
-              style={{ width: 88, height: 88, fontSize: 40 }}
+              style={{ width: CELL_SIZE, height: CELL_SIZE, fontSize: 40 }}
             >
               {lit === i && <span className="animate-pulse">🟡</span>}
             </div>
@@ -238,34 +245,42 @@ export function FireflyBoxesView({
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center gap-6 p-6">
-      <p className="text-2xl text-ink">{item.task === "backward" ? "Tap them BACKWARD" : "Tap them back in the same order"}</p>
+    // QA 2026-08-23: the stimulus (prompt + grid + tray) lives in its OWN
+    // flex-1/min-h-0/overflow-y-auto region, so it scrolls *internally* if
+    // it's ever taller than the available space, instead of pushing the
+    // action row below the fold — Done/⌫ are a plain sibling AFTER that
+    // region, never part of the scroll, so they're always fully visible
+    // without scrolling (same pattern as components/PartDone.tsx).
+    <div className="flex min-h-full w-full flex-col items-center">
+      <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-6 overflow-y-auto p-6 pb-2">
+        <p className="text-2xl text-ink">{item.task === "backward" ? "Tap them BACKWARD" : "Tap them back in the same order"}</p>
 
-      <div className="grid grid-cols-3 gap-3">
-        {CELLS.map(i => (
-          <button
-            key={i}
-            type="button"
-            data-testid="answer-option"
-            onClick={() => handleCellTap(i)}
-            disabled={disabled}
-            className="rounded-2xl bg-teal-400 active:bg-teal-600 disabled:opacity-40"
-            style={{ width: 88, height: 88 }}
-            aria-label={`Box ${i + 1}`}
-          />
-        ))}
+        <div className="grid grid-cols-3 gap-3">
+          {CELLS.map(i => (
+            <button
+              key={i}
+              type="button"
+              data-testid="answer-option"
+              onClick={() => handleCellTap(i)}
+              disabled={disabled}
+              className="rounded-2xl bg-teal-400 active:bg-teal-600 disabled:opacity-40"
+              style={{ width: CELL_SIZE, height: CELL_SIZE }}
+              aria-label={`Box ${i + 1}`}
+            />
+          ))}
+        </div>
+
+        <div className="flex min-h-16 w-full max-w-xs flex-wrap items-center justify-center gap-2 rounded-2xl bg-teal-100 p-3">
+          {tray.length === 0 && <span className="text-xl text-ink/60">Tap the boxes</span>}
+          {tray.map((_, i) => (
+            <span key={i} className="text-3xl" aria-hidden>
+              ✨
+            </span>
+          ))}
+        </div>
       </div>
 
-      <div className="flex min-h-16 w-full max-w-xs flex-wrap items-center justify-center gap-2 rounded-2xl bg-teal-100 p-3">
-        {tray.length === 0 && <span className="text-xl text-ink/60">Tap the boxes</span>}
-        {tray.map((_, i) => (
-          <span key={i} className="text-3xl" aria-hidden>
-            ✨
-          </span>
-        ))}
-      </div>
-
-      <div className="flex gap-3">
+      <div className="flex w-full shrink-0 items-center justify-center gap-3 bg-cream px-6 pb-4 pt-3 shadow-[0_-8px_16px_-10px_rgba(0,0,0,0.15)]">
         <button
           type="button"
           onClick={handleBackspace}

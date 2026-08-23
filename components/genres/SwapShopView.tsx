@@ -70,73 +70,82 @@ export function SwapShopView({
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center gap-6 p-4">
-      {item.rules.length > 0 && (
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          {item.rules.map((r, i) => (
-            <div key={i} className="flex items-center gap-3 rounded-2xl border-4 border-teal-100 bg-white px-4 py-3">
-              <TokenChips tokens={r.give} />
-              <span className="text-3xl text-teal-500" aria-hidden>
-                →
-              </span>
-              <TokenChips tokens={r.get} />
-            </div>
-          ))}
+    // QA 2026-08-23: the rules/question/options live in their OWN
+    // flex-1/min-h-0/overflow-y-auto region, so they scroll *internally* if
+    // ever taller than the available space, instead of pushing Done below
+    // the fold — Done is a plain sibling AFTER that region, never part of
+    // the scroll, so it's always fully visible without scrolling.
+    <div className="flex min-h-full w-full flex-col items-center">
+      <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-6 overflow-y-auto p-4 pb-2">
+        {item.rules.length > 0 && (
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            {item.rules.map((r, i) => (
+              <div key={i} className="flex items-center gap-3 rounded-2xl border-4 border-teal-100 bg-white px-4 py-3">
+                <TokenChips tokens={r.give} />
+                <span className="text-3xl text-teal-500" aria-hidden>
+                  →
+                </span>
+                <TokenChips tokens={r.get} />
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex flex-col items-center gap-2 rounded-2xl bg-teal-100 px-6 py-4">
+          <p className="text-lg font-semibold text-ink/70">You have</p>
+          <TokenChips tokens={item.question} emojiClass="text-5xl" />
         </div>
-      )}
 
-      <div className="flex flex-col items-center gap-2 rounded-2xl bg-teal-100 px-6 py-4">
-        <p className="text-lg font-semibold text-ink/70">You have</p>
-        <TokenChips tokens={item.question} emojiClass="text-5xl" />
-      </div>
-
-      <div className="flex flex-wrap items-center justify-center gap-4">
-        {item.options.map((opt, i) => {
-          if (reveal) {
-            const isCorrect = i === item.answer;
-            const isWrongPick = !isCorrect && lastResponse === i;
-            const revealClass = isCorrect
-              ? "border-[#6fcf6f] bg-[#6fcf6f]/15"
-              : isWrongPick
-                ? "border-[#f06b7a] bg-[#f06b7a]/10"
-                : "border-teal-100 bg-white opacity-40";
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          {item.options.map((opt, i) => {
+            if (reveal) {
+              const isCorrect = i === item.answer;
+              const isWrongPick = !isCorrect && lastResponse === i;
+              const revealClass = isCorrect
+                ? "border-[#6fcf6f] bg-[#6fcf6f]/15"
+                : isWrongPick
+                  ? "border-[#f06b7a] bg-[#f06b7a]/10"
+                  : "border-teal-100 bg-white opacity-40";
+              return (
+                <div
+                  key={i}
+                  className={`flex min-h-16 min-w-16 items-center justify-center rounded-2xl border-4 p-3 ${revealClass}`}
+                >
+                  <TokenChips tokens={opt} />
+                </div>
+              );
+            }
             return (
-              <div
+              <button
                 key={i}
-                className={`flex min-h-16 min-w-16 items-center justify-center rounded-2xl border-4 p-3 ${revealClass}`}
+                type="button"
+                data-testid="answer-option"
+                disabled={disabled}
+                onClick={() => setSelected(i)}
+                aria-pressed={selected === i}
+                className={`flex min-h-16 min-w-16 items-center justify-center rounded-2xl border-4 bg-white p-3 ${
+                  selected === i ? "border-teal-400" : "border-teal-100"
+                }`}
               >
                 <TokenChips tokens={opt} />
-              </div>
+              </button>
             );
-          }
-          return (
-            <button
-              key={i}
-              type="button"
-              data-testid="answer-option"
-              disabled={disabled}
-              onClick={() => setSelected(i)}
-              aria-pressed={selected === i}
-              className={`flex min-h-16 min-w-16 items-center justify-center rounded-2xl border-4 bg-white p-3 ${
-                selected === i ? "border-teal-400" : "border-teal-100"
-              }`}
-            >
-              <TokenChips tokens={opt} />
-            </button>
-          );
-        })}
+          })}
+        </div>
       </div>
 
       {!reveal && (
-        <button
-          type="button"
-          data-testid="done"
-          disabled={disabled || selected === null}
-          onClick={submit}
-          className="min-h-16 min-w-32 rounded-full bg-teal-400 px-8 text-2xl font-bold text-white disabled:opacity-40"
-        >
-          Done
-        </button>
+        <div className="w-full shrink-0 bg-cream px-4 pb-4 pt-3 shadow-[0_-8px_16px_-10px_rgba(0,0,0,0.15)]">
+          <button
+            type="button"
+            data-testid="done"
+            disabled={disabled || selected === null}
+            onClick={submit}
+            className="mx-auto block min-h-16 min-w-32 rounded-full bg-teal-400 px-8 text-2xl font-bold text-white disabled:opacity-40"
+          >
+            Done
+          </button>
+        </div>
       )}
     </div>
   );

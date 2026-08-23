@@ -147,7 +147,7 @@ export default function ParentPage() {
       {error && <p className="text-rose-500">{error}</p>}
 
       {profile ? (
-        <ParentTable profile={profile} strengths={classifyGenres(profile)} />
+        <ParentTable profile={profile} strengths={classifyGenres(profile)} sessions={sessions} />
       ) : (
         <p className="text-ink/70">No profile data yet — play a part first.</p>
       )}

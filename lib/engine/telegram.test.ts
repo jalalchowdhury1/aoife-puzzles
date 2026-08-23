@@ -97,3 +97,47 @@ describe("formatPartSummary", () => {
     expect(partB.split("\n")[0]).toBe("⚡ Aoife Puzzles — Level 1 Part B done (17 min)");
   });
 });
+
+describe("formatPartSummary with measurement-quality flags", () => {
+  function sessionWithFlaggedBlock(): SessionRecord {
+    const s = makeSession();
+    return {
+      ...s,
+      blocks: [
+        {
+          ...s.blocks[0],
+          flags: [
+            {
+              code: "format-not-understood",
+              detail: "First two items missed at difficulty ≤ 2 — the format may not have been understood.",
+            },
+          ],
+        },
+        s.blocks[1],
+      ],
+    };
+  }
+
+  const msg = formatPartSummary(sessionWithFlaggedBlock(), level);
+  const lines = msg.split("\n");
+
+  it("appends a check line for the flagged block using its kidTitle and detail", () => {
+    expect(lines).toContain(
+      "⚠️ check: What's Missing? — First two items missed at difficulty ≤ 2 — the format may not have been understood."
+    );
+  });
+
+  it("adds the 'not counted in her profile' note when any block is flagged", () => {
+    expect(lines).toContain("Flagged blocks are not counted in her profile.");
+  });
+
+  it("still ends with the parent page link", () => {
+    expect(lines[lines.length - 1]).toBe("Parent page: https://aoife-puzzles.vercel.app/parent");
+  });
+
+  it("adds no flag lines or note when no block is flagged", () => {
+    const clean = formatPartSummary(makeSession(), level);
+    expect(clean).not.toContain("⚠️ check:");
+    expect(clean).not.toContain("Flagged blocks are not counted in her profile.");
+  });
+});

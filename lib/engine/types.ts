@@ -1,3 +1,5 @@
+import type { QualityFlag } from "./quality";
+
 export type GenreId =
   | "blockDesign" | "visualPuzzles" | "matrix" | "figureWeights" | "arithmetic"
   | "digitSpan" | "pictureSpan" | "coding" | "symbolSearch"
@@ -46,6 +48,7 @@ export interface BlockSummary {
 export interface BlockRecord {
   genre: GenreId; mode: "staircase" | "speedBlock"; startedAt: string; endedAt: string;
   items: ItemRecord[]; summary: BlockSummary;
+  flags?: QualityFlag[];                // server-stamped measurement-quality flags; see lib/engine/quality.ts
 }
 export interface SessionRecord {
   id: string; level: number; part: string; startedAt: string; endedAt?: string;

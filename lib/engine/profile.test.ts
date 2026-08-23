@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { computeProfile } from "./profile";
 import { summarize } from "./types";
-import type { SessionRecord, ItemRecord } from "./types";
+import type { SessionRecord, ItemRecord, BlockRecord } from "./types";
 
 function makeSession(): SessionRecord {
   const matrixItems: ItemRecord[] = [
@@ -81,6 +81,67 @@ describe("computeProfile", () => {
   it("records a trend entry per session for each genre", () => {
     expect(profile.genres.matrix?.trend).toEqual([
       { date: "2026-08-20T10:00:00.000Z", ceiling: 7, points: 1, max: 1 },
+    ]);
+  });
+
+  it("has an empty flags list when no block was flagged", () => {
+    expect(profile.flags).toEqual([]);
+  });
+});
+
+describe("computeProfile with measurement-quality flags (AGENTS.md decision #14)", () => {
+  // A block that mostly timed out (audio/device trouble) still recorded one
+  // correct item at d2 — without exclusion this would set the genre's
+  // ceiling to 2 (and its value to 0.2), reading as a false weakness even
+  // though nothing about her actual ability was measured here.
+  function flaggedSession(): SessionRecord {
+    const items: ItemRecord[] = [
+      { idx: 0, seed: 1, d: 2, points: 1, max: 1, correct: true, ms: 3000, timedOut: false, response: "x" },
+      { idx: 1, seed: 2, d: 3, points: 0, max: 1, correct: false, ms: 30000, timedOut: true, response: null },
+      { idx: 2, seed: 3, d: 3, points: 0, max: 1, correct: false, ms: 30000, timedOut: true, response: null },
+    ];
+    const block: BlockRecord = {
+      genre: "matrix",
+      mode: "staircase",
+      startedAt: "2026-08-21T10:00:00.000Z",
+      endedAt: "2026-08-21T10:05:00.000Z",
+      items,
+      summary: summarize(items, "staircase"),
+      flags: [{ code: "mass-timeouts", detail: "2/3 items timed out." }],
+    };
+    return {
+      id: "01EXCLUDEDBLOCKTEST000001",
+      level: 1,
+      part: "A",
+      startedAt: "2026-08-21T10:00:00.000Z",
+      device: { ua: "test", w: 1024, h: 768 },
+      complete: true,
+      appVersion: "0.1.0",
+      blocks: [block],
+    };
+  }
+
+  const profile = computeProfile([flaggedSession()]);
+
+  it("excludes a mass-timeouts-flagged block from the genre's ceiling/attempted, which would otherwise be a false weakness", () => {
+    expect(profile.genres.matrix?.ceiling ?? null).toBe(null);
+    expect(profile.genres.matrix?.attempted ?? 0).toBe(0);
+  });
+
+  it("excludes the flagged genre from its domain roll-up instead of reporting a low value", () => {
+    expect(profile.domains.FR.value).toBe(null);
+    expect(profile.domains.FR.flag).toBe("n/a");
+  });
+
+  it("still records the block in the genre's trend, marked flagged", () => {
+    expect(profile.genres.matrix?.trend).toEqual([
+      { date: "2026-08-21T10:00:00.000Z", ceiling: 2, points: 1, max: 3, flagged: true },
+    ]);
+  });
+
+  it("surfaces the flag on the profile for the parent page", () => {
+    expect(profile.flags).toEqual([
+      { sessionId: "01EXCLUDEDBLOCKTEST000001", part: "A", genre: "matrix", code: "mass-timeouts", detail: "2/3 items timed out." },
     ]);
   });
 });

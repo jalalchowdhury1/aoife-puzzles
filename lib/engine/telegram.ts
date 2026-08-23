@@ -43,5 +43,19 @@ export function formatPartSummary(s: SessionRecord, level: LevelConfig): string 
     return `${titles[i].padEnd(maxLen)}  ${parts.join(" · ")}`;
   });
 
-  return [header, ...lines, "Parent page: https://aoife-puzzles.vercel.app/parent"].join("\n");
+  // Measurement-quality flags (AGENTS.md decision #14): one line per
+  // flagged block so a broken/misunderstood puzzle is visible to the owner
+  // instead of quietly reading as a weakness on the parent page.
+  const flagLines = s.blocks.flatMap((b, i) => {
+    const blockFlags = b.flags ?? [];
+    if (blockFlags.length === 0) return [];
+    const detail = blockFlags.map((f) => f.detail).join(" ");
+    return [`⚠️ check: ${titles[i]} — ${detail}`];
+  });
+
+  const messageLines = [header, ...lines, ...flagLines];
+  if (flagLines.length > 0) messageLines.push("Flagged blocks are not counted in her profile.");
+  messageLines.push("Parent page: https://aoife-puzzles.vercel.app/parent");
+
+  return messageLines.join("\n");
 }

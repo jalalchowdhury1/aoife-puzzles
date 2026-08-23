@@ -94,16 +94,22 @@ const SPECS: Record<GenreId, GenreTestSpec> = {
     },
   },
   visualPuzzles: {
-    // Piece Picker: 6 piece options (3 true + 3 distractors); Done needs
-    // exactly 3 picked.
+    // Piece Picker: optionCount is 3, 4, or 6 depending on difficulty (see
+    // bandOptionsFor in lib/genres/visualPuzzles.ts) and Done needs exactly
+    // pieceCount (2 or 3) picked — read both off the "Tap N pieces" line the
+    // view renders rather than hard-coding either.
     assertItem: async (page) => {
-      await expect(page.getByTestId("piece-option")).toHaveCount(6);
+      await expect(page.getByText(/^Tap \d pieces$/)).toBeVisible();
+      const count = await page.getByTestId("piece-option").count();
+      expect([3, 4, 6]).toContain(count);
     },
     answer: async (page) => {
+      const label = await page.getByText(/^Tap \d pieces$/).textContent();
+      const pieceCount = Number(label!.match(/\d+/)![0]);
       const pieces = page.getByTestId("piece-option");
-      await pieces.nth(0).click();
-      await pieces.nth(1).click();
-      await pieces.nth(2).click();
+      for (let i = 0; i < pieceCount; i++) {
+        await pieces.nth(i).click();
+      }
       await page.getByRole("button", DONE).click();
     },
   },

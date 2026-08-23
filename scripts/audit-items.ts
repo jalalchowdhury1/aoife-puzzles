@@ -42,7 +42,11 @@ const RAMP: Record<GenreId, string> = {
   matrix:
     "d1-2: 2x2 grid, one of shape/colour varies. d3-4: count or size (S/L only) progresses. d5-8: 3x3 grids mixing more attributes, Latin squares from d7. d9-10: two Latin-square attributes plus a dot column.",
   visualPuzzles:
-    "d1-2: tiny 4x4 boards (5-6 cell target), distractors 'obviously wrong' by cell count. d3-7: grows to 5x5 (9-12 cells) with mirror/near-miss distractors from d4. d8-10: 6x6 boards (12-16 cells) with rotated pieces.",
+    "Level-0 ramp (2026-08-23): d1: 2 pieces (1+2 cells), 3 options. d2: 2 pieces (4 cells), 4 options. " +
+    "d3: 2 pieces (5-6 cells), 4 options. d4: 3 pieces (1+2+3), 4 options. d5-7: 3 pieces, 6 options, " +
+    "distractors 'obviously wrong' by cell count (4x4 boards growing 5-8 cells). d8: 4x4/5x5 boards " +
+    "(6-8 or 9-12 cells), mirror/near-miss distractors begin, no rotation. d9-10: 5x5 then 6x6 boards " +
+    "(9-16 cells) with rotated pieces.",
   blockDesign:
     "d1-2: 2x2, white/red only, no diagonals. d3-6: 2x2/3x3 with 1-3 diagonals, grid lines shown. d7-10: 3x3 with 3-9 diagonals, grid lines hidden from d7.",
   figureWeights:

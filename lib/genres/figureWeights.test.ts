@@ -31,6 +31,10 @@ describe("figureWeights.generate", () => {
   });
 
   it("produces a solvable item for every seed and difficulty (500 seeds x 10 difficulties)", () => {
+    // Explicit timeout (matches visualPuzzles.test.ts's own heavy sweep):
+    // this retry-heavy generator's 5000-item sweep runs comfortably under
+    // 2s in isolation but can cross the 5000ms default under full-suite
+    // parallel load (e.g. alongside fairness.test.ts's own genre-wide sweep).
     for (let seed = 0; seed < 500; seed++) {
       for (const d of DIFFICULTIES) {
         const item: FigureWeightsItem = figureWeights.generate(seed, d);
@@ -107,7 +111,7 @@ describe("figureWeights.generate", () => {
         }
       }
     }
-  });
+  }, 30000);
 });
 
 describe("figureWeights.sample", () => {

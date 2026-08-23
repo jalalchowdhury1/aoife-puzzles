@@ -2,6 +2,7 @@
 // difficulties, rep counts, and repeat blocks for a post-diagnostic level.
 // Pure and deterministic given (part, level, profile) — see AGENTS.md §7 for
 // the owner's rule this encodes and where the knobs live.
+import { SCALE_CHANGES } from "./scale";
 import type { BlockConfig, GenreId, LevelConfig, PartConfig, Domain } from "./types";
 import { genreValue, DOMAIN_GENRES, type Profile, type DomainStat } from "./profile";
 
@@ -87,7 +88,13 @@ export function adaptPart(part: PartConfig, level: LevelConfig, profile: Profile
 
   const resolved: ResolvedBlock[] = part.blocks.map((block) => {
     const strength = strengths[block.genre] ?? "typical";
-    const ceiling = profile.genres[block.genre]?.ceiling ?? null;
+    const stats = profile.genres[block.genre];
+    // A genre whose ramp was rebuilt AFTER her last measurement starts from level 1:
+    // the old ceiling says nothing about the new basics (owner, 2026-08-23: "build
+    // these from level 0, the absolute easiest stuff first").
+    const lastMeasuredAt = stats?.trend.length ? stats.trend[stats.trend.length - 1].date : null;
+    const rampRebuiltSince = SCALE_CHANGES.some(ch => ch.genre === block.genre && (lastMeasuredAt === null || lastMeasuredAt < ch.cutover));
+    const ceiling = rampRebuiltSince ? null : (stats?.ceiling ?? null);
 
     let start: number;
     let maxItems: number;

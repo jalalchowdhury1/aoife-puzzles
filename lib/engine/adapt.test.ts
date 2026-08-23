@@ -177,3 +177,19 @@ describe("adaptPart", () => {
     expect(resolved[1].start).toBe(4); // number as given
   });
 });
+
+import { SCALE_CHANGES as SC } from "./scale";
+describe("rebuilt ramps start from level 1", () => {
+  it("a genre measured before its ramp cutover starts at 1 even with a high old ceiling", () => {
+    const cut = SC.find(c => c.genre === "visualPuzzles")!.cutover;
+    const before = new Date(new Date(cut).getTime() - 3600_000).toISOString();
+    const after = new Date(new Date(cut).getTime() + 3600_000).toISOString();
+    const mk = (date: string): SessionRecord => ({ id: "01TESTFAKE0000000000000AAA", level: 1, part: "A", startedAt: date, device: { ua: "", w: 1, h: 1 }, complete: true, appVersion: "t", blocks: [
+      { genre: "visualPuzzles", mode: "staircase", startedAt: date, endedAt: date, items: [], summary: { attempted: 8, correct: 7, points: 7, max: 8, ceiling: 7, medianMs: 1000, timeouts: 0 } } ] });
+    const level: LevelConfig = { id: 2, title: "t", feedback: "reveal", weighting: "remedial", parts: [{ id: "A", title: "A", sticker: "x", blocks: [{ genre: "visualPuzzles", start: "fromProfile" }] }] };
+    const startBefore = adaptPart(level.parts[0], level, computeProfile([mk(before)]))[0].start;
+    const startAfter = adaptPart(level.parts[0], level, computeProfile([mk(after)]))[0].start;
+    expect(startBefore).toBe(1);
+    expect(startAfter).toBeGreaterThan(1);
+  });
+});

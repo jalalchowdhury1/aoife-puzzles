@@ -6,6 +6,22 @@ function multisetKey(shapes: string[]): string {
   return [...shapes].sort().join(",");
 }
 
+/** Option count per band: 3 at d1 ("what is the same?" with just one distractor
+ * pair), 4 from d2 up (see figureWeights.ts's per-tier comments / AGENTS.md
+ * §5 "Balance ramp"). */
+function expectedOptionCount(d: number): number {
+  return d === 1 ? 3 : 4;
+}
+
+/** Scale count per band: d1-3 one scale (direct/mixed "what is the same"),
+ * d4-7 exactly two scales (one shown equivalence + the question), d8-10
+ * exactly three scales (two chained equivalences + the question). */
+function expectedScaleCount(d: number): number {
+  if (d <= 3) return 1;
+  if (d <= 7) return 2;
+  return 3;
+}
+
 describe("totalWeight", () => {
   it("sums weights for a multiset of shapes", () => {
     expect(totalWeight(["circle", "circle"], { circle: 3 })).toBe(6);
@@ -39,14 +55,8 @@ describe("figureWeights.generate", () => {
       for (const d of DIFFICULTIES) {
         const item: FigureWeightsItem = figureWeights.generate(seed, d);
 
-        // exactly one scale for d1-3
-        if (d <= 3) {
-          expect(item.scales.length).toBe(1);
-        }
-        // at least two balanced scales for d >= 7 (plus the question scale = 3 total)
-        if (d >= 7) {
-          expect(item.scales.length).toBeGreaterThanOrEqual(3);
-        }
+        // scale count matches this difficulty's band exactly
+        expect(item.scales.length, `d${d}`).toBe(expectedScaleCount(d));
 
         // the last scale is the question scale: right pan is null
         const qScale = item.scales[item.scales.length - 1];
@@ -83,15 +93,16 @@ describe("figureWeights.generate", () => {
           expect(v).toBeLessThanOrEqual(6);
         }
 
-        // exactly 5 options, distinct as multisets
-        expect(item.options.length).toBe(5);
+        // option count matches this difficulty's band, all distinct as multisets
+        const expectedCount = expectedOptionCount(d);
+        expect(item.options.length, `d${d}`).toBe(expectedCount);
         const keys = item.options.map(multisetKey);
-        expect(new Set(keys).size).toBe(5);
+        expect(new Set(keys).size).toBe(expectedCount);
 
         // the answer option totals T; every other option does not
         const T = totalWeight(qScale.left, item.weights);
         expect(item.answer).toBeGreaterThanOrEqual(0);
-        expect(item.answer).toBeLessThan(5);
+        expect(item.answer).toBeLessThan(expectedCount);
         item.options.forEach((opt, i) => {
           const total = totalWeight(opt, item.weights);
           if (i === item.answer) {
@@ -109,20 +120,29 @@ describe("figureWeights.generate", () => {
             correctSet.size === qSet.size && [...correctSet].every(s => qSet.has(s));
           expect(sameSet).toBe(false);
         }
+
+        // at d <= 5 every option is built only from shapes that actually
+        // appear somewhere on the scales — no foreign shape to fish with
+        if (d <= 5) {
+          const shapesOnScales = new Set(item.scales.flatMap(s => [...s.left, ...(s.right ?? [])]));
+          for (const opt of item.options) {
+            for (const s of opt) expect(shapesOnScales.has(s), `d${d}`).toBe(true);
+          }
+        }
       }
     }
   }, 30000);
 });
 
 describe("figureWeights.sample", () => {
-  it("is one scale with 2 circles on the left, and the answer is 2 circles", () => {
+  it("is one scale with 1 circle on the left, and the answer is 1 circle", () => {
     const { item, explanation } = figureWeights.sample();
     expect(item.scales.length).toBe(1);
-    expect(item.scales[0].left).toEqual(["circle", "circle"]);
+    expect(item.scales[0].left).toEqual(["circle"]);
     expect(item.scales[0].right).toBeNull();
-    expect(item.options[item.answer]).toEqual(["circle", "circle"]);
+    expect(item.options[item.answer]).toEqual(["circle"]);
     expect(explanation).toBe(
-      "Two circles on one side need two circles on the other side to balance."
+      "One circle on one side needs one circle on the other side to balance. The same thing weighs the same."
     );
   });
 });
@@ -136,7 +156,7 @@ describe("figureWeights.score", () => {
 
   it("awards 0 points for a wrong option index", () => {
     const item = figureWeights.generate(1, 5);
-    const wrong = (item.answer + 1) % 5;
+    const wrong = (item.answer + 1) % item.options.length;
     const result = figureWeights.score(item, wrong);
     expect(result).toEqual({ points: 0, max: 1, correct: false });
   });
@@ -154,6 +174,8 @@ describe("figureWeights genre metadata", () => {
     expect(figureWeights.domain).toBe("FR");
     expect(figureWeights.mode).toBe("staircase");
     expect(figureWeights.timing).toEqual({ kind: "item", ms: expect.any(Function) });
-    expect(figureWeights.timing.kind === "item" && figureWeights.timing.ms(5)).toBe(30000);
+    // itemMs: 45s at d<=5, 30s at d>=6 (owner spec: 2026-08-23 Balance ramp)
+    expect(figureWeights.timing.kind === "item" && figureWeights.timing.ms(5)).toBe(45000);
+    expect(figureWeights.timing.kind === "item" && figureWeights.timing.ms(6)).toBe(30000);
   });
 });

@@ -146,8 +146,30 @@ No secrets in the repo. Never print them to a transcript.
 - **Views fire `onReady()` in a mount effect → the runner remounts the view per item (`key`).** Do not
   "optimize" that away; the timer start and speed-block streaming depend on it.
 - Matrix Reasoning, Digit Span, Picture Span and the verbal genres are **untimed** (time recorded).
-  Block Design 45/75/120 s by difficulty, Visual Puzzles 30 s, Figure Weights 30 s, Arithmetic 30 s after
-  speech ends, Coding / Symbol Search 120 s block windows.
+  Block Design 45/75/120 s by difficulty, Visual Puzzles 30 s, Figure Weights 45 s at d≤5 / 30 s at
+  d≥6 (see "Balance ramp" below), Arithmetic 30 s after speech ends, Coding / Symbol Search 120 s
+  block windows.
+- **Balance ramp (2026-08-23)**: `lib/genres/figureWeights.ts` was rebuilt from absolute basics after
+  real 5-year-old testing showed the old d1-3 was trivial matching and d4 jumped straight to
+  substitution/algebra ("2 diamonds = 1 hexagon; 2 hexagons = ?" with mixed-shape options — "insanely
+  hard even for me"), and she timed out twice at old d7. New bands, one new idea per step: **d1** one
+  scale, 1 shape, "is this the same?" (3 options: 1/2/3 copies of it). **d2** one scale, 2-3 of one
+  shape (4 options: the full 1-4 count range of that shape). **d3** one scale, a MIX of two shapes;
+  options are the identical multiset plus 3 different multisets of those same two shapes. **d4** an
+  equivalence is SHOWN on scale 1 (e.g. 1 square = 2 circles) and the question scale literally repeats
+  scale 1's left pan, so the answer is read straight off scale 1's right pan — no arithmetic. **d5**
+  the same shown equivalence, but the question DOUBLES the pictured count (lengths capped at 2 on
+  scale 1 so the doubled counts never exceed the 4-shape budget). **d6** one equivalence, question 1-3
+  copies, mixed-shape distractor options (old d4). **d7** the same idea with larger counts (question
+  pan up to 4) and, about half the time, a mixed-shape question pan (old d5-6). **d8** two chained
+  equivalences over 3 shapes, single-shape question (old d7). **d9-10** two chained equivalences with
+  a mixed-shape question pan (old d8-10). Every band keeps: exactly one option totals the target, every
+  option total is distinct from every other, ≤4 shapes per pan/option, hidden weights are distinct
+  integers 1-6, and every shown ("given") scale truly balances. **At d≤5 every option is built ONLY
+  from shapes that actually appear on the scales** — no foreign shape to rule out by "I haven't seen
+  that yet" instead of by weight. Option count is 3 at d1 and 4 from d2 on (never 5 anymore — see
+  `figureWeights.test.ts` and the Figure Weights section of `fairness.test.ts` for the per-band
+  scale-count/option-count checks).
 - **Reload mid-block** restarts that block with fresh seeds; completed blocks are never redone; a part
   that is complete redirects to `/` unless `?replay=1` — checked against the **merged** (server + local)
   session list, so a part the server knows is done redirects even if this device's localStorage never

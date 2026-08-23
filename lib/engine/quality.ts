@@ -12,6 +12,7 @@
 //   - app/api/profile/route.ts and app/api/state/route.ts call `ensureFlags`
 //     to backfill flags on sessions written before this feature shipped,
 //     without a KV migration.
+import { digitSpan } from "../genres/digitSpan";
 import type { BlockRecord, ItemRecord, SessionRecord } from "./types";
 
 export type QualityFlagCode =
@@ -19,12 +20,13 @@ export type QualityFlagCode =
   | "rapid-wrong"
   | "mass-timeouts"
   | "speed-accuracy"
+  | "rule-not-understood"
   | "abandoned";
 
 export interface QualityFlag { code: QualityFlagCode; detail: string }
 
 /** Blocks carrying one of these codes are excluded from ceilings/values in profile.ts. */
-export const EXCLUDING_CODES: ReadonlySet<QualityFlagCode> = new Set(["format-not-understood", "mass-timeouts"]);
+export const EXCLUDING_CODES: ReadonlySet<QualityFlagCode> = new Set(["format-not-understood", "mass-timeouts", "rule-not-understood"]);
 
 const RAPID_WRONG_MS = 2000;
 const MASS_TIMEOUT_FLOOR_ATTEMPTED = 3;
@@ -67,6 +69,20 @@ export function flagBlock(block: BlockRecord): QualityFlag[] {
     notUnderstood = `Only ${summary.attempted} item${summary.attempted === 1 ? "" : "s"} attempted, none correct.`;
   }
   if (notUnderstood) flags.push({ code: "format-not-understood", detail: notUnderstood });
+
+  // Number Echo, 2026-08-22: two backward items answered in 3 s with the digits in
+  // FORWARD order — the new rule, not her memory, was the problem. Detect a wrong
+  // non-forward item whose response is exactly the digits as spoken.
+  if (block.genre === "digitSpan") {
+    const ruleMisses = block.items.filter(i => {
+      if (i.correct || i.timedOut || !Array.isArray(i.response)) return false;
+      const item = digitSpan.generate(i.seed, i.d) as { digits: number[]; task: string };
+      return item.task !== "forward" && item.digits.length === i.response.length && item.digits.every((v, k) => v === (i.response as number[])[k]);
+    });
+    if (ruleMisses.length >= 1) {
+      flags.push({ code: "rule-not-understood", detail: `${ruleMisses.length} ${ruleMisses.length === 1 ? "answer" : "answers"} given in forward order on a backward or sorted item — the rule, not memory.` });
+    }
+  }
 
   // rapid-wrong: two or more wrong (not timed-out) answers under 2s each —
   // looks like tapping without registering the question, not a real miss.

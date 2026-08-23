@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { flagBlock, flagSession, ensureFlags } from "./quality";
+import { flagBlock, flagSession, ensureFlags, EXCLUDING_CODES } from "./quality";
 import { summarize } from "./types";
 import type { BlockRecord, ItemRecord, SessionRecord } from "./types";
 
@@ -237,5 +237,20 @@ describe("ensureFlags", () => {
     const stamped: BlockRecord = { ...block("matrix", "staircase", []), flags: [] };
     const [filled] = ensureFlags([session("01FLAGBACKFILLTEST0000002", [stamped])]);
     expect(filled.blocks[0].flags).toEqual([]);
+  });
+});
+
+import { digitSpan as ds } from "../genres/digitSpan";
+describe("rule-not-understood (Number Echo backward tapped forward)", () => {
+  it("flags a backward item answered with the digits in spoken order, and excludes the block", () => {
+    // find a backward seed at d4
+    let seed = 0; let item = ds.generate(seed, 4);
+    while (item.task === "backward" ? false : true) { seed++; item = ds.generate(seed, 4); }
+    const mk = (idx: number, s: number, d: number, correct: boolean, response: unknown): ItemRecord => ({ idx, seed: s, d: d as ItemRecord["d"], points: correct ? 1 : 0, max: 1, correct, ms: 3000, timedOut: false, response });
+    const items = [mk(0, 1, 1, true, [1]), mk(1, 2, 2, true, [1, 2]), mk(2, 3, 3, true, [1, 2, 3]), mk(3, seed, 4, false, item.digits), mk(4, seed, 4, false, item.digits)];
+    const block: BlockRecord = { genre: "digitSpan", mode: "staircase", startedAt: "2026-08-22T17:14:00Z", endedAt: "2026-08-22T17:15:00Z", items, summary: { attempted: 5, correct: 3, points: 3, max: 5, ceiling: 3, medianMs: 3000, timeouts: 0 } };
+    const flags = flagBlock(block);
+    expect(flags.some(f => f.code === "rule-not-understood")).toBe(true);
+    expect(EXCLUDING_CODES.has("rule-not-understood")).toBe(true);
   });
 });

@@ -1,6 +1,7 @@
 import type { DomainStat, GenreStats, Profile } from "@/lib/engine/profile";
 import type { Domain, GenreId, SessionRecord } from "@/lib/engine/types";
 import type { Strength } from "@/lib/engine/adapt";
+import { EXCLUDING_CODES } from "@/lib/engine/quality";
 import type { QualityFlagCode } from "@/lib/engine/quality";
 import { GENRES } from "@/lib/genres";
 
@@ -50,9 +51,10 @@ const FLAG_CODE_LABEL: Record<QualityFlagCode, string> = {
   "mass-timeouts": "Mostly timed out",
   "rapid-wrong": "Rapid wrong answers",
   "speed-accuracy": "Low accuracy (speed block)",
+  "rule-not-understood": "Rule not understood (answered in spoken order)",
   abandoned: "Abandoned",
 };
-const EXCLUDING_FLAG_CODES = new Set<QualityFlagCode>(["format-not-understood", "mass-timeouts"]);
+const EXCLUDING_FLAG_CODES = EXCLUDING_CODES;
 
 /**
  * The domain summary, EGAI/CPI bundle line, and per-genre stats table shown

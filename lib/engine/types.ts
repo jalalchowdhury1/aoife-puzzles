@@ -76,6 +76,7 @@ export interface ItemRecord {
   ms: number; timedOut: boolean; response: unknown; bankId?: string;
   fast?: boolean; audioFallback?: boolean; replayed?: boolean;
   bailed?: boolean;                    // she tapped "Not fun" on this item (agency, not ability)
+  frontier?: boolean;                  // the free first miss at a personal-record difficulty (decision #19); always paired with teaching: true
   teaching?: boolean;                  // a teaching-item that revealed the answer (see BlockConfig.teachingItems)
   stars?: number;                      // stars earned on this item (0 when none); see lib/engine/rewards.ts
 }
@@ -134,6 +135,13 @@ export interface LevelConfig {
   // level the whole point is a slow, win-heavy ramp — the fast lane would
   // rush her straight back to the frontier that made her tap "Not fun".
   fastLane?: boolean;
+  // Ease-in bundle (owner decision #19): at personal-record difficulties the
+  // first miss is free (answer shown, no penalty, retry), a counted miss
+  // steps DOWN one level for a rebuild win, the per-item clock gets 1.5x (so
+  // the data says whether a frontier miss was time or ability), and every
+  // answer-reveal waits for HER tap instead of a timer ("Pip takes sweet
+  // time"). See lib/engine/staircase.ts.
+  easeIn?: boolean;
 }
 
 export function summarize(items: ItemRecord[], mode: "staircase" | "speedBlock"): BlockSummary {

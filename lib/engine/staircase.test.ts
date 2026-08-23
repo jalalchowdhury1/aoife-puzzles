@@ -85,3 +85,111 @@ describe("fast lane (ceiling probing while flawless)", () => {
     s = stepStair(s, true, false); expect(s.d).toBe(2);
   });
 });
+
+describe("ease-in (owner decision #19: 'do 7.5 and then 8')", () => {
+  const easeStart = () => startStair(5, 8, 0, 2, 10, { knownCeiling: 7 });
+
+  const climbTo8 = () => {
+    // 5,5 -> 6; 6,6 -> 7; 7,7 -> 8 (six corrects, fast=false so no fast lane)
+    let s = easeStart();
+    for (let i = 0; i < 6; i++) s = stepStair(s, true);
+    expect(s.d).toBe(8);
+    return s;
+  };
+
+  it("difficulties at or below the known ceiling behave exactly as before", () => {
+    let s = easeStart();
+    s = stepStair(s, false); // miss at d5 (<= ceiling 7): counted, no step-down
+    expect(s.lastMissFree).toBe(false);
+    expect(s.consecutiveWrong).toBe(1);
+    expect(s.d).toBe(5);
+    s = stepStair(s, false);
+    expect(s.done).toBe(true);
+    expect(s.reason).toBe("twoWrong");
+  });
+
+  // Bug this prevents: her first-ever try at a record difficulty ending the
+  // block or costing the streak — the "7.5" free look must cost nothing.
+  it("first miss at a personal-record difficulty is free: no count, difficulty holds", () => {
+    let s = climbTo8();
+    const before = s.consecutiveWrong;
+    s = stepStair(s, false);
+    expect(s.lastMissFree).toBe(true);
+    expect(s.consecutiveWrong).toBe(before);
+    expect(s.d).toBe(8);
+    expect(s.done).toBe(false);
+    expect(s.freeMissDs).toContain(8);
+  });
+
+  it("the free miss is once per difficulty: the second miss there is counted and soft-lands one level down", () => {
+    let s = startStair(5, 20, 0, 2, 10, { knownCeiling: 7 });
+    for (let i = 0; i < 6; i++) s = stepStair(s, true);
+    expect(s.d).toBe(8);
+    s = stepStair(s, false); // free
+    s = stepStair(s, false); // counted -> soft landing
+    expect(s.lastMissFree).toBe(false);
+    expect(s.consecutiveWrong).toBe(1);
+    expect(s.d).toBe(7);    // rebuild win territory
+    expect(s.done).toBe(false);
+  });
+
+  it("after the soft landing she can win her way back up and gets NO second free miss at the same level", () => {
+    let s = climbTo8();
+    s = stepStair(s, false); // free at 8
+    s = stepStair(s, false); // soft land -> 7
+    // 8-item cap: items used = 6 climb + 2 misses = 8 -> block ends by count.
+    expect(s.done).toBe(true);
+    expect(s.reason).toBe("maxItems");
+    // Same journey with a longer block: she returns to 8 with no free miss left.
+    let t = startStair(5, 20, 0, 2, 10, { knownCeiling: 7 });
+    for (let i = 0; i < 6; i++) t = stepStair(t, true);
+    t = stepStair(t, false); // free at 8
+    t = stepStair(t, false); // soft land -> 7
+    t = stepStair(t, true);
+    t = stepStair(t, true);  // back to 8
+    expect(t.d).toBe(8);
+    t = stepStair(t, false); // counted immediately (free spent) -> soft land
+    expect(t.lastMissFree).toBe(false);
+    expect(t.d).toBe(7);
+  });
+
+  it("two counted misses in a row still end the block (soft landing is not an infinite ladder)", () => {
+    let s = startStair(5, 20, 0, 2, 10, { knownCeiling: 7 });
+    for (let i = 0; i < 6; i++) s = stepStair(s, true);
+    s = stepStair(s, false); // free at 8
+    s = stepStair(s, false); // counted, soft land -> 7
+    s = stepStair(s, false); // counted miss at 7 -> two in a row
+    expect(s.done).toBe(true);
+    expect(s.reason).toBe("twoWrong");
+  });
+
+  it("teaching-window misses keep their own rule and do not spend the free miss", () => {
+    let s = startStair(8, 8, 1, 2, 10, { knownCeiling: 7 });
+    s = stepStair(s, false); // item 1 = teaching window: free by the OLD rule
+    expect(s.freeMissDs).toHaveLength(0);
+    expect(s.consecutiveWrong).toBe(0);
+    expect(s.d).toBe(8);
+    s = stepStair(s, false); // now the frontier free miss
+    expect(s.lastMissFree).toBe(true);
+    expect(s.d).toBe(8);
+  });
+
+  it("a never-measured genre treats everything above the start as frontier", () => {
+    let s = startStair(1, 8, 0, 2, 10, { knownCeiling: null });
+    expect(s.frontierBase).toBe(1);
+    s = stepStair(s, true);
+    s = stepStair(s, true); // -> 2 (frontier)
+    s = stepStair(s, false);
+    expect(s.lastMissFree).toBe(true);
+  });
+
+  it("without easeIn nothing changes: no free miss, no soft landing", () => {
+    let s = startStair(5, 8, 0, 2, 10);
+    for (let i = 0; i < 6; i++) s = stepStair(s, true);
+    expect(s.frontierBase).toBeNull();
+    s = stepStair(s, false);
+    expect(s.lastMissFree).toBe(false);
+    expect(s.consecutiveWrong).toBe(1);
+    expect(s.d).toBe(8); // no step-down
+  });
+});

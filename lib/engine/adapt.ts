@@ -19,6 +19,8 @@ export interface ResolvedBlock extends BlockConfig {
   timeScale: number;
   teachingItems: number;
   stepUp: number;
+  /** Her measured ceiling for this genre on the CURRENT ramp (null = never measured). The runner's ease-in frontier (decision #19) sits above max(knownCeiling, start). */
+  knownCeiling: number | null;
 }
 
 // Genres scored by throughput (perMinute), not a staircase ceiling. Their
@@ -127,7 +129,7 @@ export function adaptPart(part: PartConfig, level: LevelConfig, profile: Profile
     const stepUp = block.stepUp ?? level.stepUp ?? 1;
 
     const timeScale = block.timeScale ?? (level.weighting === "remedial" && strength === "weak" ? 1.5 : 1);
-    return { ...block, start, maxItems, strength, teachingItems, timeScale, stepUp };
+    return { ...block, start, maxItems, strength, teachingItems, timeScale, stepUp, knownCeiling: ceiling };
   });
 
   if (!remedial) return resolved;

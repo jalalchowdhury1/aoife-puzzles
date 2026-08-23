@@ -212,3 +212,19 @@ describe("BlockConfig.timeScale override (Level 4 time relief)", () => {
     expect(resolved[1].start).toBe(5);
   });
 });
+
+describe("ResolvedBlock.knownCeiling (ease-in frontier input, decision #19)", () => {
+  // Bug this prevents: the runner's frontier features silently running off a
+  // missing/undefined ceiling and treating her whole comfortable range as
+  // "record territory" (free misses everywhere).
+  it("attaches the measured ceiling on a weighting:none level, null when never played", () => {
+    const level = {
+      id: 97, title: "t", feedback: "reveal", weighting: "none", stepUp: 2,
+      parts: [{ id: "A", title: "t", sticker: "x", blocks: [
+        { genre: "swapShop", start: 5 },
+      ] }],
+    } as const;
+    const resolved = adaptPart(level.parts[0] as never, level as never, computeProfile([]));
+    expect(resolved[0].knownCeiling).toBeNull();
+  });
+});

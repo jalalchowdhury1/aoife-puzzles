@@ -51,6 +51,11 @@ export const level4: LevelConfig = {
   teachingItems: 0,
   fun: true,
   fastLane: false,
+  // Decision #19 ("do 7.5 and then 8"): at personal-record difficulties the
+  // first miss is free (Pip shows how, she taps when ready), a counted miss
+  // steps down one level for a rebuild win, and the clock runs 1.5x so a
+  // frontier miss tells us time-vs-ability.
+  easeIn: true,
   released: true,
   parts: [
     { id: "A", title: "Power-Ups", sticker: "💪", blocks: [

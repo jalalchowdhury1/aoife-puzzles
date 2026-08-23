@@ -168,6 +168,7 @@ function RevealAnswerScreen({
   item,
   lastResponse,
   captionPip,
+  gotIt,
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   View: React.ComponentType<GenreViewProps<any, any>>;
@@ -178,6 +179,8 @@ function RevealAnswerScreen({
   // caption. null/undefined keeps today's neutral caption exactly (Level 1's
   // teaching-item misses, and any level with fun off).
   captionPip?: PipLine | null;
+  // true = ease-in hold: show the "Got it!" continue pill (no auto-advance timer is running).
+  gotIt?: boolean;
 }) {
   return (
     <div className="flex flex-1 flex-col items-center gap-4 px-4 pb-4 text-center" data-testid="between-feedback">
@@ -190,6 +193,14 @@ function RevealAnswerScreen({
         <View item={item} disabled reveal lastResponse={lastResponse} onReady={() => {}} onRespond={() => {}} />
       </div>
       {hasExplanation(item) && <p className="max-w-md text-lg text-ink/80">{item.explanation}</p>}
+      {gotIt && (
+        // Ease-in levels: no timer runs on this screen — this button (or a
+        // tap anywhere) is what moves on, so Pip takes exactly as much time
+        // as she wants. The click bubbles to the container's tap-to-advance.
+        <button type="button" className="mt-1 min-h-12 shrink-0 rounded-full bg-teal-400 px-8 font-bubble text-xl text-white shadow-md active:scale-95">
+          Got it!
+        </button>
+      )}
     </div>
   );
 }
@@ -277,6 +288,7 @@ function PlayRunner() {
   const [praiseLine, setPraiseLine] = useState<PipLine | null>(null); // correct-answer PraiseScreen
   const [praiseCelebrate, setPraiseCelebrate] = useState(false); // small confetti burst at a 5-streak
   const [missPip, setMissPip] = useState<PipLine | null>(null); // Pip's caption on the answer-reveal screen
+  const [revealHold, setRevealHold] = useState(false); // ease-in: reveal waits for her tap (decision #19)
   const [jarStars, setJarStars] = useState(0); // this sitting's star-jar count
   const [bonusFlash, setBonusFlash] = useState(false); // "✨ Bonus star!" flourish
   const [recap, setRecap] = useState<PartDoneRecap | null>(null);
@@ -510,7 +522,7 @@ function PlayRunner() {
     setSeed(newSeed);
 
     if (genre.mode === "staircase") {
-      const st = startStair(cfg.start, cfg.maxItems, cfg.teachingItems, cfg.stepUp, genreMaxD(genre));
+      const st = startStair(cfg.start, cfg.maxItems, cfg.teachingItems, cfg.stepUp, genreMaxD(genre), levelCfg?.easeIn ? { knownCeiling: cfg.knownCeiling ?? null } : null);
       setStair(st);
       setItem(genre.generate(newSeed, st.d, { excludeBankIds: [] }));
       setBlockStartMs(null);
@@ -633,9 +645,14 @@ function PlayRunner() {
     const finalScore = genre.score(item, timedOut ? null : response);
     const scoredFull = finalScore.points >= finalScore.max;
 
+    // Ease-in (decision #19): at a personal-record difficulty the clock runs
+    // 1.5x long, so a miss there tells us "couldn't do it", not "ran out of
+    // time" — the owner's explicit ask. Mirrored in the Countdown render.
+    const frontierNow =
+      levelCfg.easeIn === true && stair !== null && stair.frontierBase !== null && stair.d > stair.frontierBase;
     let fast: boolean | undefined;
     if (genre.timing.kind === "item") {
-      const cap = genre.timing.ms(stair!.d) * (cfg.timeScale ?? 1);
+      const cap = genre.timing.ms(stair!.d) * (cfg.timeScale ?? 1) * (frontierNow ? 1.5 : 1);
       fast = ms < cap * 0.5;
     } else if (genre.timing.kind === "none" && genre.mode === "staircase") {
       fast = ms < 10_000;   // untimed genres: a quick confident answer counts as fast (fast lane)
@@ -647,6 +664,16 @@ function PlayRunner() {
     // answer if missed, like the real test's teaching items — independent of
     // the level's own `feedback` (Level 1 is otherwise "none").
     const isTeachingMiss = genre.mode === "staircase" && records.length < cfg.teachingItems && (timedOut || !scoredFull);
+
+    // Stepped BEFORE the record is finalized so a frontier free miss
+    // (StairState.lastMissFree, decision #19) can be stamped on the record —
+    // it is a teaching moment, never a counted miss. Speed blocks have no
+    // staircase and skip this.
+    const newStair =
+      genre.mode === "staircase"
+        ? stepStair(stair!, finalScore.correct, fast === true && levelCfg?.fastLane !== false)
+        : null;
+    const isFreeMiss = newStair?.lastMissFree === true;
 
     const record: ItemRecord = {
       idx: records.length,
@@ -663,7 +690,8 @@ function PlayRunner() {
     if (fast !== undefined) record.fast = fast;
     if (meta?.replayed !== undefined) record.replayed = meta.replayed;
     if (meta?.audioFallback !== undefined) record.audioFallback = meta.audioFallback;
-    if (isTeachingMiss) record.teaching = true;
+    if (isTeachingMiss || isFreeMiss) record.teaching = true;
+    if (isFreeMiss) record.frontier = true;
 
     const funOn = levelCfg.fun !== false;
     if (funOn) {
@@ -684,19 +712,25 @@ function PlayRunner() {
       return;
     }
 
-    const newStair = stepStair(stair!, finalScore.correct, fast === true && levelCfg?.fastLane !== false);
-    setStair(newStair);
+    setStair(newStair!);
     setLastCorrect(finalScore.correct);
     setLastResponse(timedOut ? null : (response ?? null));
     setFullScore(scoredFull);
-    setTeachingReveal(isTeachingMiss);
+    setTeachingReveal(isTeachingMiss || isFreeMiss);
+    // "Pip takes sweet time" (owner, 2026-08-23): on an ease-in level every
+    // answer-reveal waits for HER tap — no timer rushes the worked example.
+    const holdForTap =
+      levelCfg.easeIn === true &&
+      !scoredFull &&
+      (levelCfg.feedback === "reveal" || isTeachingMiss || isFreeMiss);
+    setRevealHold(holdForTap);
 
     // Fun layer: Pip's line for the between-phase screen this item leads to.
     // Only computed where that screen will actually show (mirrors exactly
     // where FullScoreScreen/RevealAnswerScreen already render below).
     if (funOn) {
       const willPraise = levelCfg.feedback === "reveal" && scoredFull;
-      const willRevealMiss = (levelCfg.feedback === "reveal" && !scoredFull) || isTeachingMiss;
+      const willRevealMiss = (levelCfg.feedback === "reveal" && !scoredFull) || isTeachingMiss || isFreeMiss;
       const rng = makeRng(randomSeed());
       if (willPraise) {
         const cameFromMiss = records.length > 0 && !records[records.length - 1].correct;
@@ -728,11 +762,13 @@ function PlayRunner() {
 
     setPhase("between");
 
-    const delay = feedbackDelay(levelCfg.feedback, scoredFull, isTeachingMiss, funOn);
+    const delay = feedbackDelay(levelCfg.feedback, scoredFull, isTeachingMiss || isFreeMiss, funOn);
+    // holdForTap: park the timer far away (10 min safety net) — the screen's
+    // existing tap-to-advance is how she moves on, at her own pace.
     scheduleAdvance(() => {
-      if (newStair.done) endBlock(newRecords);
-      else generateNextItem(newStair.d);
-    }, delay);
+      if (newStair!.done) endBlock(newRecords);
+      else generateNextItem(newStair!.d);
+    }, holdForTap ? 600_000 : delay);
   }
 
   // Not memoized: none of the views read `onRespond` inside an effect
@@ -833,7 +869,11 @@ function PlayRunner() {
                     {genre.timing.kind === "item" && (
                       <div className="w-full max-w-md px-4 pb-2">
                         <Countdown
-                          totalMs={genre.timing.ms(stair!.d) * (cfg.timeScale ?? 1)}
+                          totalMs={
+                            genre.timing.ms(stair!.d) *
+                            (cfg.timeScale ?? 1) *
+                            (levelCfg.easeIn === true && stair!.frontierBase !== null && stair!.d > stair!.frontierBase ? 1.5 : 1)
+                          }
                           startedAt={startedAtEpoch}
                           onExpire={() => finishItem(null, true)}
                         />
@@ -865,12 +905,12 @@ function PlayRunner() {
                       <FullScoreScreen />
                     )
                   ) : (
-                    <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} captionPip={funOn ? missPip : null} />
+                    <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} captionPip={funOn ? missPip : null} gotIt={revealHold} />
                   )
                 ) : teachingReveal ? (
                   // A missed teaching item on a level whose own feedback is "none"
                   // (Level 1): still show the answer, just this once.
-                  <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} captionPip={funOn ? missPip : null} />
+                  <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} captionPip={funOn ? missPip : null} gotIt={revealHold} />
                 ) : (
                   <BetweenScreen feedback={levelCfg.feedback} lastCorrect={lastCorrect} />
                 )}

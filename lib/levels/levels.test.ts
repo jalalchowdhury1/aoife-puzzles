@@ -161,9 +161,10 @@ describe("Level 4 (Pip's Power-Ups — owner decision #18)", () => {
     }
   });
 
-  it("is win-heavy by construction: stepUp 2, fast lane OFF, reveal feedback, no teaching items", () => {
+  it("is win-heavy by construction: stepUp 2, fast lane OFF, ease-in ON, reveal feedback, no teaching items", () => {
     expect(level4.stepUp).toBe(2);
     expect(level4.fastLane).toBe(false);
+    expect(level4.easeIn).toBe(true);
     expect(level4.feedback).toBe("reveal");
     expect(level4.teachingItems).toBe(0);
     expect(level4.weighting).toBe("none");

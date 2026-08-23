@@ -79,9 +79,43 @@ describe("Level 2 (Practice Round 1)", () => {
   });
 });
 
+describe("Level 99 (hidden QA level)", () => {
+  const levelQa = LEVELS.find((l) => l.id === 99)!;
+
+  it("exists in the registry but is hidden (released: false)", () => {
+    expect(levelQa).toBeDefined();
+    expect(levelQa.released).toBe(false);
+  });
+
+  it("has one part with every genre in GENRE_LIST exactly once", () => {
+    expect(levelQa.parts.length).toBe(1);
+    usesEveryGenreOnce(levelQa);
+  });
+
+  it("caps every block at maxItems: 2", () => {
+    for (const block of levelQa.parts[0].blocks) {
+      expect(block.maxItems).toBe(2);
+    }
+  });
+
+  it("shortens only the two speed genres' block window via blockMs", () => {
+    for (const block of levelQa.parts[0].blocks) {
+      if (block.genre === "coding" || block.genre === "symbolSearch") {
+        expect(block.blockMs).toBe(4000);
+      } else {
+        expect(block.blockMs).toBeUndefined();
+      }
+    }
+  });
+});
+
 import { RELEASED_LEVELS } from "./index";
 describe("release gating", () => {
   it("levels 1 and 2 are released (Level 2 reviewed 2026-08-22)", () => {
     expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 2]);
+  });
+
+  it("the hidden QA level (99) is never in RELEASED_LEVELS", () => {
+    expect(RELEASED_LEVELS.map((l) => l.id)).not.toContain(99);
   });
 });

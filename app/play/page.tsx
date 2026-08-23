@@ -534,7 +534,11 @@ function PlayRunner() {
 
       {genre.timing.kind === "block" && (
         <div className="px-4 pt-2">
-          <Countdown totalMs={genre.timing.ms} startedAt={blockStartMs} onExpire={() => endBlock(records)} />
+          {/* cfg.blockMs (BlockConfig.blockMs) overrides the genre's normal
+              120s speed-block window — only set by the hidden QA level
+              (lib/levels/levelQa.ts) so its e2e play-through doesn't have to
+              sit through a real speed block. */}
+          <Countdown totalMs={cfg.blockMs ?? genre.timing.ms} startedAt={blockStartMs} onExpire={() => endBlock(records)} />
         </div>
       )}
 

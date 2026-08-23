@@ -26,7 +26,7 @@ spec `docs/superpowers/specs/2026-08-22-aoife-puzzles-design.md` · plan `docs/s
 
 | # | Decision | Choice |
 |---|---|---|
-| 1 | Coaching line | **WISC-V-format puzzles, original content.** The owner was told this sits on the "coaching" side of GDC form 10.4 and chose it. **Never reproduce, paraphrase, or fetch actual Pearson/WISC-V items — formats only.** |
+| 1 | Coaching line | ~~WISC-V-format puzzles~~ **SUPERSEDED by #16 (2026-08-23): similar, not same.** Still: never reproduce, paraphrase, or fetch actual Pearson/WISC-V items. |
 | 2 | Timing | **Visible countdown** (calm bar + seconds) on timed genres. Deliberately differs from aoife-math's no-timer rule. |
 | 3 | Verbal subtests | Multiple choice, options weighted 2/1/0 like real scoring. |
 | 4 | Storage | Shared **free** Upstash Redis (the planner's DB) under `aoife_puzzles:*` keys + localStorage mirror. No paid services. |
@@ -38,6 +38,7 @@ spec `docs/superpowers/specs/2026-08-22-aoife-puzzles-design.md` · plan `docs/s
 | 10 | Verbal difficulty | Age 6 → 13 ramp over d1–10. |
 | 11 | Mood | Calm during; confetti + sticker at the end of a part only. |
 | 12 | Telegram | One summary message per completed part to the owner's @ZingerJC_bot DM. |
+| 16 | **SIMILAR, NOT SAME (2026-08-23) — supersedes #1** | Jalal: "I don't want her completely trained on something we shouldn't be training her on. Let's go with similar and not same." Every genre is a COUSIN of its WISC-V subtest: same mental muscle, different game format (Mosaic Maker, Fix the Picture, Pattern Train + Picture Sudoku, Swap Shop, Animal Parade, Firefly Boxes, Translator, Spot It, Which Two Belong, Fill the Gap, What Would You Do; Story Sums and general knowledge stay). The replica genres are RETIRED from play (code kept for her history). Never reintroduce a test-format replica. |
 | 15 | **Slow, one step at a time (2026-08-23)** | After six single-answer steps took her from 5 to 7 digits ("I can't remember them!") and two rebuilt ramps: practice levels use `stepUp: 2` (two correct in a row before the next difficulty), start WELL below her best (weak → 1, typical → ceiling − 3, strong → ceiling − 2), rebuilt ramps start at 1, and every ramp's bottom must be doable by a 4-year-old with one new idea per step. She must be succeeding most of the time or she disengages and the data stops. The diagnostic (Level 1) keeps `stepUp` 1. |
 | 14 | **Validity is sacred (2026-08-23)** | A puzzle that is broken, ambiguous, or unfair produces a FALSE weakness and defeats the purpose of the whole app. Every genre at every difficulty must be solvable, single-answer, visually unambiguous, and age-fair (see §5 fairness rules). Nothing deploys except through `npm run release` (lint + tsc + unit + fairness + e2e play-through + build); a failing check blocks the deploy. Suspicious results are flagged server-side (`flags` on blocks) and excluded from her profile. |
 | 13 | Remedial rule (2026-08-22, after launch) | **Every level after the diagnostic adapts to her profile: a weak area starts EASIER and gets MORE practice; a strong area starts near her ceiling and gets fewer reps.** Implemented in `lib/engine/adapt.ts`; levels opt in with `weighting: "remedial"`. Never ship a post-diagnostic level that ignores the profile. |

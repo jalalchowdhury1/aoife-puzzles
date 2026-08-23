@@ -79,12 +79,26 @@ interface GenreProbe {
   optionKeys?: (item: unknown) => string[];
 }
 
-function combinations3(n: number): number[][] {
+/** All k-element index combinations out of n (n choose k), used for
+ * visualPuzzles below since `pieceCount`/`optionCount` now vary by
+ * difficulty (2026-08-23 level-0 ramp) instead of always being 3-of-6. */
+function combinationsK(n: number, k: number): number[][] {
   const out: number[][] = [];
-  for (let a = 0; a < n; a++) for (let b = a + 1; b < n; b++) for (let c = b + 1; c < n; c++) out.push([a, b, c]);
+  const combo: number[] = [];
+  function rec(start: number): void {
+    if (combo.length === k) {
+      out.push([...combo]);
+      return;
+    }
+    for (let i = start; i < n; i++) {
+      combo.push(i);
+      rec(i + 1);
+      combo.pop();
+    }
+  }
+  rec(0);
   return out;
 }
-const COMBOS_6_CHOOSE_3 = combinations3(6); // visualPuzzles always has exactly 6 pieces, 3 of them true
 
 function choiceProbe(): GenreProbe {
   return {
@@ -127,11 +141,17 @@ const PROBES: Record<GenreId, GenreProbe> = {
     optionKeys: item => (item as FigureWeightsItem).options.map(o => [...o].sort().join(",")),
   },
   visualPuzzles: {
-    candidates: () => COMBOS_6_CHOOSE_3,
+    // pieceCount (2 or 3) and optionCount (3, 4, or 6) vary by difficulty
+    // since the 2026-08-23 level-0 ramp — compute per-item, not a fixed 6-choose-3.
+    candidates: item => {
+      const vp = item as VisualPuzzlesItem;
+      return combinationsK(vp.optionCount, vp.pieceCount);
+    },
     correct: item => (item as VisualPuzzlesItem).answer,
     wrongs: item => {
-      const ans = new Set((item as VisualPuzzlesItem).answer);
-      return COMBOS_6_CHOOSE_3.filter(c => !(c.length === ans.size && c.every(x => ans.has(x))));
+      const vp = item as VisualPuzzlesItem;
+      const ans = new Set(vp.answer);
+      return combinationsK(vp.optionCount, vp.pieceCount).filter(c => !(c.length === ans.size && c.every(x => ans.has(x))));
     },
     // Keyed on the actually-DISPLAYED cells (post display-rotation): two
     // pieces that render pixel-identical on screen are a real duplicate even
@@ -351,9 +371,34 @@ describe("Matrix Reasoning (What's Missing) — genre-specific fairness rules", 
 describe("Visual Puzzles (Piece Picker) — genre-specific fairness rules", () => {
   const VP_ITEMS = itemsOf<VisualPuzzlesItem>("visualPuzzles");
 
-  it("no two of the six pieces are the same shape (exact match below d6, rotation-equivalent from d6) — her real d1 data had two identical vertical dominoes among the true pieces", () => {
+  // 2026-08-23 level-0 ramp (AGENTS.md §5): pieceCount 2|3, optionCount
+  // 3|4|6 — the exact table the runner and view both depend on.
+  const EXPECTED_COUNTS: Record<number, { pieceCount: 2 | 3; optionCount: 3 | 4 | 6 }> = {
+    1: { pieceCount: 2, optionCount: 3 },
+    2: { pieceCount: 2, optionCount: 4 },
+    3: { pieceCount: 2, optionCount: 4 },
+    4: { pieceCount: 3, optionCount: 4 },
+    5: { pieceCount: 3, optionCount: 6 },
+    6: { pieceCount: 3, optionCount: 6 },
+    7: { pieceCount: 3, optionCount: 6 },
+    8: { pieceCount: 3, optionCount: 6 },
+    9: { pieceCount: 3, optionCount: 6 },
+    10: { pieceCount: 3, optionCount: 6 },
+  };
+
+  it("pieceCount/optionCount match the level-0 ramp exactly at every difficulty, and the view's contract (answer.length === pieceCount, pieces.length === optionCount) always holds", () => {
     for (const { item, seed, d } of VP_ITEMS) {
-      const allowRotation = d >= 6;
+      const expected = EXPECTED_COUNTS[d];
+      expect(item.pieceCount, `seed${seed} d${d}`).toBe(expected.pieceCount);
+      expect(item.optionCount, `seed${seed} d${d}`).toBe(expected.optionCount);
+      expect(item.answer.length, `seed${seed} d${d}`).toBe(item.pieceCount);
+      expect(item.pieces.length, `seed${seed} d${d}`).toBe(item.optionCount);
+    }
+  });
+
+  it("no two of the options are the same shape (exact match below d9, rotation-equivalent from d9) — her real old-d1 data had two identical vertical dominoes among the true pieces", () => {
+    for (const { item, seed, d } of VP_ITEMS) {
+      const allowRotation = d >= 9;
       for (let i = 0; i < item.pieces.length; i++) {
         for (let j = i + 1; j < item.pieces.length; j++) {
           expect(
@@ -365,9 +410,9 @@ describe("Visual Puzzles (Piece Picker) — genre-specific fairness rules", () =
     }
   });
 
-  it("d<=3: every distractor is 'obviously wrong' by cell count alone, never a mirror image or a one-cell-moved near miss of a true piece — both fooled her at d1 in real testing", () => {
+  it("d<=7: every distractor's cell count is outside the true pieces' cell counts, never a mirror image or a one-cell-moved near miss of a true piece — both fooled her at the old d1 in real testing", () => {
     for (const { item, seed, d } of VP_ITEMS) {
-      if (d > 3) continue;
+      if (d > 7) continue;
       const trueShapes = item.answer.map(i => item.pieces[i].cells);
       const trueCounts = new Set(trueShapes.map(s => s.length));
       item.pieces.forEach((piece, i) => {
@@ -380,7 +425,20 @@ describe("Visual Puzzles (Piece Picker) — genre-specific fairness rules", () =
     }
   });
 
-  it("the three true pieces tile the target exactly — disjoint cells whose union is exactly the target, no gaps and no overlaps", () => {
+  it("no mirror-image distractor appears below d8 — mirrors are the 'real' distractor style, which only begins once the obvious-by-cell-count-alone bands (d<=7) are behind her", () => {
+    for (const { item, seed, d } of VP_ITEMS) {
+      if (d >= 8) continue;
+      const trueShapes = item.answer.map(i => item.pieces[i].cells);
+      const distractors = item.pieces.filter((_, i) => !item.answer.includes(i)).map(p => p.cells);
+      for (const dist of distractors) {
+        for (const t of trueShapes) {
+          expect(equalShape(dist, mirror(t), false), `seed${seed} d${d}`).toBe(false);
+        }
+      }
+    }
+  });
+
+  it("the true pieces tile the target exactly — disjoint cells whose union is exactly the target, no gaps and no overlaps", () => {
     for (const { item, seed, d } of VP_ITEMS) {
       const cells: Cell[] = [];
       item.target.forEach((v, i) => {

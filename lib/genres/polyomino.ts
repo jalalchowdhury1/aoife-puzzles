@@ -1,7 +1,8 @@
 // Pure polyomino/shape math shared by Visual Puzzles (Piece Picker): cell-set
 // normalization, rotation/mirroring, connectivity, shape equality, and the
 // small random-growth / partition routines used to build a target silhouette
-// and split it into three connected pieces. No React, no DOM, no Math.random.
+// and split it into 2 or 3 connected pieces (the difficulty-dependent
+// `pieceCount`, see visualPuzzles.ts). No React, no DOM, no Math.random.
 import type { Rng } from "../engine/rng";
 
 export type Cell = [number, number]; // [row, col]
@@ -126,52 +127,54 @@ export function growCells(rng: Rng, area: number, start: Cell, inBounds: (c: Cel
 }
 
 /**
- * Splits `targetCells` (one connected region) into 3 connected pieces by
- * picking 3 far-apart seed cells and growing them via alternating
+ * Splits `targetCells` (one connected region) into `n` connected pieces by
+ * picking `n` far-apart seed cells and growing them via alternating
  * multi-source BFS until every cell is claimed. Returns null (caller
  * retries with a fresh rng draw) if it cannot fully partition within a
- * bounded number of iterations.
+ * bounded number of iterations. Used for both the 2-piece bands (d1-3) and
+ * the 3-piece bands (d4-10) of Piece Picker — see bandOptionsFor in
+ * visualPuzzles.ts.
  */
-export function partitionIntoThree(rng: Rng, targetCells: Cell[]): Cell[][] | null {
-  // 3 non-empty pieces need at least 3 cells; per-difficulty area bands
-  // (see bandFor in visualPuzzles.ts) enforce the real floor.
-  if (targetCells.length < 3) return null;
+export function partitionIntoN(rng: Rng, targetCells: Cell[], n: number): Cell[][] | null {
+  // n non-empty pieces need at least n cells; per-difficulty area bands
+  // (see bandOptionsFor in visualPuzzles.ts) enforce the real floor.
+  if (targetCells.length < n) return null;
   const inTarget = new Set(targetCells.map(cellKey));
 
-  let bestTriple: [Cell, Cell, Cell] | null = null;
+  let bestSeeds: Cell[] | null = null;
   let bestScore = -1;
   for (let t = 0; t < 20; t++) {
     const idxs = new Set<number>();
-    while (idxs.size < 3) idxs.add(rng.int(0, targetCells.length - 1));
-    const [ia, ib, ic] = Array.from(idxs);
-    const a = targetCells[ia];
-    const b = targetCells[ib];
-    const c = targetCells[ic];
-    const score = manhattan(a, b) + manhattan(b, c) + manhattan(a, c);
+    while (idxs.size < n) idxs.add(rng.int(0, targetCells.length - 1));
+    const seeds = Array.from(idxs).map(i => targetCells[i]);
+    let score = 0;
+    for (let i = 0; i < seeds.length; i++) {
+      for (let j = i + 1; j < seeds.length; j++) score += manhattan(seeds[i], seeds[j]);
+    }
     if (score > bestScore) {
       bestScore = score;
-      bestTriple = [a, b, c];
+      bestSeeds = seeds;
     }
   }
-  if (!bestTriple) return null;
+  if (!bestSeeds) return null;
 
   const claimedBy = new Map<string, number>();
-  const pieces: Cell[][] = [[bestTriple[0]], [bestTriple[1]], [bestTriple[2]]];
-  bestTriple.forEach((s, i) => claimedBy.set(cellKey(s), i));
+  const pieces: Cell[][] = bestSeeds.map(s => [s]);
+  bestSeeds.forEach((s, i) => claimedBy.set(cellKey(s), i));
 
-  const frontiers: Cell[][] = bestTriple.map(s =>
-    neighborsOf(s).filter(n => inTarget.has(cellKey(n)) && !claimedBy.has(cellKey(n)))
+  const frontiers: Cell[][] = bestSeeds.map(s =>
+    neighborsOf(s).filter(nb => inTarget.has(cellKey(nb)) && !claimedBy.has(cellKey(nb)))
   );
 
   const total = targetCells.length;
-  let claimedCount = 3;
+  let claimedCount = n;
   const maxIterations = total * 10 + 60;
   let turn = 0;
   let iterations = 0;
 
   while (claimedCount < total && iterations < maxIterations) {
     iterations++;
-    const pieceIdx = turn % 3;
+    const pieceIdx = turn % n;
     turn++;
     frontiers[pieceIdx] = frontiers[pieceIdx].filter(c => !claimedBy.has(cellKey(c)));
     if (frontiers[pieceIdx].length === 0) continue;
@@ -181,9 +184,9 @@ export function partitionIntoThree(rng: Rng, targetCells: Cell[]): Cell[][] | nu
     claimedBy.set(cellKey(cell), pieceIdx);
     pieces[pieceIdx].push(cell);
     claimedCount++;
-    for (const n of neighborsOf(cell)) {
-      if (inTarget.has(cellKey(n)) && !claimedBy.has(cellKey(n))) {
-        frontiers[pieceIdx].push(n);
+    for (const nb of neighborsOf(cell)) {
+      if (inTarget.has(cellKey(nb)) && !claimedBy.has(cellKey(nb))) {
+        frontiers[pieceIdx].push(nb);
       }
     }
   }

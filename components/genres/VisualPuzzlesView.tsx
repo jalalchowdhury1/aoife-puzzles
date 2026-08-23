@@ -71,7 +71,7 @@ function TargetSilhouette({ item }: { item: VisualPuzzlesItem }) {
   );
 }
 
-/** Piece Picker (Visual Puzzles, VS): tap the 3 pieces that tile the target shape. */
+/** Piece Picker (Visual Puzzles, VS): tap the `item.pieceCount` pieces that tile the target shape. */
 export function VisualPuzzlesView({
   item,
   disabled,
@@ -101,26 +101,29 @@ export function VisualPuzzlesView({
     if (disabled || reveal || submitted) return;
     setSelected(prev => {
       if (prev.includes(i)) return prev.filter(x => x !== i);
-      if (prev.length >= 3) return prev;
+      if (prev.length >= item.pieceCount) return prev;
       return [...prev, i];
     });
   }
 
   function handleDone() {
-    if (disabled || reveal || submitted || selected.length !== 3) return;
+    if (disabled || reveal || submitted || selected.length !== item.pieceCount) return;
     setSubmitted(true);
     onRespond([...selected].sort((a, b) => a - b));
   }
 
-  // Reveal: the 3 true pieces always get the green "correct" treatment; any
-  // piece she tapped that wasn't one of them gets the rose "wrong pick"
-  // treatment; everything else is dimmed out of the way.
+  // Reveal: the `item.pieceCount` true pieces always get the green "correct"
+  // treatment; any piece she tapped that wasn't one of them gets the rose
+  // "wrong pick" treatment; everything else is dimmed out of the way.
   const answerSet = reveal ? new Set(item.answer) : null;
   const pickedSet = reveal ? new Set(lastResponse ?? []) : null;
 
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-6 bg-cream p-4">
       <TargetSilhouette item={item} />
+
+      {/* pieceCount is always 2 or 3 — never a singular "piece". */}
+      {!reveal && <p className="text-lg font-semibold text-ink/70">Tap {item.pieceCount} pieces</p>}
 
       {/* max-w wide enough that 6 tiles at CELL_PX=36 fit across the 1180px
           iPad viewport in one row when the pieces are small; flex-wrap still
@@ -166,7 +169,7 @@ export function VisualPuzzlesView({
       {!disabled && (
         <button
           type="button"
-          disabled={selected.length !== 3 || submitted}
+          disabled={selected.length !== item.pieceCount || submitted}
           onClick={handleDone}
           className="rounded-full bg-teal-400 px-12 py-5 text-2xl font-bold text-white transition active:scale-95 disabled:bg-teal-100 disabled:text-ink/40"
         >

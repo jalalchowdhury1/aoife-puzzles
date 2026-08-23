@@ -170,6 +170,9 @@ No secrets in the repo. Never print them to a transcript.
   that yet" instead of by weight. Option count is 3 at d1 and 4 from d2 on (never 5 anymore — see
   `figureWeights.test.ts` and the Figure Weights section of `fairness.test.ts` for the per-band
   scale-count/option-count checks).
+
+  Block Design 45/75/120 s by difficulty, Visual Puzzles 45 s (d≤3) / 30 s (d≥4), Figure Weights 30 s,
+  Arithmetic 30 s after speech ends, Coding / Symbol Search 120 s block windows.
 - **Reload mid-block** restarts that block with fresh seeds; completed blocks are never redone; a part
   that is complete redirects to `/` unless `?replay=1` — checked against the **merged** (server + local)
   session list, so a part the server knows is done redirects even if this device's localStorage never
@@ -205,6 +208,23 @@ No secrets in the repo. Never print them to a transcript.
 - Symbol Search item score is 1/0; the block-level "correct − incorrect" is derivable from `BlockSummary`.
 - **Difficulty scales have history.** When a genre's ramp is rebuilt, add an entry to `SCALE_CHANGES` in `lib/engine/scale.ts` (genre, cutover ISO time, old→new map). `computeProfile` remaps pre-cutover ceilings so her record stays comparable; raw sessions in KV are never rewritten. 2026-08-23: Piece Picker (old d1 = new d5) and Balance (old d4 = new d6).
 - `.claude/` (agent worktrees) and `.npm-cache/` are gitignored and ESLint-ignored; keep them that way.
+- **Piece Picker ramp (2026-08-23)**: rebuilt from level 0 after a 5-year-old passed the 1/2/3-cell items
+  then hit notched squares/L-pieces with 6 options and timed out four times running ("insanely hard even
+  for me") — the old d1 was not basic enough and d3→d4 was a cliff. `VisualPuzzlesItem` now carries
+  `pieceCount: 2 | 3` and `optionCount: 3 | 4 | 6` (the view shows "Tap N pieces" and Done enables at
+  exactly `pieceCount`), resolved per difficulty by `bandOptionsFor` in `lib/genres/visualPuzzles.ts`: d1
+  a domino + single cell (3 cells, 2 pieces, 3 options — 1 obviously-wrong distractor); d2 a 4-cell target
+  from 2 pieces (1+3 or two differently-oriented dominoes, 4 options); d3 a 5-6 cell target from 2 distinct
+  pieces (2+3/2+4/3+3, 4 options, no more monominoes); d4 back to 3 pieces (1+2+3=6 cells) but only 4
+  options (1 obviously-wrong distractor) as a gentler re-introduction before 6 options return. d5-10 replay
+  the OLD ramp's bands verbatim, shifted up: d5/d6 = old d1/d2 (4×4, 5-6 cells, 6 options, obvious
+  distractors), d7 = old d3 (4×4, 6-8 cells), d8 = old d4+d5 folded into one difficulty (a 4×4/6-8-cell or
+  5×5/9-12-cell sub-band chosen once per item — real mirror/near-miss distractors begin here, no rotation
+  yet), d9 = old d6+d7 (5×5, 9-12 cells, rotation begins), d10 = old d8-10 (6×6, 12-16 cells, rotation).
+  Distractors are "obviously wrong by cell count" through d7 and never a mirror below d8 (mirror/near-miss
+  distractors are d≥8 only); no two options share a shape (exact match below d9, rotation-equivalent from
+  d9). Time caps: 45 s at d≤3 (the new absolute-basics bands need more room), 30 s at d≥4 (unchanged from
+  before). The sample item is now d4-style (3 true pieces, 1 distractor, 4 options total).
 
 ## 6. State / TODO
 

@@ -25,7 +25,17 @@ export interface Genre<I = unknown, R = unknown> {
   timing: Timing;
   mode: "staircase" | "speedBlock";
   bankId?(item: I): string | undefined;       // bank-backed genres only
+  audit?(item: I): string;                    // self-contained HTML/SVG snippet for docs/audit/items.html (no React)
+  e2e?: E2EPlan;                              // how the Playwright play-through answers this genre generically (required for new genres)
+  retired?: boolean;                          // true = kept for her history only; never put in a level (decision #16)
 }
+/** Generic play-through recipe: views expose data-testid="answer-option" (tappable answers) and data-testid="done". */
+export type E2EPlan =
+  | { kind: "options"; pick: number }          // tap `pick` answer-option(s) then Done (pick 1 = tap + Done)
+  | { kind: "tapOnly" }                        // tap one answer-option; no Done (speed genres)
+  | { kind: "numpad" }                         // tap digit "1" then Done
+  | { kind: "buildThenDone" }                  // just press Done (empty build is a valid wrong answer)
+  | { kind: "sequence"; taps: number };         // after any exposure/listening, tap `taps` answer-options then Done
 
 export interface GenreViewProps<I, R> {
   item: I; disabled: boolean; display?: "audio" | "both";

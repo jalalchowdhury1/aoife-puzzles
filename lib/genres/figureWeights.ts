@@ -1,5 +1,6 @@
 import type { Genre, ScoreResult, Difficulty } from "../engine/types";
 import { makeRng, type Rng } from "../engine/rng";
+import { itemMs } from "../engine/timing";
 import { SHAPES, type Shape } from "./shapes";
 
 /** One pan-balance: `right: null` marks the "?" pan (only on the last scale of an item). */
@@ -40,6 +41,10 @@ function sameShapeSet(a: Shape[], b: Shape[]): boolean {
   if (sa.size !== sb.size) return false;
   for (const s of sa) if (!sb.has(s)) return false;
   return true;
+}
+
+function repeat(shape: Shape, n: number): Shape[] {
+  return Array.from({ length: n }, () => shape);
 }
 
 function randomMultiset(rng: Rng, shapes: Shape[], len: number): Shape[] {
@@ -157,66 +162,166 @@ function assembleOptions(
   return { options: shuffled.map(e => e.shapes), answer: shuffled.findIndex(e => e.isCorrect) };
 }
 
-// d1-3: one scale, k (1-4) copies of one shape on the left, "?" on the right.
-// The rule is direct: the answer is the same multiset. 2-3 shapes are in play overall
-// so the 4 distractors can be built from more than just the one pictured shape.
-function buildTier1(rng: Rng): FigureWeightsItem {
-  const shapesUsedCount = rng.int(2, 3);
-  const usedShapes = rng.shuffle(SHAPES).slice(0, shapesUsedCount);
-  const weightValues = rng.shuffle([1, 2, 3, 4, 5, 6]).slice(0, shapesUsedCount);
-  const weights: WeightMap = {};
-  usedShapes.forEach((s, i) => {
-    weights[s] = weightValues[i];
-  });
+/** Shuffles the 4 possible counts (1-4) of a single shape and reports which
+ * shuffled slot holds `target` — the closed-enumeration option set shared by
+ * d2 ("which count matches?") and d5 ("doubled" counts): since every count
+ * multiplies the same positive weight, all 4 totals are automatically
+ * distinct, so there is never a search or a GenFail here. */
+function countOptionsSet(rng: Rng, shape: Shape, target: number): { options: Shape[][]; answer: number } {
+  const entries = [1, 2, 3, 4].map(n => ({ n, shapes: repeat(shape, n) }));
+  const shuffled = rng.shuffle(entries);
+  return { options: shuffled.map(e => e.shapes), answer: shuffled.findIndex(e => e.n === target) };
+}
 
-  const primary = usedShapes[0];
-  const k = rng.int(1, 4);
-  const questionLeft = Array.from({ length: k }, () => primary);
-  const scale: Scale = { left: questionLeft, right: null };
+// d1: one scale, exactly 1 of one shape on the left, "?" on the right. Options
+// (3): 1 of the same shape (correct), 2 of it, 3 of it. Only ONE shape exists
+// anywhere in the item — the most literal possible "what is the same?" rule.
+function buildD1(rng: Rng): FigureWeightsItem {
+  const shape = rng.pick(SHAPES);
+  const weight = rng.int(1, 6);
+  const weights: WeightMap = { [shape]: weight };
+  const scale: Scale = { left: repeat(shape, 1), right: null };
 
-  const T = totalWeight(questionLeft, weights);
-  const correct = [...questionLeft];
-  const distractors = findDistractors(rng, usedShapes, weights, T, correct, MAX_PAN, 4);
+  const correct = repeat(shape, 1);
+  const distractors = [repeat(shape, 2), repeat(shape, 3)];
   const { options, answer } = assembleOptions(rng, correct, distractors);
 
   return { scales: [scale], options, answer, weights };
 }
 
-// d4-6: scale 1 balances two shapes (single shape type per pan, random lengths <=4);
-// scale 2 (the question) is 1-3 copies of one of those two shapes, "?" on the right.
-function buildTier2(rng: Rng): FigureWeightsItem {
+// d2: one scale, 2-3 of one shape on the left, "?" on the right. Options (4):
+// the full 1-4 count range of that SAME shape — the same count as the left
+// pan is correct, other counts are wrong. Still only one shape in the item.
+function buildD2(rng: Rng): FigureWeightsItem {
+  const shape = rng.pick(SHAPES);
+  const weight = rng.int(1, 6);
+  const weights: WeightMap = { [shape]: weight };
+  const k = rng.int(2, 3);
+  const scale: Scale = { left: repeat(shape, k), right: null };
+
+  const { options, answer } = countOptionsSet(rng, shape, k);
+
+  return { scales: [scale], options, answer, weights };
+}
+
+// d3: one scale, a MIX of two shapes on the left, "?" on the right. Options
+// (4): the identical multiset (correct) plus 3 different multisets built
+// from those same two shapes (different counts, no foreign shape).
+function buildD3(rng: Rng): FigureWeightsItem {
+  const [shapeA, shapeB] = rng.shuffle(SHAPES).slice(0, 2);
+  const weightValues = rng.shuffle([1, 2, 3, 4, 5, 6]).slice(0, 2);
+  const weights: WeightMap = { [shapeA]: weightValues[0], [shapeB]: weightValues[1] };
+  const usedShapes = [shapeA, shapeB];
+
+  const questionLeft = findMixedLeft(rng, usedShapes, MAX_PAN);
+  const scale: Scale = { left: questionLeft, right: null };
+
+  const T = totalWeight(questionLeft, weights);
+  const correct = [...questionLeft];
+  const distractors = findDistractors(rng, usedShapes, weights, T, correct, MAX_PAN, 3);
+  const { options, answer } = assembleOptions(rng, correct, distractors);
+
+  return { scales: [scale], options, answer, weights };
+}
+
+// d4: scale 1 is a SHOWN, balanced equivalence (e.g. 1 square = 2 circles);
+// scale 2 (the question) literally repeats scale 1's left pan, so the answer
+// is scale 1's right pan read straight off — no arithmetic required. Options
+// (4) are the full 1-4 count range of the answer's own shape.
+function buildD4(rng: Rng): FigureWeightsItem {
   const [shapeA, shapeB] = rng.shuffle(SHAPES).slice(0, 2);
   const pair = findBalancedPair(rng, MAX_PAN);
   const weights: WeightMap = { [shapeA]: pair.wx, [shapeB]: pair.wy };
-  const scale1: Scale = { left: Array.from({ length: pair.lx }, () => shapeA), right: Array.from({ length: pair.ly }, () => shapeB) };
+  const scale1: Scale = { left: repeat(shapeA, pair.lx), right: repeat(shapeB, pair.ly) };
+
+  const scaleQ: Scale = { left: repeat(shapeA, pair.lx), right: null };
+
+  const { options, answer } = countOptionsSet(rng, shapeB, pair.ly);
+
+  return { scales: [scale1, scaleQ], options, answer, weights };
+}
+
+// d5: the same kind of shown equivalence as d4, but the question DOUBLES the
+// pictured count (e.g. scale 1 shows 1 square = 2 circles; the question asks
+// about 2 squares). Lengths are capped at 2 on scale 1 so the doubled counts
+// never exceed the 4-shape pan/option budget. Options (4) are again the full
+// 1-4 count range of the answer's own shape.
+function buildD5(rng: Rng): FigureWeightsItem {
+  const [shapeA, shapeB] = rng.shuffle(SHAPES).slice(0, 2);
+  const pair = findBalancedPair(rng, 2);
+  const weights: WeightMap = { [shapeA]: pair.wx, [shapeB]: pair.wy };
+  const scale1: Scale = { left: repeat(shapeA, pair.lx), right: repeat(shapeB, pair.ly) };
+
+  const qCount = pair.lx * 2;
+  const targetCount = pair.ly * 2;
+  const scaleQ: Scale = { left: repeat(shapeA, qCount), right: null };
+
+  const { options, answer } = countOptionsSet(rng, shapeB, targetCount);
+
+  return { scales: [scale1, scaleQ], options, answer, weights };
+}
+
+// d6: one shown equivalence (scale 1) plus a question scale of 1-3 copies of
+// EITHER shape, with mixed-shape distractor options (a distractor may be a
+// different shape, or a mix, from the question pan) — the old d4 design.
+function buildD6(rng: Rng): FigureWeightsItem {
+  const [shapeA, shapeB] = rng.shuffle(SHAPES).slice(0, 2);
+  const pair = findBalancedPair(rng, MAX_PAN);
+  const weights: WeightMap = { [shapeA]: pair.wx, [shapeB]: pair.wy };
+  const scale1: Scale = { left: repeat(shapeA, pair.lx), right: repeat(shapeB, pair.ly) };
 
   const usedShapes = [shapeA, shapeB];
   const chosen = rng.pick(usedShapes);
   const lenQ = rng.int(1, 3);
-  const questionLeft = Array.from({ length: lenQ }, () => chosen);
+  const questionLeft = repeat(chosen, lenQ);
   const scaleQ: Scale = { left: questionLeft, right: null };
 
   const T = totalWeight(questionLeft, weights);
   const correct = findCorrectOption(rng, usedShapes, weights, T, questionLeft, MAX_PAN);
-  const distractors = findDistractors(rng, usedShapes, weights, T, correct, MAX_PAN, 4);
+  const distractors = findDistractors(rng, usedShapes, weights, T, correct, MAX_PAN, 3);
   const { options, answer } = assembleOptions(rng, correct, distractors);
 
   return { scales: [scale1, scaleQ], options, answer, weights };
 }
 
-// d7-8 (mixed=false) / d9-10 (mixed=true): two balanced scales chained through a shared
-// shape over 3 shapes total, then a question scale. At d9-10 the question's left pan
-// mixes two of the three shapes instead of repeating just one.
+// d7: same shape as d6 but with larger counts (question pan up to 4, not 3)
+// and, about half the time, a MIXED question pan (both shapes at once) —
+// the old d5-6 design, one step before the two-equivalence tiers.
+function buildD7(rng: Rng): FigureWeightsItem {
+  const [shapeA, shapeB] = rng.shuffle(SHAPES).slice(0, 2);
+  const pair = findBalancedPair(rng, MAX_PAN);
+  const weights: WeightMap = { [shapeA]: pair.wx, [shapeB]: pair.wy };
+  const scale1: Scale = { left: repeat(shapeA, pair.lx), right: repeat(shapeB, pair.ly) };
+
+  const usedShapes = [shapeA, shapeB];
+  const mixQuestion = rng.next() < 0.5;
+  const questionLeft = mixQuestion
+    ? findMixedLeft(rng, usedShapes, MAX_PAN)
+    : repeat(rng.pick(usedShapes), rng.int(1, 4));
+  const scaleQ: Scale = { left: questionLeft, right: null };
+
+  const T = totalWeight(questionLeft, weights);
+  const correct = findCorrectOption(rng, usedShapes, weights, T, questionLeft, MAX_PAN);
+  const distractors = findDistractors(rng, usedShapes, weights, T, correct, MAX_PAN, 3);
+  const { options, answer } = assembleOptions(rng, correct, distractors);
+
+  return { scales: [scale1, scaleQ], options, answer, weights };
+}
+
+// d8 (mixed=false) / d9-10 (mixed=true): two balanced scales chained through a
+// shared shape over 3 shapes total, then a question scale. When mixed, the
+// question's left pan combines two of the three shapes instead of repeating
+// just one — the old d7 / d8-10 design.
 function buildTier34(rng: Rng, mixed: boolean): FigureWeightsItem {
   const [shapeA, shapeB, shapeC] = rng.shuffle(SHAPES).slice(0, 3);
 
   const pair1 = findBalancedPair(rng, MAX_PAN);
   const weights: WeightMap = { [shapeA]: pair1.wx, [shapeB]: pair1.wy };
-  const scale1: Scale = { left: Array.from({ length: pair1.lx }, () => shapeA), right: Array.from({ length: pair1.ly }, () => shapeB) };
+  const scale1: Scale = { left: repeat(shapeA, pair1.lx), right: repeat(shapeB, pair1.ly) };
 
   const partner = findBalancedPartner(rng, pair1.wy, MAX_PAN, [pair1.wx, pair1.wy]);
   weights[shapeC] = partner.otherWeight;
-  const scale2: Scale = { left: Array.from({ length: partner.lenFixed }, () => shapeB), right: Array.from({ length: partner.lenOther }, () => shapeC) };
+  const scale2: Scale = { left: repeat(shapeB, partner.lenFixed), right: repeat(shapeC, partner.lenOther) };
 
   const usedShapes = [shapeA, shapeB, shapeC];
   let questionLeft: Shape[];
@@ -225,23 +330,28 @@ function buildTier34(rng: Rng, mixed: boolean): FigureWeightsItem {
   } else {
     const chosen = rng.pick(usedShapes);
     const lenQ = rng.int(1, 3);
-    questionLeft = Array.from({ length: lenQ }, () => chosen);
+    questionLeft = repeat(chosen, lenQ);
   }
   const scaleQ: Scale = { left: questionLeft, right: null };
 
   const T = totalWeight(questionLeft, weights);
   const correct = findCorrectOption(rng, usedShapes, weights, T, questionLeft, MAX_PAN);
-  const distractors = findDistractors(rng, usedShapes, weights, T, correct, MAX_PAN, 4);
+  const distractors = findDistractors(rng, usedShapes, weights, T, correct, MAX_PAN, 3);
   const { options, answer } = assembleOptions(rng, correct, distractors);
 
   return { scales: [scale1, scale2, scaleQ], options, answer, weights };
 }
 
 function buildItem(rng: Rng, d: Difficulty): FigureWeightsItem {
-  if (d <= 3) return buildTier1(rng);
-  if (d <= 6) return buildTier2(rng);
-  if (d <= 8) return buildTier34(rng, false);
-  return buildTier34(rng, true);
+  if (d === 1) return buildD1(rng);
+  if (d === 2) return buildD2(rng);
+  if (d === 3) return buildD3(rng);
+  if (d === 4) return buildD4(rng);
+  if (d === 5) return buildD5(rng);
+  if (d === 6) return buildD6(rng);
+  if (d === 7) return buildD7(rng);
+  if (d === 8) return buildTier34(rng, false);
+  return buildTier34(rng, true); // d9, d10
 }
 
 function generate(seed: number, d: Difficulty): FigureWeightsItem {
@@ -258,17 +368,15 @@ function generate(seed: number, d: Difficulty): FigureWeightsItem {
 }
 
 function sample(): { item: FigureWeightsItem; explanation: string } {
-  const weights: WeightMap = { circle: 2, square: 4, triangle: 5 };
-  const scale: Scale = { left: ["circle", "circle"], right: null };
-  const options: Shape[][] = [
-    ["circle"],
-    ["circle", "circle"],
-    ["square", "square"],
-    ["triangle"],
-    ["square", "circle", "triangle"],
-  ];
-  const item: FigureWeightsItem = { scales: [scale], options, answer: 1, weights };
-  return { item, explanation: "Two circles on one side need two circles on the other side to balance." };
+  const weights: WeightMap = { circle: 2 };
+  const scale: Scale = { left: ["circle"], right: null };
+  const options: Shape[][] = [["circle"], ["circle", "circle"], ["circle", "circle", "circle"]];
+  const item: FigureWeightsItem = { scales: [scale], options, answer: 0, weights };
+  return {
+    item,
+    explanation:
+      "One circle on one side needs one circle on the other side to balance. The same thing weighs the same.",
+  };
 }
 
 function score(item: FigureWeightsItem, response: number | null): ScoreResult {
@@ -286,6 +394,6 @@ export const figureWeights: Genre<FigureWeightsItem, number> = {
   sample,
   generate,
   score,
-  timing: { kind: "item", ms: () => 30000 },
+  timing: { kind: "item", ms: itemMs([[5, 45000], [10, 30000]]) },
   mode: "staircase",
 };

@@ -46,7 +46,7 @@ const RAMP: Record<GenreId, string> = {
   blockDesign:
     "d1-2: 2x2, white/red only, no diagonals. d3-6: 2x2/3x3 with 1-3 diagonals, grid lines shown. d7-10: 3x3 with 3-9 diagonals, grid lines hidden from d7.",
   figureWeights:
-    "d1-3: one scale, a direct copy of the pictured pile. d4-6: a given balanced scale plus the question. d7-8: three chained scales. d9-10: three scales with a mixed-shape question pan.",
+    "d1: one scale, 1 shape, 'is this the same?' (3 options: 1/2/3 copies). d2: one scale, 2-3 of one shape (4 options: counts 1-4). d3: one scale, a mix of two shapes; find the identical pile among 4 mixed-count options. d4: an equivalence is SHOWN and the question reads it straight off, no arithmetic. d5: the same shown equivalence, doubled. d6-7: one equivalence with mixed-shape distractor options (d7: larger counts / sometimes a mixed question pan). d8: two chained equivalences over three shapes, single-shape question. d9-10: two chained equivalences with a mixed-shape question pan.",
   arithmetic:
     "d1-2: counting/adding within 10 (~age 6). d3-4: add/subtract within 20 (~age 7-8). d5-6: two-step within 100, time and money (~age 9-10). d7-8: multiplication/division with remainders (~age 11-12). d9-10: multi-step with fractions and rates (~age 13).",
   digitSpan:

@@ -119,9 +119,11 @@ const SPECS: Record<GenreId, GenreTestSpec> = {
     },
   },
   figureWeights: {
-    // Balance: 5 options.
+    // Balance: option count varies by difficulty since the 2026-08-23 ramp
+    // (3 at d1, 4 from d2 up — see lib/genres/figureWeights.ts), so this just
+    // waits for at least one option and picks whichever is first.
     assertItem: async (page) => {
-      await expect(page.getByTestId("weight-option")).toHaveCount(5);
+      await expect(page.getByTestId("weight-option").first()).toBeVisible();
     },
     answer: async (page) => {
       await page.getByTestId("weight-option").first().click();

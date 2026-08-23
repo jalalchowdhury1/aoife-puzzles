@@ -490,7 +490,10 @@ describe("Block Design (Block Builder) — genre-specific fairness rules", () =>
 });
 
 // ---------------------------------------------------------------------------
-// FIGURE WEIGHTS (Balance)
+// FIGURE WEIGHTS (Balance) — 2026-08-23 "level-0" ramp (AGENTS.md §5 "Balance
+// ramp"): rebuilt from absolute basics (d1 matching, d2 counting, d3 mixed
+// matching, d4 read-off, d5 doubling) before the old substitution tiers
+// (now d6-10) so there is no cliff between "trivial" and "algebra".
 // ---------------------------------------------------------------------------
 describe("Figure Weights (Balance) — genre-specific fairness rules", () => {
   const FW_ITEMS = itemsOf<FigureWeightsItem>("figureWeights");
@@ -523,10 +526,41 @@ describe("Figure Weights (Balance) — genre-specific fairness rules", () => {
     }
   });
 
-  it("d1-3 items show exactly one scale — the direct 'same pile balances' rule, before a second scale asks her to combine two separate facts", () => {
+  it("d1-3 items show exactly one scale — the direct 'what is the same?' rule, before a second scale asks her to combine two separate facts", () => {
     for (const { item, seed, d } of FW_ITEMS) {
       if (d > 3) continue;
       expect(item.scales.length, `seed${seed} d${d}`).toBe(1);
+    }
+  });
+
+  it("d4-7 items show exactly two scales — one SHOWN equivalence plus the question, before a third scale chains in a second equivalence", () => {
+    for (const { item, seed, d } of FW_ITEMS) {
+      if (d < 4 || d > 7) continue;
+      expect(item.scales.length, `seed${seed} d${d}`).toBe(2);
+    }
+  });
+
+  it("d8-10 items show exactly three scales — two chained equivalences over three shapes, plus the question", () => {
+    for (const { item, seed, d } of FW_ITEMS) {
+      if (d < 8) continue;
+      expect(item.scales.length, `seed${seed} d${d}`).toBe(3);
+    }
+  });
+
+  it("option count matches its band — 3 at d1 (one correct + two counts of the same shape), 4 from d2 up; never 5 anymore", () => {
+    for (const { item, seed, d } of FW_ITEMS) {
+      const expected = d === 1 ? 3 : 4;
+      expect(item.options.length, `seed${seed} d${d}`).toBe(expected);
+    }
+  });
+
+  it("d<=5: every option is built ONLY from shapes that actually appear on the scales — a foreign shape would let her rule out a distractor by 'I haven't seen that shape yet' instead of reasoning about weight", () => {
+    for (const { item, seed, d } of FW_ITEMS) {
+      if (d > 5) continue;
+      const shapesOnScales = new Set(item.scales.flatMap(s => [...s.left, ...(s.right ?? [])]));
+      for (const opt of item.options) {
+        for (const s of opt) expect(shapesOnScales.has(s), `seed${seed} d${d}`).toBe(true);
+      }
     }
   });
 });

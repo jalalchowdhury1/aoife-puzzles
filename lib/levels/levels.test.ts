@@ -74,8 +74,13 @@ describe("Level 2 (Practice Round 1)", () => {
     }
   });
 
-  it("uses every genre in GENRE_LIST exactly once across all parts", () => {
-    usesEveryGenreOnce(level2);
+  it("covers every genre, and Part D (added 2026-08-23) repeats only the two rebuilt-ramp genres", () => {
+    const all = level2.parts.flatMap((p) => p.blocks.map((b) => b.genre));
+    for (const g of GENRE_LIST) expect(all).toContain(g);
+    const partD = level2.parts.find((p) => p.id === "D")!;
+    expect(partD.blocks.map((b) => b.genre)).toEqual(["visualPuzzles", "figureWeights"]);
+    const dupes = all.filter((g, i) => all.indexOf(g) !== i);
+    expect(new Set(dupes)).toEqual(new Set(["visualPuzzles", "figureWeights"]));
   });
 });
 

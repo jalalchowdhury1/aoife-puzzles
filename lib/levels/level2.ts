@@ -46,5 +46,17 @@ export const level2: LevelConfig = {
         { genre: "comprehension", start: "fromProfile" },
       ],
     },
+    {
+      // Added 2026-08-23 after the Piece Picker / Balance ramps were rebuilt from level 0
+      // while her Part A was already in progress: a short extra sitting so she meets the
+      // new basics properly instead of replaying Part A.
+      id: "D",
+      title: "Shapes again",
+      sticker: "🧱",
+      blocks: [
+        { genre: "visualPuzzles", start: "fromProfile" },
+        { genre: "figureWeights", start: "fromProfile" },
+      ],
+    },
   ],
 };

@@ -87,7 +87,7 @@ export function adaptPart(part: PartConfig, level: LevelConfig, profile: Profile
   const remedial = level.weighting === "remedial";
 
   const resolved: ResolvedBlock[] = part.blocks.map((block) => {
-    const strength = strengths[block.genre] ?? "typical";
+
     const stats = profile.genres[block.genre];
     // A genre whose ramp was rebuilt AFTER her last measurement starts from level 1:
     // the old ceiling says nothing about the new basics (owner, 2026-08-23: "build
@@ -95,6 +95,8 @@ export function adaptPart(part: PartConfig, level: LevelConfig, profile: Profile
     const lastMeasuredAt = stats?.trend.length ? stats.trend[stats.trend.length - 1].date : null;
     const rampRebuiltSince = SCALE_CHANGES.some(ch => ch.genre === block.genre && (lastMeasuredAt === null || lastMeasuredAt < ch.cutover));
     const ceiling = rampRebuiltSince ? null : (stats?.ceiling ?? null);
+    // ...and is treated as a practice target (weak) until it has been measured on the new ramp.
+    const strength: Strength = rampRebuiltSince ? "weak" : (strengths[block.genre] ?? "typical");
 
     let start: number;
     let maxItems: number;

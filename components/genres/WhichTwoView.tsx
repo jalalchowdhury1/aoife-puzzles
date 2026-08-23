@@ -122,7 +122,7 @@ export function WhichTwoView({
     // region, never part of the scroll, so it's always fully visible
     // without scrolling.
     <div className="flex min-h-full w-full max-w-xl mx-auto flex-col items-center">
-      <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-6 overflow-y-auto p-4 pb-2">
+      <div className="flex w-full flex-1 min-h-0 flex-col items-center justify-center-safe gap-6 overflow-y-auto p-4 pb-2">
         <p className="text-xl text-ink text-center">Tap the two that go together.</p>
 
         <div className="flex flex-wrap items-center justify-center gap-3">

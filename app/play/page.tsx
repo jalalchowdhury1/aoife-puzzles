@@ -273,6 +273,7 @@ function PlayRunner() {
   // Fun layer state (see usedLinesRef comment above for the gate).
   const [welcomeLine, setWelcomeLine] = useState<string | null>(null);
   const [blockDoneLine, setBlockDoneLine] = useState<string | null>(null);
+  const bailedRef = useRef(false); // she tapped "Not fun" on the current block
   const [praiseLine, setPraiseLine] = useState<PipLine | null>(null); // correct-answer PraiseScreen
   const [praiseCelebrate, setPraiseCelebrate] = useState(false); // small confetti burst at a 5-streak
   const [missPip, setMissPip] = useState<PipLine | null>(null); // Pip's caption on the answer-reveal screen
@@ -539,6 +540,25 @@ function PlayRunner() {
     setPhase("item");
   }
 
+  /** She tapped "Not fun" (owner, 2026-08-23): end the block warmly, right now.
+   * The current item is recorded with `bailed: true` (0 points) — agency, not
+   * ability; the server stamps a "not-fun" quality flag from it and the block's
+   * earlier answers still count. Never shown as a miss. */
+  function bailBlock() {
+    const cfg = resolvedBlocks[blockIndex];
+    if (blockEndedRef.current || !cfg || !levelCfg) return;
+    respondedRef.current = true;
+    const genre = GENRES[cfg.genre];
+    const ms = startedAtMs !== null ? performance.now() - startedAtMs : 0;
+    const bailRecord: ItemRecord = {
+      idx: records.length, seed, d: stair ? stair.d : (1 as ItemRecord["d"]),
+      points: 0, max: 1, correct: false, ms, timedOut: false, response: null,
+      bailed: true, bankId: genre.bankId?.(item),
+    };
+    bailedRef.current = true;
+    void endBlock([...records, bailRecord]);
+  }
+
   async function endBlock(finalRecords: ItemRecord[]) {
     const cfg = resolvedBlocks[blockIndex];
     if (blockEndedRef.current || !cfg || !session) return;
@@ -593,7 +613,8 @@ function PlayRunner() {
       setBlockIndex((b) => b + 1);
       if (funOn) {
         const rng = makeRng(randomSeed());
-        setBlockDoneLine(pickPraise({ kind: "blockDone", name: KID_NAME, kidTitle: genre.kidTitle }, rng, usedLinesRef.current));
+        setBlockDoneLine(pickPraise({ kind: bailedRef.current ? "bail" : "blockDone", name: KID_NAME, kidTitle: genre.kidTitle }, rng, usedLinesRef.current));
+        bailedRef.current = false;
         scheduleAdvance(() => setPhase("sample"), 2000);
         setPhase("blockDone");
       } else {
@@ -616,6 +637,8 @@ function PlayRunner() {
     if (genre.timing.kind === "item") {
       const cap = genre.timing.ms(stair!.d) * (cfg.timeScale ?? 1);
       fast = ms < cap * 0.5;
+    } else if (genre.timing.kind === "none" && genre.mode === "staircase") {
+      fast = ms < 10_000;   // untimed genres: a quick confident answer counts as fast (fast lane)
     }
     const bankId: string | undefined = genre.bankId?.(item);
 
@@ -661,7 +684,7 @@ function PlayRunner() {
       return;
     }
 
-    const newStair = stepStair(stair!, finalScore.correct);
+    const newStair = stepStair(stair!, finalScore.correct, fast === true);
     setStair(newStair);
     setLastCorrect(finalScore.correct);
     setLastResponse(timedOut ? null : (response ?? null));
@@ -824,6 +847,15 @@ function PlayRunner() {
                       onReady={handleReady}
                       onRespond={handleRespond}
                     />
+                    {funOn && (
+                      <button
+                        type="button"
+                        onClick={bailBlock}
+                        className="fixed bottom-3 left-3 z-30 min-h-11 rounded-full border border-rose-400/60 bg-cream/90 px-4 py-2 text-sm text-ink/60 shadow-sm active:scale-95"
+                      >
+                        😕 Not fun
+                      </button>
+                    )}
                   </>
                 ) : levelCfg.feedback === "reveal" ? (
                   fullScore ? (

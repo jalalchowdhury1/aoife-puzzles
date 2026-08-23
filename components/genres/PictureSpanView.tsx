@@ -127,7 +127,7 @@ export function PictureSpanView({
   // scroll, so it's always fully visible without scrolling.
   return (
     <div className="flex min-h-full w-full flex-col items-center">
-      <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-6 overflow-y-auto p-6 pb-2">
+      <div className="flex w-full flex-1 min-h-0 flex-col items-center justify-center-safe gap-6 overflow-y-auto p-6 pb-2">
         <p className="text-2xl text-ink">Tap them back in the same order.</p>
 
         <div className="flex min-h-24 w-full max-w-xl flex-wrap items-center justify-center gap-3 rounded-2xl bg-teal-100 p-3">

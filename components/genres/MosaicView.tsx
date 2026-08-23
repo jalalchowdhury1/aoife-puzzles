@@ -72,7 +72,7 @@ export function MosaicView({
     // button pin to the bottom (mt-auto + sticky bottom-0, same pattern as
     // every other view) instead of risking being pushed below the fold on a
     // big board.
-    <div className="flex min-h-full w-full flex-col landscape:flex-row items-center landscape:items-stretch justify-center-safe gap-8 bg-cream p-4">
+    <div className="flex min-h-full w-full flex-col landscape:flex-row items-center landscape:items-center landscape:justify-center-safe justify-center-safe gap-8 bg-cream p-4">
       <div className="flex flex-col items-center gap-2">
         <div className="text-2xl font-bold text-ink">Picture</div>
         <div
@@ -91,7 +91,7 @@ export function MosaicView({
           below the fold — Done is a plain sibling AFTER that region, never
           part of the scroll, so it's always fully visible without scrolling. */}
       <div className="flex min-h-0 flex-1 landscape:flex-none flex-col items-center">
-        <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-4 overflow-y-auto pb-2">
+        <div className="flex w-full flex-1 min-h-0 flex-col items-center justify-center-safe gap-4 overflow-y-auto pb-2">
           <div className="text-2xl font-bold text-ink">{boardCaption}</div>
           <div
             className="grid rounded-lg bg-teal-100 p-2"

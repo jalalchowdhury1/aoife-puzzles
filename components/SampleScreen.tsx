@@ -48,7 +48,7 @@ export function SampleScreen({
     // available height (min-h-0) and each column scrolls *itself* — see the
     // inner scrollable wrapper below — while Start (and the preview) stay
     // put, never scrolled away.
-    <div className="flex flex-1 min-h-0 flex-col items-center justify-center gap-4 bg-cream p-3 text-center landscape:flex-row landscape:items-stretch landscape:justify-center landscape:gap-8 landscape:text-left lg:flex-row lg:items-stretch lg:text-left">
+    <div className="flex flex-1 min-h-0 flex-col items-center justify-center gap-4 bg-cream p-3 text-center landscape:flex-row landscape:items-center landscape:justify-center landscape:gap-8 landscape:text-left lg:flex-row lg:items-center lg:text-left">
       <div className="flex min-h-0 flex-col items-center gap-3 landscape:max-w-[34rem] landscape:items-start lg:max-w-[34rem] lg:items-start">
         {/* min-h-full (not just gap-3 centering) so this still centers the
             text as a group when it fits the available height — same look as
@@ -105,7 +105,7 @@ export function SampleScreen({
           numpad+text) render taller than this card gets on a short
           viewport, and plain `center` centered-and-clipped the top of the
           view instead of keeping it reachable via the card's own scroll. */}
-      <div className="flex w-full max-w-md min-h-0 items-center-safe justify-center-safe overflow-y-auto rounded-3xl bg-white p-3 shadow-lg landscape:w-auto landscape:shrink-0 landscape:max-h-full lg:w-auto lg:shrink-0 lg:max-h-full">
+      <div className="flex min-h-0 max-h-full w-fit max-w-full min-w-0 items-center-safe justify-center-safe overflow-auto rounded-3xl bg-white p-3 shadow-lg landscape:shrink lg:shrink">
         <View item={sample.item} disabled reveal lastResponse={null} onReady={() => {}} onRespond={() => {}} />
       </div>
     </div>

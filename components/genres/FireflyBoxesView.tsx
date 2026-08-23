@@ -252,7 +252,7 @@ export function FireflyBoxesView({
     // region, never part of the scroll, so they're always fully visible
     // without scrolling (same pattern as components/PartDone.tsx).
     <div className="flex min-h-full w-full flex-col items-center">
-      <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-6 overflow-y-auto p-6 pb-2">
+      <div className="flex w-full flex-1 min-h-0 flex-col items-center justify-center-safe gap-6 overflow-y-auto p-6 pb-2">
         <p className="text-2xl text-ink">{item.task === "backward" ? "Tap them BACKWARD" : "Tap them back in the same order"}</p>
 
         <div className="grid grid-cols-3 gap-3">

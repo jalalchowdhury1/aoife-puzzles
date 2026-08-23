@@ -304,7 +304,7 @@ export function DigitSpanView({ item, disabled, reveal, lastResponse, onReady, o
   // scrolling.
   return (
     <div className="flex min-h-full w-full flex-col items-center text-ink">
-      <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-6 overflow-y-auto p-6 pb-2">
+      <div className="flex w-full flex-1 min-h-0 flex-col items-center justify-center-safe gap-6 overflow-y-auto p-6 pb-2">
         <div className="flex w-full max-w-md flex-col items-center gap-6">
           <p className="text-center font-bubble text-2xl">{TASK_LABEL[item.task]}</p>
 

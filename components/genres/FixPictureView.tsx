@@ -123,7 +123,7 @@ export function FixPictureView({
     // the fold — Done is a plain sibling AFTER that region, never part of
     // the scroll, so it's always fully visible without scrolling.
     <div className="flex min-h-full w-full flex-col items-center bg-cream">
-      <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-6 overflow-y-auto p-4 pb-2">
+      <div className="flex w-full flex-1 min-h-0 flex-col items-center justify-center-safe gap-6 overflow-y-auto p-4 pb-2">
         <PictureGrid item={item} reveal={reveal} />
 
         {!reveal && <p className="text-lg font-semibold text-ink/70">{tapLabel}</p>}

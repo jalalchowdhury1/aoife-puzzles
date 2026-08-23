@@ -102,7 +102,7 @@ export default function MatrixView({
           below the fold — Done is a plain sibling AFTER that region, never
           part of the scroll, so it's always fully visible without scrolling. */}
       <div className="flex min-h-0 flex-1 landscape:flex-none flex-col items-center">
-        <div className="flex w-full flex-1 min-h-0 flex-col items-center gap-6 overflow-y-auto pb-2">
+        <div className="flex w-full flex-1 min-h-0 flex-col items-center justify-center-safe gap-6 overflow-y-auto pb-2">
           {/*
             Portrait: wrap the 5 options in a row (plenty of vertical room).
             Landscape (iPad 1180x713): stack them in a column to the right of

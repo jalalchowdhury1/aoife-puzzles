@@ -107,11 +107,23 @@ the server didn't answer; it only prefers `state.blocks` when the fetch succeede
 
 - `npm install --cache ./.npm-cache` (the global npm cache on this Mac is corrupted; `.npm-cache/` is gitignored).
 - `npm run dev` · `npm test` (Vitest, `lib/**/*.test.ts`, generators swept 500 seeds × 10 difficulties) ·
-  `npm run lint` · `npm run typecheck` · `npm run build`.
-- Deploy: `vercel --prod --yes` from the repo root. **GitHub auto-deploy is NOT connected** (the Vercel
-  GitHub App lacks access to the repo; same gotcha as aoife-math). Pushing to main does nothing on Vercel.
-- Definition of done for any change: tests + lint + tsc + build green, deployed, and a real walkthrough on
-  the iPad (speech needs a real Safari; simulators lie about audio).
+  `npm run lint` · `npm run typecheck` · `npm run build` · `npm run e2e` (Playwright, `e2e/**`).
+- **Deploy: ALWAYS run `npm run release`; never call `vercel --prod` directly.** `scripts/release.sh` is the
+  release gate for owner decision #14: nothing deploys unless every puzzle demonstrably works. It runs, in
+  order, lint → `tsc --noEmit` → unit tests → build → the Playwright play-through, printing a ✅/❌ per step,
+  and only if every step is green does it run `vercel --prod --yes` and `vercel ls`. Any red step aborts
+  before anything deploys. **GitHub auto-deploy is NOT connected** (the Vercel GitHub App lacks access to
+  the repo; same gotcha as aoife-math) — pushing to main does nothing on Vercel; `npm run release` is the
+  only way a change reaches production.
+- The Playwright play-through (`e2e/playthrough.spec.ts`, config `playwright.config.ts`) drives an automated
+  browser through every genre in one pass via the hidden QA level (`lib/levels/levelQa.ts`, id 99,
+  `released: false` — reachable only at `/play?level=99&part=Q&replay=1`, every genre once, `maxItems: 2`,
+  and `blockMs: 4000` on the two speed blocks via `BlockConfig.blockMs`). It stubs `speechSynthesis` (so
+  `speak()` resolves instantly instead of hanging in a headless browser) and stubs `fetch` for
+  `/api/state`/`/api/sessions` (so the run resolves everything locally and never touches KV). Run it alone
+  with `npm run e2e`; first run needs `npx playwright install chromium`.
+- Definition of done for any change: `npm run release` green (lint + tsc + tests + build + e2e all pass),
+  deployed, and a real walkthrough on the iPad (speech needs a real Safari; simulators lie about audio).
 
 ## 4. Secrets & env (Vercel project `aoife-puzzles`, team jalalchowdhury-8053)
 

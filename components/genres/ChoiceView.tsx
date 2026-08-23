@@ -58,6 +58,7 @@ export function ChoiceView({ item, disabled, reveal, lastResponse, onReady, onRe
               <button
                 key={i}
                 type="button"
+                data-testid="choice-option"
                 disabled={disabled}
                 onClick={() => setSelected(i)}
                 className={`min-h-[72px] rounded-2xl px-4 py-3 text-[22px] text-left font-body border-4 transition-colors ${

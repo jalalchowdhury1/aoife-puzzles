@@ -59,6 +59,13 @@ export interface SessionRecord {
 export interface BlockConfig {
   genre: GenreId; start?: number | "fromProfile"; maxItems?: number; display?: "audio" | "both";
   teachingItems?: number;              // overrides the level-wide teachingItems for this block
+  // Overrides a speed genre's block-length countdown (normally SPEED_BLOCK_MS
+  // = 120s). Only meaningful for `mode: "speedBlock"` genres (coding,
+  // symbolSearch); staircase genres ignore it. Used by the hidden QA level
+  // (lib/levels/levelQa.ts) so an e2e play-through doesn't have to sit
+  // through a real 2-minute speed block. See app/play/page.tsx's block
+  // Countdown (`cfg.blockMs ?? genre.timing.ms`).
+  blockMs?: number;
 }
 export interface PartConfig { id: string; title: string; sticker: string; blocks: BlockConfig[] }
 export interface LevelConfig {

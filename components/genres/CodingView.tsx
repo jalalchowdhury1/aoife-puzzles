@@ -80,6 +80,7 @@ export function CodingView({ item, disabled, onReady, onRespond }: GenreViewProp
           <button
             key={mark}
             type="button"
+            data-testid="mark-option"
             disabled={disabled}
             onClick={() => respond(mark)}
             className="flex items-center justify-center bg-teal-400 text-cream rounded-2xl active:bg-teal-600 disabled:opacity-60"

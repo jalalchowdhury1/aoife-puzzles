@@ -3,6 +3,7 @@ import { kvReady, kvSet, kvDel, kvExists, kvLpush, kvSetNx } from "@/lib/engine/
 import { loadAllSessions } from "@/lib/engine/sessionsStore";
 import { sendTelegram, formatPartSummary } from "@/lib/engine/telegram";
 import { isParent } from "@/lib/engine/gate";
+import { flagBlock } from "@/lib/engine/quality";
 import { LEVELS } from "@/lib/levels";
 import type { SessionRecord } from "@/lib/engine/types";
 
@@ -16,6 +17,11 @@ export async function POST(req: Request) {
   if (!ID.test(s.id) || typeof s.level !== "number" || !Array.isArray(s.blocks)) {
     return NextResponse.json({ error: "bad-session" }, { status: 400 });
   }
+
+  // Server-stamped measurement-quality flags (AGENTS.md decision #14) —
+  // always overwrite whatever the client sent, so this is the one place
+  // flags are decided from.
+  s.blocks = s.blocks.map((b) => ({ ...b, flags: flagBlock(b) }));
 
   const existed = await kvExists(`session:${s.id}`);
   await kvSet(`session:${s.id}`, s);

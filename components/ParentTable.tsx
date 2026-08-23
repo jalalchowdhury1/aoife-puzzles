@@ -1,6 +1,7 @@
 import type { DomainStat, GenreStats, Profile } from "@/lib/engine/profile";
-import type { Domain, GenreId } from "@/lib/engine/types";
+import type { Domain, GenreId, SessionRecord } from "@/lib/engine/types";
 import type { Strength } from "@/lib/engine/adapt";
+import type { QualityFlagCode } from "@/lib/engine/quality";
 import { GENRES } from "@/lib/genres";
 
 const DOMAIN_LABELS: Record<Domain, string> = {
@@ -41,6 +42,18 @@ const STRENGTH_COLOR: Record<Strength, string> = {
   strong: "bg-teal-100 text-teal-700",
 };
 
+// Measurement-quality flags (AGENTS.md decision #14). format-not-understood
+// and mass-timeouts also exclude the block from ceilings/values above; the
+// other two codes are shown for awareness only.
+const FLAG_CODE_LABEL: Record<QualityFlagCode, string> = {
+  "format-not-understood": "Format not understood",
+  "mass-timeouts": "Mostly timed out",
+  "rapid-wrong": "Rapid wrong answers",
+  "speed-accuracy": "Low accuracy (speed block)",
+  abandoned: "Abandoned",
+};
+const EXCLUDING_FLAG_CODES = new Set<QualityFlagCode>(["format-not-understood", "mass-timeouts"]);
+
 /**
  * The domain summary, EGAI/CPI bundle line, and per-genre stats table shown
  * on the parent page. Spec §4.5: no norms, percentiles, or IQ-like numbers —
@@ -48,8 +61,21 @@ const STRENGTH_COLOR: Record<Strength, string> = {
  * classifyGenres) shows what a remedial level like Level 2 will actually do
  * with each genre — see AGENTS.md decision #13 / §7.
  */
-export function ParentTable({ profile, strengths }: { profile: Profile; strengths: Record<GenreId, Strength> }) {
+export function ParentTable({
+  profile,
+  strengths,
+  sessions,
+}: {
+  profile: Profile;
+  strengths: Record<GenreId, Strength>;
+  sessions: SessionRecord[];
+}) {
   const genreIds = Object.keys(profile.genres) as GenreId[];
+  const sessionDate = new Map(sessions.map((s) => [s.id, s.startedAt]));
+  const excludingGenres = new Set(profile.flags.filter((f) => EXCLUDING_FLAG_CODES.has(f.code)).map((f) => f.genre));
+  const sortedFlags = [...profile.flags].sort((a, b) =>
+    (sessionDate.get(b.sessionId) ?? "").localeCompare(sessionDate.get(a.sessionId) ?? "")
+  );
 
   return (
     <div className="flex flex-col gap-8">
@@ -57,6 +83,49 @@ export function ParentTable({ profile, strengths }: { profile: Profile; strength
         These are relative strengths and weaknesses within Aoife&apos;s own results. They are not norms,
         percentiles, or IQ scores.
       </p>
+
+      {profile.flags.length > 0 && (
+        <section>
+          <h2 className="mb-2 font-bubble text-2xl text-ink">Flags</h2>
+          <p className="mb-2 text-sm text-ink/60">
+            Blocks that may not measure what they look like — a format she hadn&apos;t learned yet, a broken
+            run, or fast guessing. &quot;Format not understood&quot; and &quot;Mostly timed out&quot; blocks are
+            already excluded from her ceilings and values above; the rest are shown for awareness only.
+          </p>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm text-ink">
+              <thead>
+                <tr className="border-b border-teal-100">
+                  <th className="py-2 pr-4 font-semibold">Date</th>
+                  <th className="py-2 pr-4 font-semibold">Part</th>
+                  <th className="py-2 pr-4 font-semibold">Puzzle</th>
+                  <th className="py-2 font-semibold">Reason</th>
+                </tr>
+              </thead>
+              <tbody>
+                {sortedFlags.map((f, i) => {
+                  const date = sessionDate.get(f.sessionId);
+                  const excludes = EXCLUDING_FLAG_CODES.has(f.code);
+                  return (
+                    <tr key={`${f.sessionId}-${i}`} className="border-b border-teal-50">
+                      <td className="py-2 pr-4">{date ? new Date(date).toLocaleDateString() : "—"}</td>
+                      <td className="py-2 pr-4">{f.part}</td>
+                      <td className="py-2 pr-4">{GENRES[f.genre]?.kidTitle ?? f.genre}</td>
+                      <td className="py-2">
+                        <span className={excludes ? "font-semibold text-rose-500" : "text-ink/70"}>
+                          {FLAG_CODE_LABEL[f.code]}
+                        </span>
+                        {" — "}
+                        {f.detail}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="mb-2 font-bubble text-2xl text-ink">Domains</h2>
@@ -127,7 +196,17 @@ export function ParentTable({ profile, strengths }: { profile: Profile; strength
                 const strength = strengths[g];
                 return (
                   <tr key={g} className="border-b border-teal-50">
-                    <td className="py-2 pr-4">{genre?.kidTitle ?? g}</td>
+                    <td className="py-2 pr-4">
+                      {genre?.kidTitle ?? g}
+                      {excludingGenres.has(g) && (
+                        <span
+                          title="Some results for this puzzle were excluded from her profile — see Flags above."
+                          className="ml-2 whitespace-nowrap text-xs font-semibold text-rose-500"
+                        >
+                          ⚠️ some results excluded
+                        </span>
+                      )}
+                    </td>
                     <td className="py-2 pr-4 tabular-nums">{gs.attempted}</td>
                     <td className="py-2 pr-4 tabular-nums">{gs.correct}</td>
                     <td className="py-2 pr-4 tabular-nums">

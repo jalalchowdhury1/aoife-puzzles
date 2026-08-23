@@ -4,6 +4,7 @@ import { loadAllSessions } from "@/lib/engine/sessionsStore";
 import { currentPosition } from "@/lib/engine/storage";
 import { computeProfile } from "@/lib/engine/profile";
 import { adaptPart, type ResolvedBlock } from "@/lib/engine/adapt";
+import { ensureFlags } from "@/lib/engine/quality";
 import { LEVELS, RELEASED_LEVELS } from "@/lib/levels";
 
 // Public (no PARENT_KEY): this is what the child's own device calls to learn
@@ -17,7 +18,11 @@ const NO_STORE = { "Cache-Control": "no-store" } as const;
 export async function GET(req: Request) {
   if (!kvReady()) return NextResponse.json({ ok: false }, { status: 200, headers: NO_STORE });
 
-  const sessions = await loadAllSessions();
+  // ensureFlags backfills measurement-quality flags (AGENTS.md decision
+  // #14) on sessions written before this feature shipped, so a remedial
+  // level's start/reps are computed off the flag-aware profile even for
+  // her existing Level 1 data, with no KV migration.
+  const sessions = ensureFlags(await loadAllSessions());
 
   const completed = sessions
     .filter((s) => s.complete)

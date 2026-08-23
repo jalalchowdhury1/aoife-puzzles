@@ -39,6 +39,7 @@ spec `docs/superpowers/specs/2026-08-22-aoife-puzzles-design.md` · plan `docs/s
 | 11 | Mood | Calm during; confetti + sticker at the end of a part only. |
 | 12 | Telegram | One summary message per completed part to the owner's @ZingerJC_bot DM. |
 | 13 | Remedial rule (2026-08-22, after launch) | **Every level after the diagnostic adapts to her profile: a weak area starts EASIER and gets MORE practice; a strong area starts near her ceiling and gets fewer reps.** Implemented in `lib/engine/adapt.ts`; levels opt in with `weighting: "remedial"`. Never ship a post-diagnostic level that ignores the profile. |
+| 14 | Measurement quality (2026-08-23, after her Level 1 data showed it was needed) | **A broken or misunderstood puzzle must not become a false weakness in her profile.** `lib/engine/quality.ts` flags blocks like a first attempt at a new format that ended after two straight misses, or a run that mostly timed out; those flags exclude the block from her ceilings/values, are shown to the owner via Telegram, and are listed on the parent page. See §5 "Measurement quality" for the detail. |
 
 ## 2. Architecture
 
@@ -149,6 +150,23 @@ No secrets in the repo. Never print them to a transcript.
 - The staircase's "correct" for 2/1/0 genres = points ≥ 1; ceiling = highest difficulty with points > 0.
 - Profile flags are **relative to her own five domains** (population-SD z, ±0.5). No norms, no IQ-like
   numbers, ever. Say so wherever the profile is shown.
+- **Measurement quality** (decision #14): `lib/engine/quality.ts` (`flagBlock`/`flagSession`, pure) flags a
+  block as `format-not-understood` (a staircase's first two non-teaching items both wrong at d ≤ 2, OR the
+  whole block ended at ≤ 2 attempted with 0 correct — e.g. two missed teaching items), `mass-timeouts`
+  (≥ 50% of attempted items timed out, attempted ≥ 3), `rapid-wrong` (≥ 2 wrong, non-timed-out answers under
+  2 s — informational only), `speed-accuracy` (< 70% accuracy on a speed block, attempted ≥ 10 —
+  informational only), or `abandoned` (attempted === 0). `app/api/sessions/route.ts` stamps `block.flags`
+  server-side on every POST (overwriting anything the client sent); `app/api/profile/route.ts` and
+  `app/api/state/route.ts` both call `ensureFlags` to backfill flags on-the-fly for sessions saved before
+  this shipped (no KV migration). `lib/engine/profile.ts` EXCLUDES `format-not-understood`/`mass-timeouts`
+  blocks entirely from that genre's `attempted`/`correct`/`points`/`max`/`ceiling`/`timeouts`/`medianMs`/
+  `perMinute` (they still appear in that genre's `trend`, marked `flagged: true`) — the point is a broken or
+  misunderstood puzzle must never read as a real weakness (decision #14). `rapid-wrong`/`speed-accuracy`
+  never exclude anything. Every flag (all five codes) also lands in `Profile.flags` for the parent page's
+  "Flags" section (date/part/puzzle/reason) and in the completed part's Telegram summary as one
+  `⚠️ check: <kidTitle> — <detail>` line per flagged block, plus a closing "Flagged blocks are not counted
+  in her profile." line when any block was flagged. `components/ParentTable.tsx` also marks a per-genre row
+  "⚠️ some results excluded" when that genre has any excluded block.
 - Symbol Search item score is 1/0; the block-level "correct − incorrect" is derivable from `BlockSummary`.
 - `.claude/` (agent worktrees) and `.npm-cache/` are gitignored and ESLint-ignored; keep them that way.
 

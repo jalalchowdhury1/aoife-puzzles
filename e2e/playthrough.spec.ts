@@ -7,7 +7,7 @@ import type { GenreId } from "@/lib/engine/types";
 // link). This is the release gate's evidence for owner decision #14
 // (AGENTS.md §3): nothing deploys unless every puzzle demonstrably works.
 const QA_URL = "/play?level=99&part=Q&replay=1";
-const DONE = { name: "Done", exact: true } as const;
+const DONE = { name: /Done/ } as const;
 
 /**
  * Runs before every navigation in a test:

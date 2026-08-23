@@ -19,3 +19,8 @@ export function fmtPct(v: number | null): string {
 export function fmtSeconds(s: number): string {
   return `${fmtNum(s, 1)}s`;
 }
+
+/** "1 flag" / "3 flags" — count + unit with a plain-s plural. */
+export function plural(n: number, unit: string): string {
+  return `${n} ${unit}${n === 1 ? "" : "s"}`;
+}

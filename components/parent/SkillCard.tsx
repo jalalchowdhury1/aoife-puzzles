@@ -1,5 +1,6 @@
 import type { SkillDetail } from "@/lib/engine/insights";
 import { Sparkline } from "./Sparkline";
+import { plural } from "./format";
 
 /** One card per skill on the Skills tab. Tapping it focuses the Skill detail tab. */
 export function SkillCard({ skill, onSelect }: { skill: SkillDetail; onSelect: () => void }) {
@@ -22,7 +23,7 @@ export function SkillCard({ skill, onSelect }: { skill: SkillDetail; onSelect: (
       <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink/60">
         <span>{skill.fastRate === null ? "fast —" : `fast ${Math.round(skill.fastRate * 100)}%`}</span>
         <span>{skill.bails} not-fun</span>
-        <span className={skill.flags.length > 0 ? "font-semibold text-rose-500" : ""}>{skill.flags.length} flags</span>
+        <span className={skill.flags.length > 0 ? "font-semibold text-rose-500" : ""}>{plural(skill.flags.length, "flag")}</span>
       </div>
     </button>
   );

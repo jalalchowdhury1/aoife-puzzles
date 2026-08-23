@@ -16,7 +16,7 @@ import { SkillCard } from "@/components/parent/SkillCard";
 import { MatrixGrid, MatrixLegend } from "@/components/parent/MatrixGrid";
 import { ItemLog } from "@/components/parent/ItemLog";
 import { LineChart } from "@/components/parent/LineChart";
-import { fmtDate, fmtPct, fmtNum } from "@/components/parent/format";
+import {fmtDate, fmtPct, fmtNum, plural } from "@/components/parent/format";
 import { FLAG_CODE_LABEL } from "@/components/parent/stats";
 
 const KEY_STORAGE = "aoife-puzzles:parent-key";
@@ -271,7 +271,7 @@ function OverviewTab({ insights, streak }: { insights: Insights; streak: number 
 
       <div className="flex flex-wrap gap-2">
         <StatTile label="Sessions" value={String(insights.totals.sessions)} />
-        <StatTile label="Minutes" value={String(insights.totals.minutes)} />
+        <StatTile label="Minutes" value={String(Math.round(insights.totals.minutes))} />
         <StatTile label="Puzzles" value={String(insights.totals.items)} />
         <StatTile label="⭐ Stars" value={String(insights.totals.stars)} />
         <StatTile label="🔥 Day streak" value={String(streak)} />
@@ -293,11 +293,11 @@ function OverviewTab({ insights, streak }: { insights: Insights; streak: number 
 
       <section>
         <h2 className="mb-2 font-bubble text-xl text-ink">Recent movement</h2>
-        {insights.deltas.length === 0 ? (
+        {insights.deltas.filter((d) => d.from !== null).length === 0 ? (
           <p className="text-sm text-ink/50">Not enough repeated measurements yet to show movement.</p>
         ) : (
           <ul className="flex flex-col gap-1.5 text-sm text-ink">
-            {insights.deltas.map((d, i) => (
+            {insights.deltas.filter((d) => d.from !== null).map((d, i) => (
               <li key={i} className="flex items-center justify-between rounded-xl bg-white/50 px-3 py-2">
                 <span>
                   <span className="font-semibold">{d.kidTitle}</span> {d.from ?? "—"} → {d.to ?? "—"}
@@ -587,7 +587,7 @@ function MatrixTab({ insights }: { insights: Insights }) {
 function TimelineTab({ insights }: { insights: Insights }) {
   return (
     <div className="flex flex-col gap-3">
-      {insights.timeline.map((s) => (
+      {[...insights.timeline].reverse().map((s) => (
         <details key={s.sessionId} className="rounded-2xl border border-teal-100 bg-white/50 p-3">
           <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 text-sm text-ink">
             <span className="font-semibold">
@@ -595,7 +595,7 @@ function TimelineTab({ insights }: { insights: Insights }) {
             </span>
             <span className="flex items-center gap-3 text-xs text-ink/60">
               <span>{s.complete ? "✓ Complete" : "⏳ In progress"}</span>
-              <span>{s.minutes} min</span>
+              <span>{fmtNum(s.minutes)} min</span>
             </span>
           </summary>
           <div className="mt-3 flex flex-col gap-2">
@@ -609,7 +609,7 @@ function TimelineTab({ insights }: { insights: Insights }) {
                   <span className="text-xs text-ink/60">
                     {b.summary.correct}/{b.summary.attempted}
                     {b.summary.ceiling !== null ? ` · ceiling ${b.summary.ceiling}` : ""}
-                    {b.summary.timeouts > 0 ? ` · ${b.summary.timeouts} time-outs` : ""}
+                    {b.summary.timeouts > 0 ? ` · ${plural(b.summary.timeouts, "time-out")}` : ""}
                   </span>
                 </summary>
                 {b.flags.length > 0 && (

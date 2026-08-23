@@ -134,17 +134,24 @@ function toItemDetail(session: SessionRecord, block: BlockRecord, item: ItemReco
  * Resolves what she actually picked for a wrong bank-backed item, by
  * regenerating the item from its own (seed, d) — the same pattern
  * lib/engine/quality.ts already uses to re-derive an item for post-hoc
- * analysis (its animalParade/digitSpan rule-not-understood checks). Only
- * attempted for an ACTIVE genre (a retired genre's format may have moved on
- * since it stopped being played, so regenerating it is not trustworthy) and
- * only when the recorded response is shaped the way this genre expects;
- * anything else resolves to null. Options are shuffled per-seed, so the
- * recorded response (an index, or a {pair, reason} for Which Two) can only
- * be read back against a freshly regenerated item, never the raw bank order.
+ * analysis (its animalParade/digitSpan rule-not-understood checks). Retired
+ * genres are allowed too — that is where all of her Level 1/2 misses live —
+ * but ONLY under two consistency guards, because a retired genre's generator
+ * may have changed since she played it (level-0 ramp rebuilds, bank moves):
+ * the regenerated item must carry the SAME bankId the play recorded, and the
+ * option at her recorded index must score exactly the points she was awarded.
+ * If either check fails the pick resolves to null rather than risk showing a
+ * wrong "her pick" (decision #14: a false detail is worse than no detail).
+ * Options are shuffled per-seed, so the recorded response (an index, or a
+ * {pair, reason} for Which Two) can only be read back against a freshly
+ * regenerated item, never the raw bank order.
  */
-function resolveHerPick(genreId: GenreId, seed: number, d: Difficulty, response: unknown): string | null {
+function resolveHerPick(
+  genreId: GenreId, seed: number, d: Difficulty, response: unknown,
+  recorded: { bankId?: string; points: number },
+): string | null {
   const genreDef = GENRES[genreId];
-  if (!genreDef || genreDef.retired) return null;
+  if (!genreDef) return null;
   try {
     if (genreId === "whichTwo") {
       const r = response as { pair?: unknown } | null;
@@ -156,9 +163,13 @@ function resolveHerPick(genreId: GenreId, seed: number, d: Difficulty, response:
       return `picked ${item.items[a].text} + ${item.items[b].text}`;
     }
     if (typeof response !== "number") return null;
-    const item = genreDef.generate(seed, d) as { options: { text: string }[] };
+    const item = genreDef.generate(seed, d) as { bankId?: string; options: { text: string; points?: number }[] };
     if (response < 0 || response >= item.options.length) return null;
-    return item.options[response].text;
+    // Consistency guards (see doc comment): same bank entry, same score.
+    if (recorded.bankId && item.bankId !== recorded.bankId) return null;
+    const opt = item.options[response];
+    if (typeof opt.points === "number" && opt.points !== recorded.points) return null;
+    return opt.text;
   } catch {
     return null;
   }
@@ -242,7 +253,7 @@ function buildSkill(g: GenreId, internalItems: InternalItem[], blockEntries: Gen
   if (BANK_CHOICE_GENRES.has(g)) {
     for (const { detail, response } of internalItems) {
       if (detail.correct || detail.teaching || detail.bailed || detail.excludedBlock || !detail.bankId) continue;
-      const herPick = resolveHerPick(g, detail.seed, detail.d as Difficulty, response);
+      const herPick = resolveHerPick(g, detail.seed, detail.d as Difficulty, response, { bankId: detail.bankId, points: detail.points });
       missedBankItems.push({ date: detail.date, bankId: detail.bankId, herPick, d: detail.d });
     }
   }

@@ -65,6 +65,15 @@ const RAMP: Partial<Record<GenreId, string>> = {
   vocabulary: "d1-2 (~age 6) picture-plus-emoji items ramping to d10 (~age 13) word-and-definition items.",
   information: "d1 (~age 6) everyday facts ramping to d10 (~age 13) broader general-knowledge questions.",
   comprehension: "d1 (~age 6) basic safety/rules questions ramping to d10 (~age 13) reasoning about consequences.",
+  pictureSudoku:
+    "d1: 2x2, 1 blank. d2-6: 3x3, 0-1 extra blanks (d4/d5 teach 'check the row, check the column'). " +
+    "d7-10: 4x4, 0-3 extra blanks, a foreign-picture distractor option joins from d6. d11-15 (2026-08-24, " +
+    "owner decision #17 — earned extension past 10): a genuine SUDOKU BOX constraint joins row/column. " +
+    "d11: 4x4 with 2x2 boxes, still just 1 blank — the new rule at a familiar size, box present but not " +
+    "needed yet. d12: 4x4 boxed, 4 blanks placed so the box is genuinely load-bearing (row/column alone " +
+    "can't resolve the asked cell). d13: 6x6 with 2x3 boxes, 1 blank — 'new size, simple case' again. " +
+    "d14: 6x6 boxed, 4 blanks, box load-bearing. d15 (capstone): 6x6 boxed, 5 blanks, box load-bearing, " +
+    "the busiest grid.",
 };
 
 const SHAPE_COLOR: Record<string, string> = Object.fromEntries(SHAPES.map((s, i) => [s, COLORS[i]]));

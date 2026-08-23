@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { GenreViewProps } from "@/lib/engine/types";
-import type { PictureSudokuItem } from "@/lib/genres/pictureSudoku";
+import { boxDimsFor, type PictureSudokuItem } from "@/lib/genres/pictureSudoku";
 
 // QA 2026-08-23: CELL_BOX was a fixed 88px, which on a 4x4+ grid pushed the
 // options row + Done below the fold at a 536px-tall viewport (iPad landscape
@@ -53,6 +53,22 @@ export default function PictureSudokuView({
 
   const correctSymbol = item.options[item.answer];
 
+  // d>=11: the grid is ALSO divided into rectangular boxes (see
+  // boxDimsFor/PictureSudokuItem.boxed in lib/genres/pictureSudoku.ts). Draw
+  // a thicker separator on the top/left edge of every cell that starts a new
+  // box band/stack, so the box regions read visually distinct from the
+  // plain d<=10 grid.
+  const box = item.boxed ? boxDimsFor(item.n) : null;
+  const boxBorderStyle = (i: number): React.CSSProperties => {
+    if (!box) return {};
+    const r = Math.floor(i / item.n);
+    const c = i % item.n;
+    const style: React.CSSProperties = {};
+    if (r % box.h === 0 && r !== 0) style.borderTop = "4px solid #2f2f2f";
+    if (c % box.w === 0 && c !== 0) style.borderLeft = "4px solid #2f2f2f";
+    return style;
+  };
+
   return (
     // QA 2026-08-23: the grid + options live in their OWN
     // flex-1/min-h-0/overflow-y-auto region, so they scroll *internally* if
@@ -71,7 +87,7 @@ export default function PictureSudokuView({
               <div
                 key={i}
                 className="flex items-center justify-center rounded-2xl bg-white shadow-sm"
-                style={{ width: CELL_BOX, height: CELL_BOX, fontSize: CELL_FONT_SIZE }}
+                style={{ width: CELL_BOX, height: CELL_BOX, fontSize: CELL_FONT_SIZE, ...boxBorderStyle(i) }}
               >
                 {cell}
               </div>
@@ -101,7 +117,7 @@ export default function PictureSudokuView({
             <div
               key={i}
               className="rounded-2xl bg-ink/10"
-              style={{ width: CELL_BOX, height: CELL_BOX }}
+              style={{ width: CELL_BOX, height: CELL_BOX, ...boxBorderStyle(i) }}
               aria-hidden
             />
           );

@@ -1,14 +1,24 @@
 import { describe, it, expect } from "vitest";
-import { DIFFICULTIES, type Difficulty, type BaseDifficulty } from "../engine/types";
+import { DIFFICULTIES, type Difficulty } from "../engine/types";
 import { patternTrain, figuresEqual, audit, type PatternTrainItem } from "./patternTrain";
 import type { Figure } from "./shapes";
+
+// DIFFICULTIES itself stays the shared 1-10 contract (see engine/types.ts);
+// this genre's own sweep additionally covers its earned 11-15 band.
+const ALL_D = [...DIFFICULTIES, 11, 12, 13, 14, 15] as const;
 
 // Total carriages (shown cars + 1 missing) per band — the exact contract each
 // buildDN in patternTrain.ts implements. Kept independent of the
 // implementation so this test actually pins the shape of the deliverable.
-const TOTAL_CARS: Record<BaseDifficulty, number> = {
+const TOTAL_CARS: Record<Difficulty, number> = {
   1: 5, 2: 5, 3: 6, 4: 6, 5: 5, 6: 5, 7: 7, 8: 6, 9: 7, 10: 7,
+  11: 7, 12: 9, 13: 8, 14: 9, 15: 10,
 };
+
+// 4 options through d14; d15 (the capstone) widens to 5.
+function expectedOptionCount(d: Difficulty): number {
+  return d === 15 ? 5 : 4;
+}
 
 function diffAttrs(a: Figure, b: Figure): string[] {
   const attrs: (keyof Figure)[] = ["shape", "color", "size", "count"];
@@ -36,7 +46,7 @@ describe("patternTrain metadata", () => {
 describe("patternTrain.generate", () => {
   it("is deterministic for a given seed and difficulty", () => {
     for (let seed = 0; seed < 500; seed++) {
-      for (const d of DIFFICULTIES) {
+      for (const d of ALL_D) {
         const a = patternTrain.generate(seed, d);
         const b = patternTrain.generate(seed, d);
         expect(JSON.stringify(a)).toBe(JSON.stringify(b));
@@ -44,16 +54,17 @@ describe("patternTrain.generate", () => {
     }
   });
 
-  it("produces a solvable, well-formed item for every seed and difficulty (500 seeds x 10 difficulties)", () => {
+  it("produces a solvable, well-formed item for every seed and difficulty (500 seeds x 15 difficulties)", () => {
     for (let seed = 0; seed < 500; seed++) {
-      for (const d of DIFFICULTIES) {
+      for (const d of ALL_D) {
         const item = patternTrain.generate(seed, d);
+        const optCount = expectedOptionCount(d);
 
         // --- shape contract ---
-        expect(item.cars.length, `d${d}`).toBe(TOTAL_CARS[d as BaseDifficulty] - 1);
-        expect(item.options.length, `d${d}`).toBe(4);
+        expect(item.cars.length, `d${d}`).toBe(TOTAL_CARS[d] - 1);
+        expect(item.options.length, `d${d}`).toBe(optCount);
         expect(item.answer).toBeGreaterThanOrEqual(0);
-        expect(item.answer).toBeLessThan(4);
+        expect(item.answer).toBeLessThan(optCount);
         expect(typeof item.rule).toBe("string");
         expect(item.rule.length).toBeGreaterThan(0);
 
@@ -247,6 +258,109 @@ describe("patternTrain.generate", () => {
       const answer = item.options[item.answer];
       expect(answer.color).toBe(c3.color);
       expect(answer.shape).toBe(c1.shape); // the colour chain's pinned filler shape
+    }
+  });
+
+  it("d11 (NEW: peak and mirror): count climbs 1,2,3,4 then mirrors back down over 7 cars, colour/shape held constant", () => {
+    for (let seed = 0; seed < 500; seed++) {
+      const item = patternTrain.generate(seed, 11);
+      expect(item.cars.map(c => c.count)).toEqual([1, 2, 3, 4, 3, 2]);
+      const shapes = new Set(item.cars.map(c => c.shape));
+      const colors = new Set(item.cars.map(c => c.color));
+      expect(shapes.size).toBe(1);
+      expect(colors.size).toBe(1);
+      const answer = item.options[item.answer];
+      expect(answer.count).toBe(1); // continues the mirror descent: 4,3,2,-> 1
+      expect(answer.shape).toBe(item.cars[0].shape);
+      expect(answer.color).toBe(item.cars[0].color);
+    }
+  });
+
+  it("d12: a colour chain on the odd cars (1,3,5,7,9) interleaves with a count peak-and-mirror chain on the even cars (2,4,6,8); the answer continues the colour chain", () => {
+    for (let seed = 0; seed < 500; seed++) {
+      const item = patternTrain.generate(seed, 12);
+      expect(item.cars.length).toBe(8);
+      const [c1, c2, c3, c4, c5, c6, c7, c8] = item.cars;
+      // colour chain: cars 1,3,5,7 (array indices 0,2,4,6) alternate A,B,A,B
+      expect(c3.color).not.toBe(c1.color);
+      expect(c5.color).toBe(c1.color);
+      expect(c7.color).toBe(c3.color);
+      // shape is a single constant value throughout (not active in this band)
+      const shapes = new Set(item.cars.map(c => c.shape));
+      expect(shapes.size).toBe(1);
+      // count-mirror chain: cars 2,4,6,8 (array indices 1,3,5,7) go 1,2,2,1 — up then back down
+      expect([c2.count, c4.count, c6.count, c8.count]).toEqual([1, 2, 2, 1]);
+      // car 9 (the missing one) is an odd car, so it continues the colour chain: A,B,A,B,-> A
+      const answer = item.options[item.answer];
+      expect(answer.color).toBe(c1.color);
+      expect(answer.shape).toBe(c1.shape);
+      expect(answer.count).toBe(c1.count); // the colour chain's pinned count (1)
+    }
+  });
+
+  it("d13: colour 3-cycle + shape 2-cycle + count growth (capped at 4) all run together for the first time, over 8 cars", () => {
+    for (let seed = 0; seed < 500; seed++) {
+      const item = patternTrain.generate(seed, 13);
+      expect(item.cars.length).toBe(7);
+      const colors = item.cars.map(c => c.color);
+      const shapes = item.cars.map(c => c.shape);
+      const counts = item.cars.map(c => c.count);
+      expect(new Set(colors).size).toBe(3);
+      expect(new Set(shapes).size).toBe(2);
+      expect(colors).toEqual([colors[0], colors[1], colors[2], colors[0], colors[1], colors[2], colors[0]]);
+      expect(shapes).toEqual([shapes[0], shapes[1], shapes[0], shapes[1], shapes[0], shapes[1], shapes[0]]);
+      expect(counts).toEqual([1, 2, 3, 4, 4, 4, 4]);
+      const answer = item.options[item.answer];
+      expect(answer.color).toBe(colors[1]); // position 8 (index 7) -> colorPool[7 % 3] = colorPool[1]
+      expect(answer.shape).toBe(shapes[1]); // position 8 (index 7) -> shapePool[7 % 2] = shapePool[1]
+      expect(answer.count).toBe(4);
+    }
+  });
+
+  it("d14: three independent streams interleave by position mod 3 (colour cycle / shape cycle / count growth); the answer continues the count-growth stream", () => {
+    for (let seed = 0; seed < 500; seed++) {
+      const item = patternTrain.generate(seed, 14);
+      expect(item.cars.length).toBe(8);
+      const [c1, c2, c3, c4, c5, c6, c7, c8] = item.cars;
+      // colour chain: cars 1,4,7 (array indices 0,3,6) alternate A,B,A
+      expect(c4.color).not.toBe(c1.color);
+      expect(c7.color).toBe(c1.color);
+      // shape chain: cars 2,5,8 (array indices 1,4,7) alternate A,B,A
+      expect(c5.shape).not.toBe(c2.shape);
+      expect(c8.shape).toBe(c2.shape);
+      // count chain: cars 3,6 (array indices 2,5) grow by one: 1, 2
+      expect(c3.count).toBe(1);
+      expect(c6.count).toBe(2);
+      expect(c3.shape).toBe(c6.shape); // the count chain's pinned filler shape
+      expect(c3.color).toBe(c6.color); // the count chain's pinned filler colour
+      // car 9 (the missing one) is a count-chain car, so it continues the growth: 1, 2, -> 3
+      const answer = item.options[item.answer];
+      expect(answer.count).toBe(3);
+      expect(answer.shape).toBe(c3.shape);
+      expect(answer.color).toBe(c3.color);
+    }
+  });
+
+  it("d15 (capstone, 5 options): a 3-way interleave like d14, but the count stream is a fully-shown peak-and-mirror (1,2,1) while the answer continues the colour chain", () => {
+    for (let seed = 0; seed < 500; seed++) {
+      const item = patternTrain.generate(seed, 15);
+      expect(item.cars.length).toBe(9);
+      expect(item.options.length).toBe(5);
+      const [c1, c2, c3, c4, c5, c6, c7, c8, c9] = item.cars;
+      // colour chain: cars 1,4,7 (array indices 0,3,6) alternate A,B,A
+      expect(c4.color).not.toBe(c1.color);
+      expect(c7.color).toBe(c1.color);
+      // shape chain: cars 2,5,8 (array indices 1,4,7) alternate A,B,A
+      expect(c5.shape).not.toBe(c2.shape);
+      expect(c8.shape).toBe(c2.shape);
+      // mirror chain: cars 3,6,9 (array indices 2,5,8) go 1,2,1 — fully shown, up then back down
+      expect([c3.count, c6.count, c9.count]).toEqual([1, 2, 1]);
+      // car 10 (the missing one) is a colour-chain car, so it continues the alternation: A,B,A,-> B
+      const answer = item.options[item.answer];
+      expect(answer.color).toBe(c4.color);
+      expect(answer.color).not.toBe(c7.color);
+      expect(answer.shape).toBe(c1.shape); // the colour chain's pinned filler shape
+      expect(answer.count).toBe(c1.count); // the colour chain's pinned count (1)
     }
   });
 });

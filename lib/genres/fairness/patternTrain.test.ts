@@ -9,11 +9,15 @@ import { DIFFICULTIES, type Difficulty } from "../../engine/types";
 import { patternTrain, figuresEqual } from "../patternTrain";
 import type { Figure } from "../shapes";
 
+// DIFFICULTIES itself stays the shared 1-10 contract (see engine/types.ts);
+// this genre's own fairness sweep additionally covers its earned 11-15 band.
+const ALL_D = [...DIFFICULTIES, 11, 12, 13, 14, 15] as const;
+
 const SEEDS = Array.from({ length: 500 }, (_, i) => i + 1);
 
 interface Cached { seed: number; d: Difficulty; item: ReturnType<typeof patternTrain.generate> }
 const ITEMS: Cached[] = [];
-for (const d of DIFFICULTIES) {
+for (const d of ALL_D) {
   for (const seed of SEEDS) ITEMS.push({ seed, d, item: patternTrain.generate(seed, d) });
 }
 
@@ -25,18 +29,18 @@ function diffAttrs(a: Figure, b: Figure): (keyof Figure)[] {
 describe("Pattern Train — fairness rules", () => {
   it("generate(seed, d) is pure and deterministic — a reload mid-block, a replay, or re-fetching /api/state must never show a different train than the one that was actually scored", () => {
     const RESAMPLE = [1, 7, 42, 99, 250, 499];
-    for (const d of DIFFICULTIES) {
+    for (const d of ALL_D) {
       for (const seed of RESAMPLE) {
         expect(patternTrain.generate(seed, d), `d${d} seed${seed}`).toEqual(patternTrain.generate(seed, d));
       }
     }
   });
 
-  it("every item has 5-7 total carriages (cars shown + the one missing) — the deliverable's global train-length budget", () => {
+  it("every item has 5-10 total carriages (cars shown + the one missing) — the deliverable's global train-length budget (widened for d11-15's longer interleaves)", () => {
     for (const { item, seed, d } of ITEMS) {
       const total = item.cars.length + 1;
       expect(total, `seed${seed} d${d}`).toBeGreaterThanOrEqual(5);
-      expect(total, `seed${seed} d${d}`).toBeLessThanOrEqual(7);
+      expect(total, `seed${seed} d${d}`).toBeLessThanOrEqual(10);
     }
   });
 
@@ -142,15 +146,50 @@ describe("Pattern Train — fairness rules", () => {
     }
   });
 
-  it("d1-4, d7, d8, d10 (the categorical-cycle bands): the active colour/shape attribute repeats a value among the shown cars — proof it is a repeating cycle, not an unguessable one-way 'progression' with no natural order", () => {
+  it("d1-4, d7, d8, d10, d12-15 (the categorical-cycle bands): the active colour/shape attribute repeats a value among the shown cars — proof it is a repeating cycle, not an unguessable one-way 'progression' with no natural order", () => {
     for (const { item, seed, d } of ITEMS) {
-      if (![1, 2, 3, 4, 7, 8, 10].includes(d)) continue;
+      if (![1, 2, 3, 4, 7, 8, 10, 12, 13, 14, 15].includes(d)) continue;
       const colors = item.cars.map(c => c.color);
       const shapes = item.cars.map(c => c.shape);
       const colorRepeats = new Set(colors).size < colors.length;
       const shapeRepeats = new Set(shapes).size < shapes.length;
       expect(colorRepeats || shapeRepeats, `seed${seed} d${d}`).toBe(true);
     }
+  });
+
+  // d11-15's new "peak and mirror" idea (count climbs then comes back down,
+  // e.g. 1,2,3,4,3,2,1) must be ALLOWED — that is what "mirror" means — while
+  // a genuine "wrap" (jumping straight from the max back to the minimum,
+  // e.g. 4 -> 1 with no intermediate steps) must NOT be something this
+  // genre's generators ever produce. The distinguishing invariant: a
+  // legitimate count sequence — growing OR mirroring — only ever changes by
+  // at most 1 per carriage; only a true wrap changes by more than that.
+  it("d11, d12, d15 (the peak-and-mirror sub-chains): every step changes by at most 1 — mirroring back down after a peak is accepted, but a real 'wrap' (jumping straight from the max to the minimum) would violate this and is never produced", () => {
+    const mirrorCounts = (d: Difficulty, item: { cars: Figure[] }): number[] => {
+      if (d === 11) return item.cars.map(c => c.count); // the whole chain is the mirror
+      if (d === 12) return [item.cars[1], item.cars[3], item.cars[5], item.cars[7]].map(c => c.count); // even cars
+      return [item.cars[2], item.cars[5], item.cars[8]].map(c => c.count); // d15: cars 3,6,9
+    };
+    for (const { item, seed, d } of ITEMS) {
+      if (d !== 11 && d !== 12 && d !== 15) continue;
+      const counts = mirrorCounts(d, item);
+      for (let i = 1; i < counts.length; i++) {
+        expect(Math.abs(counts[i] - counts[i - 1]), `seed${seed} d${d}`).toBeLessThanOrEqual(1);
+      }
+    }
+
+    // Positive case: a hand-built peak-and-mirror sequence (this genre's own
+    // d11 shape) satisfies the same single-step-at-a-time invariant.
+    const mirror = [1, 2, 3, 4, 3, 2, 1];
+    for (let i = 1; i < mirror.length; i++) {
+      expect(Math.abs(mirror[i] - mirror[i - 1])).toBeLessThanOrEqual(1);
+    }
+
+    // Negative case: a genuine wrap (jumping straight from the max back to
+    // the minimum, with no intermediate steps) is exactly what this
+    // invariant is designed to catch — proof the check has teeth.
+    const wrap = [4, 1];
+    expect(Math.abs(wrap[1] - wrap[0])).toBeGreaterThan(1);
   });
 
   it("sample() — the untimed, feedback-free item every block opens with — scores correct when answered with its own displayed answer", () => {

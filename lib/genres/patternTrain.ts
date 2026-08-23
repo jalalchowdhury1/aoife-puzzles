@@ -17,8 +17,32 @@
 //   - `size` is never an ACTIVE (pattern-driving) attribute — only ever a
 //     possible distractor axis, and only from d7 up (never a size-only
 //     distractor at d<=6, per the deliverable's fairness rule).
-import { clampToBase } from "../engine/types";
-import type { BaseDifficulty, Difficulty, Genre, ScoreResult } from "../engine/types";
+//
+// d11-15 (2026-08-24, earned per AGENTS.md decision #17 — she solved a
+// genuine level-10 item): one new idea per step, capstone combines them all.
+// `size` stays distractor-only through d15 too (never promoted to an active
+// attribute) — keeps the extended ramp's load on the genre's existing
+// shape/colour/count vocabulary instead of adding a wholly new axis at the
+// hardest levels. Options stay at 4 through d14; d15 (the capstone) widens
+// to 5, matching how other genres add an option at their hardest tier.
+//   - d11 introduces the one genuinely NEW primitive: "peak and mirror" on
+//     count alone — it climbs 1,2,3,4 then mirrors back down one step at a
+//     time (4,3,2,1). This is a legitimate single-rule pattern (a
+//     palindrome, the same shape real progressive-matrices tests use) and is
+//     NOT a "wrap": a wrap would jump straight from the max back to the
+//     minimum in one step; a mirror only ever steps by exactly ±1.
+//   - d12 combines d10's interleave (a colour chain on the odd cars) with
+//     d11's mirror (a count peak-and-mirror chain on the even cars).
+//   - d13 runs three attributes at once for the first time — colour 3-cycle
+//     + shape 2-cycle + count growth — extending d8's dual combination.
+//   - d14 is a genuine 3-way interleave (position mod 3): one independent
+//     stream per attribute (colour cycle / shape cycle / count growth),
+//     extending d10's 2-way interleave to three simultaneous streams.
+//   - d15 (capstone) is a 3-way interleave like d14 where the "extra" stream
+//     is itself a fully-shown peak-and-mirror count chain (added complexity/
+//     camouflage to track) while the credited answer continues one of the
+//     two cyclic (colour) chains, so the item stays strictly single-answer.
+import type { Difficulty, Genre, ScoreResult } from "../engine/types";
 import { makeRng, type Rng } from "../engine/rng";
 import { SHAPES, COLORS, shapePath, type Shape, type Figure } from "./shapes";
 
@@ -275,7 +299,140 @@ function buildD10(rng: Rng): Built {
   };
 }
 
-function buildSequence(rng: Rng, d: BaseDifficulty): Built {
+/** d11 (the one NEW primitive this ramp adds): count climbs 1,2,3,4 then
+ * mirrors back down one step at a time — 1,2,3,4,3,2,? — colour and shape
+ * held constant throughout. A legitimate single-rule "peak and mirror"
+ * pattern (a palindrome); NOT a wrap, since every step is exactly ±1 and it
+ * never jumps straight from the max back to the minimum. 7 cars total. */
+function buildD11(rng: Rng): Built {
+  const shape = rng.pick(SHAPES);
+  const color = rng.pick(COLORS);
+  const counts: Count[] = [1, 2, 3, 4, 3, 2, 1];
+  const seq = counts.map(c => withCount(withColor(withShape(base(), shape), color), c));
+  const answer = seq[seq.length - 1];
+  return {
+    cars: seq.slice(0, -1),
+    answer,
+    rule: "The count climbs to the top and then mirrors back down: 1, 2, 3, 4, 3, 2, then 1 again. So the next one is 1.",
+  };
+}
+
+/** d12: combines d10's interleave (a colour chain on the odd cars) with
+ * d11's mirror idea (a count peak-and-mirror chain on the even cars). Shape
+ * is a single constant value throughout — not an active attribute here. 9
+ * cars total; car 9 is an odd car, so the answer continues the colour
+ * chain. */
+function buildD12(rng: Rng): Built {
+  const shape = rng.pick(SHAPES);
+  const [a, b, fillerColor] = pickColors(rng, 3);
+  const n = 9;
+  const mirrorCounts: Count[] = [1, 2, 2, 1]; // the even cars' peak-and-mirror: up then back down
+  const seq: Figure[] = [];
+  for (let i = 0; i < n; i++) {
+    if (i % 2 === 0) {
+      const subIdx = i / 2; // 1st, 3rd, 5th, 7th, 9th car
+      seq.push(withCount(withColor(withShape(base(), shape), subIdx % 2 === 0 ? a : b), 1));
+    } else {
+      const subIdx = (i - 1) / 2; // 2nd, 4th, 6th, 8th car
+      seq.push(withCount(withColor(withShape(base(), shape), fillerColor), mirrorCounts[subIdx]));
+    }
+  }
+  const answer = seq[n - 1];
+  return {
+    cars: seq.slice(0, -1),
+    answer,
+    rule: `Two patterns run together. The 1st, 3rd, 5th, 7th, 9th cars take turns between ${colorName(a)} and ${colorName(b)}. The 2nd, 4th, 6th, 8th cars' count climbs then mirrors back down: 1, 2, 2, 1. Car 9 is one of the colour cars, so it's ${colorName(answer.color)}.`,
+  };
+}
+
+/** d13: three attributes change simultaneously for the first time — colour
+ * cycles ABC, shape alternates AB, and count grows by one each car (capped
+ * at 4) — extending d8's dual combination (colour+shape) to a genuine
+ * triple. 8 cars total. */
+function buildD13(rng: Rng): Built {
+  const colorPool = pickColors(rng, 3);
+  const shapePool = pickShapes(rng, 2);
+  const n = 8;
+  const seq = Array.from({ length: n }, (_, i) =>
+    withCount(withColor(withShape(base(), shapePool[i % 2]), colorPool[i % 3]), Math.min(i + 1, 4) as Count)
+  );
+  const answer = seq[n - 1];
+  return {
+    cars: seq.slice(0, -1),
+    answer,
+    rule: `Three things change together: the colour cycles through ${colorPool.map(colorName).join(", ")}, the shape takes turns between ${shapePool.join(" and ")}, and the count grows by one each car (up to 4). So the next car is a ${colorName(answer.color)} ${answer.shape} with ${answer.count}.`,
+  };
+}
+
+/** d14: a genuine 3-way interleave (position mod 3) — extending d10's 2-way
+ * interleave to three simultaneous, independent streams: cars 1,4,7 cycle
+ * colour (period 2), cars 2,5,8 cycle shape (period 2), and cars 3,6,9 grow
+ * count by one each time (capped at 4). 9 cars total; car 9 is a
+ * count-chain car, so the answer continues the count-growth chain. */
+function buildD14(rng: Rng): Built {
+  const [a, b, fillerColorShapeChain, fillerColorCountChain] = pickColors(rng, 4);
+  const [sa, sb, fillerShapeColorChain, fillerShapeCountChain] = pickShapes(rng, 4);
+  const n = 9;
+  const seq: Figure[] = [];
+  for (let i = 0; i < n; i++) {
+    const m = i % 3;
+    if (m === 0) {
+      const subIdx = i / 3; // 1st, 4th, 7th car
+      seq.push(withCount(withColor(withShape(base(), fillerShapeColorChain), subIdx % 2 === 0 ? a : b), 1));
+    } else if (m === 1) {
+      const subIdx = (i - 1) / 3; // 2nd, 5th, 8th car
+      seq.push(withCount(withColor(withShape(base(), subIdx % 2 === 0 ? sa : sb), fillerColorShapeChain), 1));
+    } else {
+      const subIdx = (i - 2) / 3; // 3rd, 6th, 9th car
+      seq.push(
+        withCount(withColor(withShape(base(), fillerShapeCountChain), fillerColorCountChain), Math.min(subIdx + 1, 4) as Count)
+      );
+    }
+  }
+  const answer = seq[n - 1];
+  return {
+    cars: seq.slice(0, -1),
+    answer,
+    rule: `Three patterns run side by side, one every third car. The 1st, 4th, 7th cars take turns between ${colorName(a)} and ${colorName(b)}. The 2nd, 5th, 8th cars take turns between ${sa} and ${sb}. The 3rd, 6th, 9th cars grow their count by one each time: 1, 2, then 3. So the next car has ${answer.count}.`,
+  };
+}
+
+/** d15 (capstone, 5 options): a 3-way interleave like d14, but the "extra"
+ * stream is itself a peak-and-mirror count chain (shown in full, for
+ * complexity/camouflage) while the credited answer continues the colour
+ * chain — the hardest combination in the ramp. 10 cars total. Widens to 5
+ * options (rather than 4), matching how other genres add an option at their
+ * hardest tier. */
+function buildD15(rng: Rng): Built {
+  const [a, b, fillerColorShapeChain, fillerColorMirrorChain] = pickColors(rng, 4);
+  const [sa, sb, fillerShapeColorChain, fillerShapeMirrorChain] = pickShapes(rng, 4);
+  const n = 10;
+  const mirrorCounts: Count[] = [1, 2, 1]; // fully shown peak-and-mirror: up then back down
+  const seq: Figure[] = [];
+  for (let i = 0; i < n; i++) {
+    const m = i % 3;
+    if (m === 0) {
+      const subIdx = i / 3; // 1st, 4th, 7th, 10th car
+      seq.push(withCount(withColor(withShape(base(), fillerShapeColorChain), subIdx % 2 === 0 ? a : b), 1));
+    } else if (m === 1) {
+      const subIdx = (i - 1) / 3; // 2nd, 5th, 8th car
+      seq.push(withCount(withColor(withShape(base(), subIdx % 2 === 0 ? sa : sb), fillerColorShapeChain), 1));
+    } else {
+      const subIdx = (i - 2) / 3; // 3rd, 6th, 9th car
+      seq.push(
+        withCount(withColor(withShape(base(), fillerShapeMirrorChain), fillerColorMirrorChain), mirrorCounts[subIdx])
+      );
+    }
+  }
+  const answer = seq[n - 1];
+  return {
+    cars: seq.slice(0, -1),
+    answer,
+    rule: `Three patterns run side by side, one every third car. The 1st, 4th, 7th, 10th cars take turns between ${colorName(a)} and ${colorName(b)}. The 2nd, 5th, 8th cars take turns between ${sa} and ${sb}. The 3rd, 6th, 9th cars' count climbs then mirrors back down: 1, 2, 1 (it's fully shown, just extra camouflage). Car 10 is one of the colour cars, so it's ${colorName(answer.color)}.`,
+  };
+}
+
+function buildSequence(rng: Rng, d: Difficulty): Built {
   switch (d) {
     case 1: return buildD1(rng);
     case 2: return buildD2(rng);
@@ -287,6 +444,11 @@ function buildSequence(rng: Rng, d: BaseDifficulty): Built {
     case 8: return buildD8(rng);
     case 9: return buildD9(rng);
     case 10: return buildD10(rng);
+    case 11: return buildD11(rng);
+    case 12: return buildD12(rng);
+    case 13: return buildD13(rng);
+    case 14: return buildD14(rng);
+    case 15: return buildD15(rng);
   }
 }
 
@@ -355,13 +517,18 @@ function assembleOptions(rng: Rng, answer: Figure, distractors: Figure[]): { opt
   return { options: shuffled.map(e => e.f), answer: shuffled.findIndex(e => e.correct) };
 }
 
+// 4 options through d14; d15 (the capstone) widens to 5, matching how other
+// genres add an option at their hardest tier.
+function optionCount(d: Difficulty): number {
+  return d === 15 ? 5 : 4;
+}
+
 function generate(seed: number, d: Difficulty): PatternTrainItem {
-  const d0 = clampToBase(d);   // TEMP (2026-08-24): real d11-15 bands are the next task; see AGENTS.md
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const rng = makeRng(seed + attempt * RESEED_STEP);
     try {
-      const { cars, answer, rule } = buildSequence(rng, d0);
-      const distractors = buildDistractors(rng, answer, [answer, ...cars], d0, 3);
+      const { cars, answer, rule } = buildSequence(rng, d);
+      const distractors = buildDistractors(rng, answer, [answer, ...cars], d, optionCount(d) - 1);
       const { options, answer: answerIndex } = assembleOptions(rng, answer, distractors);
       return { cars, options, answer: answerIndex, rule };
     } catch (e) {
@@ -473,4 +640,5 @@ export const patternTrain: Genre<PatternTrainItem, number> = {
   score,
   timing: { kind: "none" },
   mode: "staircase",
+  maxDifficulty: 15,
 };

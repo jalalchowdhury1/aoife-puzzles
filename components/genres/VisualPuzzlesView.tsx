@@ -149,6 +149,7 @@ export function VisualPuzzlesView({
             <button
               key={i}
               type="button"
+              data-testid="piece-option"
               disabled={disabled}
               aria-pressed={isSelected}
               onClick={() => toggle(i)}

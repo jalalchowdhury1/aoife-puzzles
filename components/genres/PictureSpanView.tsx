@@ -146,6 +146,7 @@ export function PictureSpanView({
           <button
             key={`${icon}-${i}`}
             type="button"
+            data-testid="picture-choice"
             onClick={() => tapChoice(icon)}
             disabled={disabled}
             className="flex items-center justify-center rounded-2xl bg-white text-5xl shadow"

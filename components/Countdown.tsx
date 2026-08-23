@@ -56,7 +56,7 @@ export function Countdown({ totalMs, startedAt, onExpire }: CountdownProps) {
   const barColor = remaining < 10_000 ? "bg-amber-400" : "bg-teal-400";
 
   return (
-    <div className="flex w-full items-center gap-3">
+    <div className="flex w-full items-center gap-3" data-testid="countdown">
       <div className="h-4 flex-1 overflow-hidden rounded-full bg-teal-100">
         <div className={`h-full ${barColor}`} style={{ width: `${pct}%` }} />
       </div>

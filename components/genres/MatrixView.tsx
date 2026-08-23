@@ -124,6 +124,7 @@ export default function MatrixView({
               <button
                 key={i}
                 type="button"
+                data-testid="matrix-option"
                 onClick={() => pick(i)}
                 aria-pressed={selected === i}
                 className={`flex items-center justify-center rounded-2xl border-4 bg-white transition-colors ${

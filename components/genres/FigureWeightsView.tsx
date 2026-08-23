@@ -187,6 +187,7 @@ export default function FigureWeightsView({
             <button
               key={i}
               type="button"
+              data-testid="weight-option"
               disabled={disabled}
               onClick={() => setSelected(i)}
               aria-pressed={selected === i}

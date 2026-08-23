@@ -5,6 +5,8 @@
 import { SCALE_CHANGES } from "./scale";
 import type { BlockConfig, GenreId, LevelConfig, PartConfig, Domain } from "./types";
 import { genreValue, DOMAIN_GENRES, type Profile, type DomainStat } from "./profile";
+import { GENRES } from "../genres";
+import { genreMaxD } from "./types";
 
 export type Strength = "weak" | "typical" | "strong";
 
@@ -27,8 +29,8 @@ const SPEED_GENRES = new Set<GenreId>(["coding", "symbolSearch", "translator", "
 
 const ALL_GENRES: GenreId[] = (Object.keys(DOMAIN_GENRES) as Domain[]).flatMap((d) => DOMAIN_GENRES[d]);
 
-function clamp(n: number): number {
-  return Math.max(1, Math.min(10, n));
+function clamp(n: number, maxD: number): number {
+  return Math.max(1, Math.min(maxD, n));
 }
 
 function median(values: number[]): number {
@@ -89,6 +91,7 @@ export function adaptPart(part: PartConfig, level: LevelConfig, profile: Profile
 
   const resolved: ResolvedBlock[] = part.blocks.map((block) => {
 
+    const maxD = genreMaxD(GENRES[block.genre]);
     const stats = profile.genres[block.genre];
     // A genre whose ramp was rebuilt AFTER her last measurement starts from level 1:
     // the old ceiling says nothing about the new basics (owner, 2026-08-23: "build
@@ -103,7 +106,7 @@ export function adaptPart(part: PartConfig, level: LevelConfig, profile: Profile
     let maxItems: number;
 
     if (!remedial) {
-      start = block.start === "fromProfile" ? clamp(ceiling === null ? 1 : ceiling - 1) : (block.start ?? 1);
+      start = block.start === "fromProfile" ? clamp(ceiling === null ? 1 : ceiling - 1, maxD) : (block.start ?? 1);
       maxItems = block.maxItems ?? 8;
     } else if (SPEED_GENRES.has(block.genre)) {
       start = 1;
@@ -115,7 +118,7 @@ export function adaptPart(part: PartConfig, level: LevelConfig, profile: Profile
         strength === "weak" ? 1
         : strength === "typical" ? (ceiling === null ? 1 : ceiling - 3)
         : (ceiling === null ? 1 : ceiling - 2);
-      start = clamp(baseStart);
+      start = clamp(baseStart, maxD);
       const baseMax = strength === "weak" ? 10 : strength === "typical" ? 8 : 6;
       maxItems = block.maxItems !== undefined ? Math.min(block.maxItems, baseMax) : baseMax;
     }

@@ -12,7 +12,17 @@ export type GenreId =
   | "mosaic" | "fixPicture"
   | "patternTrain" | "pictureSudoku";
 export type Domain = "VS" | "FR" | "WM" | "PS" | "VC";
-export type Difficulty = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+// 1-10 is the standard ramp every genre authors by default. A genre may widen
+// past 10 via Genre.maxDifficulty ONLY after real data shows she has hit the
+// existing top (owner, 2026-08-23: "go beyond level 10 for those she has
+// already reached") — see lib/genres/patternTrain.ts / pictureSudoku.ts for
+// the first (and, for now, only) genres that do this.
+export type Difficulty = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
+export const MAX_DIFFICULTY = 15;
+// The default 1-10 ramp every genre's own unit/fairness tests sweep. A genre
+// with `maxDifficulty` > 10 additionally tests its own 11..maxDifficulty band
+// in its own test files — DIFFICULTIES itself is intentionally NOT widened,
+// so every existing per-genre test keeps meaning "the whole ramp" unchanged.
 export const DIFFICULTIES: Difficulty[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
 export interface ScoreResult { points: number; max: number; correct: boolean }
@@ -35,7 +45,16 @@ export interface Genre<I = unknown, R = unknown> {
   audit?(item: I): string;                    // self-contained HTML/SVG snippet for docs/audit/items.html (no React)
   e2e?: E2EPlan;                              // how the Playwright play-through answers this genre generically (required for new genres)
   retired?: boolean;                          // true = kept for her history only; never put in a level (decision #16)
+  maxDifficulty?: number;                     // top authored difficulty; default 10 (see MAX_DIFFICULTY above)
 }
+export function genreMaxD(g: Genre): number { return g.maxDifficulty ?? 10; }
+// The original 1-10 ramp every genre except the fluid-reasoning family still uses
+// internally (their own PLAN/lookup tables never need entries past 10 because
+// their `maxDifficulty` stays the default). `clampToBase` is the one-line,
+// behavior-preserving fix these genres' generate() functions use so the widened
+// `Difficulty` union type-checks without touching a single band's real content.
+export type BaseDifficulty = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+export const clampToBase = (d: Difficulty): BaseDifficulty => Math.min(d, 10) as BaseDifficulty;
 /** Generic play-through recipe: views expose data-testid="answer-option" (tappable answers) and data-testid="done". */
 export type E2EPlan =
   | { kind: "options"; pick: number }          // tap `pick` answer-option(s) then Done (pick 1 = tap + Done)

@@ -12,7 +12,8 @@
 // for the original design and AGENTS.md §5 "Piece Picker ramp (2026-08-23)".
 import { makeRng, type Rng } from "../engine/rng";
 import { itemMs } from "../engine/timing";
-import type { Difficulty, Genre, ScoreResult } from "../engine/types";
+import { clampToBase } from "../engine/types";
+import type { Difficulty, BaseDifficulty, Genre, ScoreResult } from "../engine/types";
 import {
   type Cell,
   boundaryCells,
@@ -75,7 +76,7 @@ interface Band {
  * single band spanning both; d9/d10 fold 2-3 old difficulties each that
  * already shared one band.
  */
-function bandOptionsFor(d: Difficulty): Band[] {
+function bandOptionsFor(d: BaseDifficulty): Band[] {
   switch (d) {
     // d1: a domino + a single cell forming a 3-cell tromino; 1 obviously
     // wrong distractor (e.g. a 4-cell square or a 3-cell straight piece).
@@ -295,7 +296,7 @@ function buildItem(rng: Rng, band: Band, area: number): VisualPuzzlesItem | null
   return { size, target, pieceCount, optionCount, pieces, answer, placed };
 }
 
-function generateAttempt(seed: number, d: Difficulty, reseedDepth: number): VisualPuzzlesItem {
+function generateAttempt(seed: number, d: BaseDifficulty, reseedDepth: number): VisualPuzzlesItem {
   const rng = makeRng(seed);
   const bands = bandOptionsFor(d);
   const band = bands.length > 1 ? rng.pick(bands) : bands[0];
@@ -312,7 +313,7 @@ function generateAttempt(seed: number, d: Difficulty, reseedDepth: number): Visu
 }
 
 export function generate(seed: number, d: Difficulty): VisualPuzzlesItem {
-  return generateAttempt(seed, d, 0);
+  return generateAttempt(seed, clampToBase(d), 0);   // this genre's own ramp is 1-10 only
 }
 
 export function score(item: VisualPuzzlesItem, response: number[] | null): ScoreResult {

@@ -2,11 +2,11 @@ import { describe, it, expect } from "vitest";
 import { fireflyBoxes, GRID_SIZE, EXPOSURE_ON_MS } from "./fireflyBoxes";
 import type { FireflyBoxesItem } from "./fireflyBoxes";
 import { DIFFICULTIES } from "../engine/types";
-import type { Difficulty } from "../engine/types";
+import type { BaseDifficulty } from "../engine/types";
 
 // Mirrors the spec's task/length table, kept independent of the
 // implementation so the test actually pins the contract.
-const PLAN: Record<Difficulty, { task: "same" | "backward"; len: number }> = {
+const PLAN: Record<BaseDifficulty, { task: "same" | "backward"; len: number }> = {
   1: { task: "same", len: 1 },
   2: { task: "same", len: 2 },
   3: { task: "same", len: 3 },
@@ -44,7 +44,7 @@ describe("fireflyBoxes.generate", () => {
     for (let seed = 0; seed < 500; seed++) {
       for (const d of DIFFICULTIES) {
         const item = fireflyBoxes.generate(seed, d);
-        const plan = PLAN[d];
+        const plan = PLAN[d as BaseDifficulty];
 
         expect(item.task).toBe(plan.task);
         expect(item.sequence.length).toBe(plan.len);

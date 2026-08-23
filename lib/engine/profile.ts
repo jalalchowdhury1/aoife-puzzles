@@ -1,4 +1,6 @@
 import type { SessionRecord, GenreId, Domain } from "./types";
+import { genreMaxD } from "./types";
+import { GENRES } from "../genres";
 import { remapSession } from "./scale";
 import { EXCLUDING_CODES, type QualityFlagCode } from "./quality";
 
@@ -42,7 +44,7 @@ export function genreValue(g: GenreId, gs: GenreStats): number | null {
   if (VC_GENRES.has(g)) {
     return gs.max > 0 ? gs.points / gs.max : null;
   }
-  return gs.ceiling === null ? null : gs.ceiling / 10;
+  return gs.ceiling === null ? null : gs.ceiling / genreMaxD(GENRES[g]);
 }
 
 function bundleValue(list: GenreId[], genres: Partial<Record<GenreId, GenreStats>>): number | null {

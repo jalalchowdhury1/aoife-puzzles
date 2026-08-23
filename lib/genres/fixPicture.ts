@@ -5,7 +5,8 @@
 // isConnected/equalShape/growCells) — that file is not modified here. No
 // React, no DOM, no Math.random — see AGENTS.md §5/decision #14
 // ("validity is sacred").
-import type { Genre, Difficulty, ScoreResult } from "../engine/types";
+import { clampToBase } from "../engine/types";
+import type { Genre, Difficulty, BaseDifficulty, ScoreResult } from "../engine/types";
 import { makeRng, type Rng } from "../engine/rng";
 import { itemMs } from "../engine/timing";
 import {
@@ -62,7 +63,7 @@ interface Band {
  * to the easiest distractor style and no rotation; d9 re-adds rotation to
  * two holes; d10 combines two holes + rotation + mirror on a bigger 5x5 grid.
  */
-function bandFor(d: Difficulty): Band {
+function bandFor(d: BaseDifficulty): Band {
   switch (d) {
     case 1: return { size: 4, holeCount: 1, holeRange: [1, 1], optionCount: 3, distractor: "count", rotatedDisplay: false };
     case 2: return { size: 4, holeCount: 1, holeRange: [2, 2], optionCount: 3, distractor: "count", rotatedDisplay: false };
@@ -280,7 +281,7 @@ function buildItem(rng: Rng, band: Band): FixPictureItem | null {
   };
 }
 
-function generateAttempt(seed: number, d: Difficulty, reseedDepth: number): FixPictureItem {
+function generateAttempt(seed: number, d: BaseDifficulty, reseedDepth: number): FixPictureItem {
   const rng = makeRng(seed);
   const band = bandFor(d);
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
@@ -294,7 +295,7 @@ function generateAttempt(seed: number, d: Difficulty, reseedDepth: number): FixP
 }
 
 export function generate(seed: number, d: Difficulty): FixPictureItem {
-  return generateAttempt(seed, d, 0);
+  return generateAttempt(seed, clampToBase(d), 0);   // this genre's own ramp is 1-10 only
 }
 
 export function score(item: FixPictureItem, response: number[] | null): ScoreResult {

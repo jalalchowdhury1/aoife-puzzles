@@ -19,7 +19,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { GENRES, GENRE_LIST } from "../lib/genres";
-import { DIFFICULTIES, type GenreId } from "../lib/engine/types";
+import { DIFFICULTIES, genreMaxD, type Difficulty, type GenreId } from "../lib/engine/types";
 import { SHAPES, COLORS, shapePath, type Figure } from "../lib/genres/shapes";
 import { faceSvg, type BlockDesignItem } from "../lib/genres/blockDesign";
 import { rotate, type Cell, type VisualPuzzlesItem } from "../lib/genres/visualPuzzles";
@@ -326,7 +326,8 @@ function buildPage(): string {
     const genre = GENRES[id];
     const render = genre.audit ? (item: unknown) => genre.audit!(item) : RENDERERS[id];
     if (!render) throw new Error(`no renderer for ${id}`);
-    const dBlocks = DIFFICULTIES.map(d => {
+    const allD: Difficulty[] = genreMaxD(genre) > 10 ? [...DIFFICULTIES, ...Array.from({ length: genreMaxD(genre) - 10 }, (_, i) => (11 + i) as Difficulty)] : DIFFICULTIES;
+    const dBlocks = allD.map(d => {
       const cards = SEEDS.map(seed => {
         const item = genre.generate(seed, d);
         return `<div class="card"><div class="card-meta">seed ${seed}</div>${render(item)}</div>`;

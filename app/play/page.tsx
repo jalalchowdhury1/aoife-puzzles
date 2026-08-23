@@ -3,7 +3,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { BlockRecord, GenreId, GenreViewProps, ItemRecord, LevelConfig, PartConfig, SessionRecord } from "@/lib/engine/types";
-import { summarize } from "@/lib/engine/types";
+import { summarize, genreMaxD } from "@/lib/engine/types";
 import { LEVELS, RELEASED_LEVELS } from "@/lib/levels";
 import { GENRES, GENRE_LIST } from "@/lib/genres";
 import { VIEWS } from "@/components/genres";
@@ -510,7 +510,7 @@ function PlayRunner() {
     setSeed(newSeed);
 
     if (genre.mode === "staircase") {
-      const st = startStair(cfg.start, cfg.maxItems, cfg.teachingItems, cfg.stepUp);
+      const st = startStair(cfg.start, cfg.maxItems, cfg.teachingItems, cfg.stepUp, genreMaxD(genre));
       setStair(st);
       setItem(genre.generate(newSeed, st.d, { excludeBankIds: [] }));
       setBlockStartMs(null);

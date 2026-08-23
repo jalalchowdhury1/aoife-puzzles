@@ -1,4 +1,5 @@
-import type { Difficulty, Genre } from "../engine/types";
+import { clampToBase } from "../engine/types";
+import type { BaseDifficulty, Genre } from "../engine/types";
 import { makeRng } from "../engine/rng";
 
 export interface PictureSpanItem { shown: string[]; choices: string[]; exposureMs: number }
@@ -10,7 +11,7 @@ const ICONS = [
   "🍓", "🐘", "🚲", "☂️", "🧸", "🐢", "🎺", "🔑",
 ];
 
-const K_BY_D: Record<Difficulty, number> = { 1: 1, 2: 2, 3: 2, 4: 3, 5: 3, 6: 4, 7: 4, 8: 5, 9: 6, 10: 7 };
+const K_BY_D: Record<BaseDifficulty, number> = { 1: 1, 2: 2, 3: 2, 4: 3, 5: 3, 6: 4, 7: 4, 8: 5, 9: 6, 10: 7 };
 
 function sameMultiset(a: readonly string[], b: readonly string[]): boolean {
   if (a.length !== b.length) return false;
@@ -40,9 +41,10 @@ export const pictureSpan: Genre<PictureSpanItem, string[]> = {
   },
 
   generate(seed, d) {
+    const d0 = clampToBase(d);   // this genre's own ramp is 1-10 only
     const rng = makeRng(seed);
-    const k = K_BY_D[d];
-    const distractorCount = d <= 5 ? 4 : 6;
+    const k = K_BY_D[d0];
+    const distractorCount = d0 <= 5 ? 4 : 6;
 
     const order = rng.shuffle(ICONS);
     const shown = order.slice(0, k);

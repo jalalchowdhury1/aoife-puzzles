@@ -7,7 +7,8 @@
 // board cell to cycle through a small fixed palette until her board matches
 // the target picture exactly. No React, no DOM, no Math.random — see
 // AGENTS.md §5/decision #14 ("validity is sacred").
-import type { Genre, Difficulty, ScoreResult } from "../engine/types";
+import { clampToBase } from "../engine/types";
+import type { Genre, Difficulty, BaseDifficulty, ScoreResult } from "../engine/types";
 import { makeRng, type Rng } from "../engine/rng";
 import { itemMs } from "../engine/timing";
 import { COLORS } from "./shapes";
@@ -249,7 +250,7 @@ function buildD10(rng: Rng): Built {
   return { n: 3, target: cells, palette };
 }
 
-function buildFor(d: Difficulty, rng: Rng): Built {
+function buildFor(d: BaseDifficulty, rng: Rng): Built {
   switch (d) {
     case 1: return buildD1(rng);
     case 2: return buildD2(rng);
@@ -265,9 +266,10 @@ function buildFor(d: Difficulty, rng: Rng): Built {
 }
 
 export function generate(seed: number, d: Difficulty): MosaicItem {
-  const rng = makeRng((seed + d * 1000003) >>> 0);
-  const built = buildFor(d, rng);
-  return { ...built, showGrid: d < 8 };
+  const d0 = clampToBase(d);   // this genre's own ramp is 1-10 only
+  const rng = makeRng((seed + d0 * 1000003) >>> 0);
+  const built = buildFor(d0, rng);
+  return { ...built, showGrid: d0 < 8 };
 }
 
 export function score(item: MosaicItem, response: Tile[] | null): ScoreResult {

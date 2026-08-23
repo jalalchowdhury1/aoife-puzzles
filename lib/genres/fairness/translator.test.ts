@@ -8,10 +8,10 @@
 import { describe, it, expect } from "vitest";
 import { translator, TRANSLATOR_KEY } from "../translator";
 import { DIFFICULTIES } from "../../engine/types";
-import type { Difficulty } from "../../engine/types";
+import type { BaseDifficulty } from "../../engine/types";
 
 const SEEDS = Array.from({ length: 500 }, (_, i) => i + 1);
-const KEY_SIZE: Record<Difficulty, number> = { 1: 3, 2: 3, 3: 3, 4: 4, 5: 4, 6: 4, 7: 5, 8: 5, 9: 5, 10: 5 };
+const KEY_SIZE: Record<BaseDifficulty, number> = { 1: 3, 2: 3, 3: 3, 4: 4, 5: 4, 6: 4, 7: 5, 8: 5, 9: 5, 10: 5 };
 
 // One 500 x 10 sweep, generated once and reused by every rule below.
 const ITEMS = DIFFICULTIES.flatMap(d => SEEDS.map(seed => ({ seed, d, item: translator.generate(seed, d) })));
@@ -25,7 +25,7 @@ describe("translator fairness", () => {
 
   it("key size exactly matches the published band (3 at d<=3, 4 at d4-6, 5 at d>=7) — no cliff, no wrong-band item", () => {
     for (const { d, item } of ITEMS) {
-      expect(item.key.length).toBe(KEY_SIZE[d]);
+      expect(item.key.length).toBe(KEY_SIZE[d as BaseDifficulty]);
     }
   });
 

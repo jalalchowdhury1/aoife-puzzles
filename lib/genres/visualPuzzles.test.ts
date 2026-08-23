@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DIFFICULTIES, type Difficulty } from "../engine/types";
+import { DIFFICULTIES, type Difficulty, type BaseDifficulty } from "../engine/types";
 import {
   visualPuzzles,
   generate,
@@ -21,7 +21,7 @@ const SEEDS = Array.from({ length: 500 }, (_, i) => i + 1);
 // d5 bands folded together); every other difficulty has exactly one.
 interface BandSpec { size: 4 | 5 | 6; min: number; max: number; pieceCount: 2 | 3; optionCount: 3 | 4 | 6; minPieceSize: 1 | 2; allowRotation: boolean }
 
-function bandsFor(d: Difficulty): BandSpec[] {
+function bandsFor(d: BaseDifficulty): BandSpec[] {
   switch (d) {
     case 1: return [{ size: 4, min: 3, max: 3, pieceCount: 2, optionCount: 3, minPieceSize: 1, allowRotation: false }];
     case 2: return [{ size: 4, min: 4, max: 4, pieceCount: 2, optionCount: 4, minPieceSize: 1, allowRotation: false }];
@@ -113,7 +113,7 @@ describe("visualPuzzles.generate", () => {
   // per (seed, d) pair instead of once per property.
   it("holds every generator invariant across 500 seeds x 10 difficulties", () => {
     for (const d of DIFFICULTIES) {
-      const bands = bandsFor(d);
+      const bands = bandsFor(d as BaseDifficulty);
       const allowRotation = bands[0].allowRotation;
       const pieceCount = bands[0].pieceCount;
       const optionCount = bands[0].optionCount;

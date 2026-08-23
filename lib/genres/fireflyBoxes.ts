@@ -1,4 +1,5 @@
-import type { Difficulty, Genre } from "../engine/types";
+import { clampToBase } from "../engine/types";
+import type { BaseDifficulty, Genre } from "../engine/types";
 import { makeRng } from "../engine/rng";
 
 export type FireflyTask = "same" | "backward";
@@ -20,7 +21,7 @@ const ALL_CELLS = Array.from({ length: GRID_SIZE }, (_, i) => i);
 // Slow, one-step-at-a-time ramp (owner decision #15): the "same order" task
 // grows one box at a time from d1 to d6, then "backward" is introduced as its
 // own new idea and grows the same way from d7 to d10.
-const PLAN: Record<Difficulty, { task: FireflyTask; len: number }> = {
+const PLAN: Record<BaseDifficulty, { task: FireflyTask; len: number }> = {
   1: { task: "same", len: 1 },
   2: { task: "same", len: 2 },
   3: { task: "same", len: 3 },
@@ -74,8 +75,9 @@ export const fireflyBoxes: Genre<FireflyBoxesItem, number[]> & {
     // Decorrelated per (seed, d) so neighbouring difficulties for the same
     // seed don't share a random-stream prefix (unlike e.g. pictureSpan, which
     // wants that nesting; here it would just be a coincidence to avoid).
-    const rng = makeRng(seed * 1000 + d);
-    const { task, len } = PLAN[d];
+    const d0 = clampToBase(d);   // this genre's own ramp is 1-10 only
+    const rng = makeRng(seed * 1000 + d0);
+    const { task, len } = PLAN[d0];
     // Distinct cells only (a stronger guarantee than "no immediate repeats"):
     // a box relighting later in the sequence is a legitimate Corsi-style
     // design, but for a 5-year-old it reads as "wait, didn't I already see

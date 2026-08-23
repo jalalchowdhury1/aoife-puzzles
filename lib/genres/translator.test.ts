@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { translator, TRANSLATOR_KEY } from "./translator";
 import { DIFFICULTIES } from "../engine/types";
-import type { Difficulty } from "../engine/types";
+import type { BaseDifficulty } from "../engine/types";
 
-const KEY_SIZE: Record<Difficulty, number> = { 1: 3, 2: 3, 3: 3, 4: 4, 5: 4, 6: 4, 7: 5, 8: 5, 9: 5, 10: 5 };
+const KEY_SIZE: Record<BaseDifficulty, number> = { 1: 3, 2: 3, 3: 3, 4: 4, 5: 4, 6: 4, 7: 5, 8: 5, 9: 5, 10: 5 };
 
 describe("translator metadata", () => {
   it("is a speed-block genre with the fixed 120s timing", () => {
@@ -30,7 +30,7 @@ describe("translator.generate", () => {
         const b = translator.generate(seed, d);
         expect(b).toEqual(a); // determinism
 
-        const n = KEY_SIZE[d];
+        const n = KEY_SIZE[d as BaseDifficulty];
         expect(a.key).toEqual(TRANSLATOR_KEY.slice(0, n));
 
         const keyAnimals = a.key.map(k => k.animal);

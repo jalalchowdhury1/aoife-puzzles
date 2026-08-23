@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { DIFFICULTIES, type Difficulty } from "../engine/types";
+import { DIFFICULTIES, type Difficulty, type BaseDifficulty } from "../engine/types";
 import { patternTrain, figuresEqual, audit, type PatternTrainItem } from "./patternTrain";
 import type { Figure } from "./shapes";
 
 // Total carriages (shown cars + 1 missing) per band — the exact contract each
 // buildDN in patternTrain.ts implements. Kept independent of the
 // implementation so this test actually pins the shape of the deliverable.
-const TOTAL_CARS: Record<Difficulty, number> = {
+const TOTAL_CARS: Record<BaseDifficulty, number> = {
   1: 5, 2: 5, 3: 6, 4: 6, 5: 5, 6: 5, 7: 7, 8: 6, 9: 7, 10: 7,
 };
 
@@ -50,7 +50,7 @@ describe("patternTrain.generate", () => {
         const item = patternTrain.generate(seed, d);
 
         // --- shape contract ---
-        expect(item.cars.length, `d${d}`).toBe(TOTAL_CARS[d] - 1);
+        expect(item.cars.length, `d${d}`).toBe(TOTAL_CARS[d as BaseDifficulty] - 1);
         expect(item.options.length, `d${d}`).toBe(4);
         expect(item.answer).toBeGreaterThanOrEqual(0);
         expect(item.answer).toBeLessThan(4);

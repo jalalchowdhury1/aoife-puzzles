@@ -2,11 +2,11 @@ import { describe, it, expect } from "vitest";
 import { pictureSpan } from "./pictureSpan";
 import type { PictureSpanItem } from "./pictureSpan";
 import { DIFFICULTIES } from "../engine/types";
-import type { Difficulty } from "../engine/types";
+import type { BaseDifficulty } from "../engine/types";
 
 // Mirrors the spec's k-by-difficulty table (section 2.7 / task 7), kept independent
 // of the implementation so the test actually pins the contract.
-const K_BY_D: Record<Difficulty, number> = { 1: 1, 2: 2, 3: 2, 4: 3, 5: 3, 6: 4, 7: 4, 8: 5, 9: 6, 10: 7 };
+const K_BY_D: Record<BaseDifficulty, number> = { 1: 1, 2: 2, 3: 2, 4: 3, 5: 3, 6: 4, 7: 4, 8: 5, 9: 6, 10: 7 };
 
 describe("pictureSpan metadata", () => {
   it("matches the WM staircase contract", () => {
@@ -31,7 +31,7 @@ describe("pictureSpan.generate", () => {
     for (let seed = 0; seed < 500; seed++) {
       for (const d of DIFFICULTIES) {
         const item = pictureSpan.generate(seed, d);
-        const k = K_BY_D[d];
+        const k = K_BY_D[d as BaseDifficulty];
         const expectedChoiceCount = k + (d <= 5 ? 4 : 6);
 
         expect(item.shown.length).toBe(k);

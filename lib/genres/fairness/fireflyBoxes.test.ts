@@ -8,12 +8,12 @@
 import { describe, it, expect } from "vitest";
 import { fireflyBoxes, GRID_SIZE, EXPOSURE_ON_MS } from "../fireflyBoxes";
 import { DIFFICULTIES } from "../../engine/types";
-import type { Difficulty } from "../../engine/types";
+import type { BaseDifficulty } from "../../engine/types";
 
 const SEEDS = Array.from({ length: 500 }, (_, i) => i + 1);
 
-const LEN_BY_D: Record<Difficulty, number> = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 2, 8: 3, 9: 4, 10: 5 };
-const TASK_BY_D: Record<Difficulty, "same" | "backward"> = {
+const LEN_BY_D: Record<BaseDifficulty, number> = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 2, 8: 3, 9: 4, 10: 5 };
+const TASK_BY_D: Record<BaseDifficulty, "same" | "backward"> = {
   1: "same", 2: "same", 3: "same", 4: "same", 5: "same", 6: "same",
   7: "backward", 8: "backward", 9: "backward", 10: "backward",
 };
@@ -45,17 +45,17 @@ describe("fireflyBoxes fairness", () => {
 
   it("length and task exactly match the published ramp for every difficulty — no cliff, no wrong-rule item", () => {
     for (const { d, item } of ITEMS) {
-      expect(item.sequence.length).toBe(LEN_BY_D[d]);
-      expect(item.task).toBe(TASK_BY_D[d]);
+      expect(item.sequence.length).toBe(LEN_BY_D[d as BaseDifficulty]);
+      expect(item.task).toBe(TASK_BY_D[d as BaseDifficulty]);
     }
   });
 
   it("length grows by exactly one box per step within a task — no two-idea jump (owner decision #15)", () => {
     for (let d = 2; d <= 6; d++) {
-      expect(LEN_BY_D[d as Difficulty]).toBe(LEN_BY_D[(d - 1) as Difficulty] + 1);
+      expect(LEN_BY_D[d as BaseDifficulty]).toBe(LEN_BY_D[(d - 1) as BaseDifficulty] + 1);
     }
     for (let d = 8; d <= 10; d++) {
-      expect(LEN_BY_D[d as Difficulty]).toBe(LEN_BY_D[(d - 1) as Difficulty] + 1);
+      expect(LEN_BY_D[d as BaseDifficulty]).toBe(LEN_BY_D[(d - 1) as BaseDifficulty] + 1);
     }
   });
 

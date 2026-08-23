@@ -1,5 +1,6 @@
 import { makeRng, type Rng } from "../engine/rng";
-import type { Genre, ScoreResult, Difficulty } from "../engine/types";
+import { clampToBase } from "../engine/types";
+import type { Genre, BaseDifficulty, ScoreResult } from "../engine/types";
 
 /**
  * Animal Parade (cousin of auditory sequence memory, domain WM): Pip says a
@@ -37,7 +38,7 @@ export interface AnimalParadeItem {
 // mix longer spans — d9 and d10 each list two variants and PLAN[d][seed %
 // PLAN[d].length] alternates between them by seed parity (mirrors
 // digitSpan.ts's own PLAN mechanism exactly).
-const PLAN: Record<Difficulty, [ParadeTask, number][]> = {
+const PLAN: Record<BaseDifficulty, [ParadeTask, number][]> = {
   1: [["same", 2]],
   2: [["same", 3]],
   3: [["same", 4]],
@@ -88,8 +89,9 @@ export const animalParade: Genre<AnimalParadeItem, Animal[]> & { e2e: { kind: "s
   }),
 
   generate(seed, d) {
-    const r = makeRng(seed * 13 + d);
-    const plan = PLAN[d];
+    const d0 = clampToBase(d);   // this genre's own ramp is 1-10 only
+    const r = makeRng(seed * 13 + d0);
+    const plan = PLAN[d0];
     const [task, len] = plan[((seed % plan.length) + plan.length) % plan.length];
     const animals = task === "size" ? genDistinctSequence(r, len) : genSequenceNoAdjacentRepeat(r, len);
     const expected = expectedFor(animals, task);

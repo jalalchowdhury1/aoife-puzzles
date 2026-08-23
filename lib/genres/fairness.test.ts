@@ -8,7 +8,7 @@
 // rules here don't each pay the cost of re-generating it.
 import { describe, it, expect } from "vitest";
 import { GENRES, RETIRED_GENRE_IDS } from "./index";
-import { DIFFICULTIES, type Difficulty, type GenreId } from "../engine/types";
+import { DIFFICULTIES, type Difficulty, type BaseDifficulty, type GenreId } from "../engine/types";
 import { makeRng } from "../engine/rng";
 
 import { planFor, type MatrixItem } from "./matrix";
@@ -677,11 +677,11 @@ describe("Digit Span (Number Echo) — genre-specific fairness rules", () => {
 // ---------------------------------------------------------------------------
 describe("Picture Span (Picture Memory) — genre-specific fairness rules", () => {
   const PS_ITEMS = itemsOf<PictureSpanItem>("pictureSpan");
-  const K_BY_D: Record<Difficulty, number> = { 1: 1, 2: 2, 3: 2, 4: 3, 5: 3, 6: 4, 7: 4, 8: 5, 9: 6, 10: 7 };
+  const K_BY_D: Record<BaseDifficulty, number> = { 1: 1, 2: 2, 3: 2, 4: 3, 5: 3, 6: 4, 7: 4, 8: 5, 9: 6, 10: 7 };
 
   it("the number of pictures shown matches the difficulty's planned span k", () => {
     for (const { item, seed, d } of PS_ITEMS) {
-      expect(item.shown.length, `seed${seed} d${d}`).toBe(K_BY_D[d]);
+      expect(item.shown.length, `seed${seed} d${d}`).toBe(K_BY_D[d as BaseDifficulty]);
     }
   });
 

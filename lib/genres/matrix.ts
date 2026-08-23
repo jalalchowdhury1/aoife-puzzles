@@ -1,6 +1,7 @@
 // Matrix Reasoning: "What's Missing?" — a 2x2/3x3 grid (or 1x5 series) of attribute
 // figures with the last cell missing; pick the option that completes the pattern.
 import { makeRng } from "../engine/rng";
+import { clampToBase } from "../engine/types";
 import type { Difficulty, Genre, ScoreResult } from "../engine/types";
 import type { Figure } from "./shapes";
 import { COLORS } from "./shapes";
@@ -18,24 +19,25 @@ export interface MatrixItem {
 }
 
 function generate(seed: number, d: Difficulty): MatrixItem {
+  const d0 = clampToBase(d);   // this genre's own ramp is 1-10 only (retired, decision #16)
   const rng = makeRng(seed);
   // Series only ever shows up from d3 (a sample-only 2x2 is all she's seen
   // by d1-2), and at <=30% of seeds even then.
   const useSeries = d >= 3 && d <= 6 && rng.next() < 0.3;
 
   if (useSeries) {
-    const figures = buildSeriesFigures(rng, d);
+    const figures = buildSeriesFigures(rng, d0);
     const visible = figures.slice(0, 4);
     const answerFigure = figures[4];
-    const { options, answerIndex } = buildOptions(rng, answerFigure, visible, d);
+    const { options, answerIndex } = buildOptions(rng, answerFigure, visible, d0);
     return { form: "series", rows: d <= 3 ? 2 : 3, cells: [...visible, null], options, answer: answerIndex };
   }
 
-  const { rows, rules } = buildRulePlan(rng, d);
-  const grid = buildGrid(rng, rows, rules, d).flat();
+  const { rows, rules } = buildRulePlan(rng, d0);
+  const grid = buildGrid(rng, rows, rules, d0).flat();
   const visible = grid.slice(0, -1);
   const answerFigure = grid[grid.length - 1];
-  const { options, answerIndex } = buildOptions(rng, answerFigure, visible, d);
+  const { options, answerIndex } = buildOptions(rng, answerFigure, visible, d0);
   return { form: "matrix", rows, cells: [...visible, null], options, answer: answerIndex };
 }
 
@@ -47,11 +49,12 @@ function generate(seed: number, d: Difficulty): MatrixItem {
  * particular, to assert colour/shape never land on "progressRow".
  */
 export function planFor(seed: number, d: Difficulty): { form: "matrix" | "series"; kinds: Partial<Record<AttrName, RuleKind>> } {
+  const d0 = clampToBase(d);
   const rng = makeRng(seed);
   const useSeries = d >= 3 && d <= 6 && rng.next() < 0.3;
   if (useSeries) return { form: "series", kinds: {} };
 
-  const { rules } = buildRulePlan(rng, d);
+  const { rules } = buildRulePlan(rng, d0);
   const kinds: Partial<Record<AttrName, RuleKind>> = {};
   for (const rule of rules) kinds[rule.attr] = rule.kind;
   return { form: "matrix", kinds };

@@ -17,7 +17,8 @@
 //   - `size` is never an ACTIVE (pattern-driving) attribute — only ever a
 //     possible distractor axis, and only from d7 up (never a size-only
 //     distractor at d<=6, per the deliverable's fairness rule).
-import type { Difficulty, Genre, ScoreResult } from "../engine/types";
+import { clampToBase } from "../engine/types";
+import type { BaseDifficulty, Difficulty, Genre, ScoreResult } from "../engine/types";
 import { makeRng, type Rng } from "../engine/rng";
 import { SHAPES, COLORS, shapePath, type Shape, type Figure } from "./shapes";
 
@@ -274,7 +275,7 @@ function buildD10(rng: Rng): Built {
   };
 }
 
-function buildSequence(rng: Rng, d: Difficulty): Built {
+function buildSequence(rng: Rng, d: BaseDifficulty): Built {
   switch (d) {
     case 1: return buildD1(rng);
     case 2: return buildD2(rng);
@@ -355,11 +356,12 @@ function assembleOptions(rng: Rng, answer: Figure, distractors: Figure[]): { opt
 }
 
 function generate(seed: number, d: Difficulty): PatternTrainItem {
+  const d0 = clampToBase(d);   // TEMP (2026-08-24): real d11-15 bands are the next task; see AGENTS.md
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const rng = makeRng(seed + attempt * RESEED_STEP);
     try {
-      const { cars, answer, rule } = buildSequence(rng, d);
-      const distractors = buildDistractors(rng, answer, [answer, ...cars], d, 3);
+      const { cars, answer, rule } = buildSequence(rng, d0);
+      const distractors = buildDistractors(rng, answer, [answer, ...cars], d0, 3);
       const { options, answer: answerIndex } = assembleOptions(rng, answer, distractors);
       return { cars, options, answer: answerIndex, rule };
     } catch (e) {

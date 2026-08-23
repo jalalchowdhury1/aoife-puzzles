@@ -26,7 +26,7 @@
 //     guess "what's next"; colour and shape may only take
 //     const/constRow/constCol/dist3 rules).
 import type { Rng } from "../engine/rng";
-import type { Difficulty } from "../engine/types";
+import type { BaseDifficulty } from "../engine/types";
 import type { Figure } from "./shapes";
 import { SHAPES, COLORS } from "./shapes";
 
@@ -172,7 +172,7 @@ export const RULE_FILLERS: Record<RuleKind, (rng: Rng, len: number, rows: number
 export interface AttrRule { attr: AttrName; kind: RuleKind }
 interface PlanSpec { rows: 2 | 3; kinds: RuleKind[]; pool: AttrName[]; appendDotCol?: boolean }
 
-const PLAN_BY_D: Record<Difficulty, PlanSpec> = {
+const PLAN_BY_D: Record<BaseDifficulty, PlanSpec> = {
   // d1-2: exactly one of {shape, color} varies row to row; everything else
   // (including count/rot/dot) is pinned by buildGrid regardless of this pool.
   1: { rows: 2, kinds: ["constRow"], pool: ["shape", "color"] },
@@ -221,7 +221,7 @@ function pickDistinctAttrs(rng: Rng, pool: AttrName[], n: number, avoid: AttrNam
 }
 
 /** Turns a difficulty into a concrete set of attribute rules (data-driven; see PLAN_BY_D). */
-export function buildRulePlan(rng: Rng, d: Difficulty): { rows: 2 | 3; rules: AttrRule[] } {
+export function buildRulePlan(rng: Rng, d: BaseDifficulty): { rows: 2 | 3; rules: AttrRule[] } {
   const spec = PLAN_BY_D[d];
 
   // The progressing ("stepping") slot, if this plan has one, is drawn only
@@ -254,7 +254,7 @@ export function buildRulePlan(rng: Rng, d: Difficulty): { rows: 2 | 3; rules: At
 }
 
 /** Builds the full rows x rows grid of Figures from a rule plan; unruled attributes are constant (dot/rot default to their "off" value). */
-export function buildGrid(rng: Rng, rows: 2 | 3, rules: AttrRule[], d: Difficulty): Figure[][] {
+export function buildGrid(rng: Rng, rows: 2 | 3, rules: AttrRule[], d: BaseDifficulty): Figure[][] {
   const cols = rows;
   const used = new Set(rules.map(r => r.attr));
   const indexGrids = {} as Record<AttrName, number[][]>;
@@ -315,7 +315,7 @@ function twoValueSet(rng: Rng, attr: AttrName): number[] {
  *     may alternate on top of it. Rotation, if chosen, forces every shape to
  *     triangle (same rule as the matrix form).
  */
-export function buildSeriesFigures(rng: Rng, d: Difficulty): Figure[] {
+export function buildSeriesFigures(rng: Rng, d: BaseDifficulty): Figure[] {
   const narrow = d <= 4;
   // The progressing attribute is a "stepping" rule too — restricted the same
   // way as buildRulePlan's progressRow slot: never colour or shape, and
@@ -370,7 +370,7 @@ export function buildSeriesFigures(rng: Rng, d: Difficulty): Figure[] {
 }
 
 /** Which attributes a distractor is allowed to differ on, given the difficulty and the answer figure. */
-function eligibleDistractorAttrs(d: Difficulty, answer: Figure): AttrName[] {
+function eligibleDistractorAttrs(d: BaseDifficulty, answer: Figure): AttrName[] {
   if (d <= 2) return ["shape", "color"];
   if (d <= 4) return ["shape", "color", "count"];
 
@@ -409,7 +409,7 @@ function pickMutateAttrs(rng: Rng, eligible: AttrName[], n: number): AttrName[] 
 }
 
 /** A distractor: `answer` with 1..maxAttrs eligible attributes changed to a different value. */
-function mutateFigure(rng: Rng, answer: Figure, d: Difficulty, maxAttrs: number): Figure {
+function mutateFigure(rng: Rng, answer: Figure, d: BaseDifficulty, maxAttrs: number): Figure {
   const eligible = eligibleDistractorAttrs(d, answer);
   const numAttrs = Math.min(maxAttrs <= 1 ? 1 : rng.int(1, maxAttrs), eligible.length);
   const attrs = pickMutateAttrs(rng, eligible, numAttrs);
@@ -437,7 +437,7 @@ export function buildOptions(
   rng: Rng,
   answer: Figure,
   visible: Figure[],
-  d: Difficulty
+  d: BaseDifficulty
 ): { options: Figure[]; answerIndex: number } {
   const maxAttrs = d <= 6 ? 1 : 2;
   const forbidden = [answer, ...visible];

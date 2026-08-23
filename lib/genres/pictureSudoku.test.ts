@@ -1,11 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { DIFFICULTIES, type Difficulty } from "../engine/types";
+import { DIFFICULTIES, type BaseDifficulty } from "../engine/types";
 import { pictureSudoku, EMOJI_BANK, audit, type PictureSudokuItem } from "./pictureSudoku";
 
-const N_BY_D: Record<Difficulty, 2 | 3 | 4> = {
+const N_BY_D: Record<BaseDifficulty, 2 | 3 | 4> = {
   1: 2, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 4, 8: 4, 9: 4, 10: 4,
 };
-const EXTRA_BLANKS_BY_D: Record<Difficulty, number> = {
+const EXTRA_BLANKS_BY_D: Record<BaseDifficulty, number> = {
   1: 0, 2: 0, 3: 0, 4: 1, 5: 1, 6: 0, 7: 0, 8: 1, 9: 2, 10: 3,
 };
 
@@ -62,7 +62,7 @@ describe("pictureSudoku.generate", () => {
     for (let seed = 0; seed < 500; seed++) {
       for (const d of DIFFICULTIES) {
         const item = pictureSudoku.generate(seed, d);
-        const n = N_BY_D[d];
+        const n = N_BY_D[d as BaseDifficulty];
 
         // --- shape contract ---
         expect(item.n, `seed${seed} d${d}`).toBe(n);
@@ -78,7 +78,7 @@ describe("pictureSudoku.generate", () => {
 
         // total blank count matches this band's asked + extra budget
         const blankCount = item.cells.filter(c => c === null).length;
-        expect(blankCount, `seed${seed} d${d}`).toBe(1 + EXTRA_BLANKS_BY_D[d]);
+        expect(blankCount, `seed${seed} d${d}`).toBe(1 + EXTRA_BLANKS_BY_D[d as BaseDifficulty]);
 
         // every non-null cell is one of this item's own symbols
         for (const c of item.cells) {

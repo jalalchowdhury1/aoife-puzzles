@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { DIFFICULTIES, type Difficulty } from "../engine/types";
+import { DIFFICULTIES, type BaseDifficulty } from "../engine/types";
 import {
   fixPicture,
   generate,
@@ -18,7 +18,7 @@ import {
 const SEEDS = Array.from({ length: 500 }, (_, i) => i + 1);
 
 interface BandSpec { size: 4 | 5; pieceCount: 1 | 2; optionCount: 3 | 4 | 5; rotated: boolean }
-function bandsFor(d: Difficulty): BandSpec {
+function bandsFor(d: BaseDifficulty): BandSpec {
   switch (d) {
     case 1: return { size: 4, pieceCount: 1, optionCount: 3, rotated: false };
     case 2: return { size: 4, pieceCount: 1, optionCount: 3, rotated: false };
@@ -56,7 +56,7 @@ describe("fixPicture.generate", () => {
 
   it("holds every generator invariant across 500 seeds x 10 difficulties", () => {
     for (const d of DIFFICULTIES) {
-      const band = bandsFor(d);
+      const band = bandsFor(d as BaseDifficulty);
       for (const seed of SEEDS) {
         const item = generate(seed, d);
 

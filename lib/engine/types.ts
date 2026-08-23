@@ -40,6 +40,7 @@ export interface ItemRecord {
   ms: number; timedOut: boolean; response: unknown; bankId?: string;
   fast?: boolean; audioFallback?: boolean; replayed?: boolean;
   teaching?: boolean;                  // a teaching-item that revealed the answer (see BlockConfig.teachingItems)
+  stars?: number;                      // "fun layer": stars this item earned (lib/engine/rewards.ts starsForItem); undefined on levels with fun === false
 }
 export interface BlockSummary {
   attempted: number; correct: number; points: number; max: number;
@@ -80,6 +81,11 @@ export interface LevelConfig {
   // rule. Mirrors WISC-V teaching items. A block's own `teachingItems`
   // overrides this. See lib/engine/staircase.ts and AGENTS.md §8/decision 8.
   teachingItems?: number;
+  // "Fun layer" (Pip the fox, praise screens, star jar, recap, etc. — see
+  // components/Pip.tsx and app/play/page.tsx). Defaults to true; Level 1 (the
+  // ungraded diagnostic) sets this false so it keeps today's neutral
+  // behaviour exactly (owner brief 2026-08-23).
+  fun?: boolean;
 }
 
 export function summarize(items: ItemRecord[], mode: "staircase" | "speedBlock"): BlockSummary {

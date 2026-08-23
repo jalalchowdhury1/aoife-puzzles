@@ -5,6 +5,7 @@ export const level1: LevelConfig = {
   title: "Find Your Superpowers",
   feedback: "none",
   teachingItems: 2,
+  fun: false, // the diagnostic: no Pip, no stars, no praise screens — see AGENTS.md decision #8/#14 and LevelConfig.fun
   parts: [
     {
       id: "A",

@@ -7,9 +7,11 @@ import { defineConfig } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   // The play-through test walks all 13 genre blocks end-to-end (two staircase
-  // items each, or a short speed block) and legitimately takes over a minute;
-  // give it real headroom instead of Playwright's 30s default.
-  timeout: 150_000,
+  // items each, or a short speed block) and legitimately takes over two
+  // minutes now that the fun layer's welcome/blockDone/praise interstitials
+  // (app/play/page.tsx, level 99 defaults to fun: true) add their own short
+  // pauses; give it real headroom instead of Playwright's 30s default.
+  timeout: 180_000,
   expect: { timeout: 8_000 },
   fullyParallel: true,
   forbidOnly: !!process.env.CI,

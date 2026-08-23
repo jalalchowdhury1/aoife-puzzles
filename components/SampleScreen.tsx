@@ -3,11 +3,13 @@ import { useEffect, useMemo } from "react";
 import type { Genre, GenreViewProps } from "@/lib/engine/types";
 import { speak, warmUpSpeech } from "@/lib/engine/speech";
 import { BigButton } from "./BigButton";
+import { Pip } from "./Pip";
 
 export function SampleScreen({
   genre,
   View,
   onStart,
+  fun = true,
 }: {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   genre: Genre<any, any>;
@@ -16,6 +18,9 @@ export function SampleScreen({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   View: React.ComponentType<GenreViewProps<any, any>>;
   onStart: () => void;
+  // "Fun layer" (Pip the fox) on/off — false on Level 1, the ungraded
+  // diagnostic, which keeps today's neutral behaviour exactly.
+  fun?: boolean;
 }) {
   const sample = useMemo(() => genre.sample(), [genre]);
 
@@ -38,7 +43,15 @@ export function SampleScreen({
     <div className="flex flex-1 flex-col items-center justify-center gap-4 overflow-hidden bg-cream p-3 text-center landscape:flex-row landscape:items-center landscape:justify-center landscape:gap-8 landscape:text-left lg:flex-row lg:items-center lg:text-left">
       <div className="flex flex-col items-center gap-3 landscape:max-w-[34rem] landscape:items-start lg:max-w-[34rem] lg:items-start">
         <h1 className="font-bubble text-3xl text-ink landscape:text-4xl lg:text-4xl">{genre.kidTitle}</h1>
-        <p className="max-w-xl text-lg text-ink">{genre.instructions}</p>
+        {fun ? (
+          // Pip delivers the instructions in its speech bubble instead of a
+          // plain paragraph. `speak` is left off here: the effect above
+          // already reads genre.instructions aloud, then the sample's own
+          // explanation — Pip speaking too would double it up.
+          <Pip mood="happy" line={genre.instructions} />
+        ) : (
+          <p className="max-w-xl text-lg text-ink">{genre.instructions}</p>
+        )}
 
         <div className="max-w-xl rounded-3xl bg-sky-300/40 p-3 text-base text-ink">{sample.explanation}</div>
 

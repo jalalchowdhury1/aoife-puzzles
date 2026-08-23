@@ -660,9 +660,11 @@ function PlayRunner() {
         const cameFromMiss = records.length > 0 && !records[records.length - 1].correct;
         const streak = streakAfter(newRecords);
         const prevBest = bestDByGenreRef.current[cfg.genre] ?? null;
-        const isNewBest = prevBest === null || stair!.d > prevBest;
-        if (isNewBest) bestDByGenreRef.current[cfg.genre] = stair!.d;
-        const kind = correctPraiseKind(stair!.d, streak, isNewBest, cameFromMiss);
+        // "New best" praise needs a REAL previous best to beat — the first puzzle of a
+        // brand-new game is not a high score, it is a warm-up (QA 2026-08-23).
+        const beatsRecord = prevBest !== null && stair!.d > prevBest;
+        if (prevBest === null || stair!.d > prevBest) bestDByGenreRef.current[cfg.genre] = stair!.d;
+        const kind = correctPraiseKind(stair!.d, streak, beatsRecord, cameFromMiss);
         const line = pickPraise(
           { kind, name: KID_NAME, kidTitle: genre.kidTitle, fast, hard: stair!.d >= 7, streak, stars: record.stars },
           rng,

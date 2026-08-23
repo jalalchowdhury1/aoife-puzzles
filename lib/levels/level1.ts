@@ -4,6 +4,7 @@ export const level1: LevelConfig = {
   id: 1,
   title: "Find Your Superpowers",
   feedback: "none",
+  fun: false, // diagnostic: no right/wrong feedback, so praise stays neutral ("neutralNext")
   teachingItems: 2,
   parts: [
     {

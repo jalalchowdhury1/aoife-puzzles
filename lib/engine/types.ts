@@ -40,6 +40,7 @@ export interface ItemRecord {
   ms: number; timedOut: boolean; response: unknown; bankId?: string;
   fast?: boolean; audioFallback?: boolean; replayed?: boolean;
   teaching?: boolean;                  // a teaching-item that revealed the answer (see BlockConfig.teachingItems)
+  stars?: number;                      // stars earned on this item (0 when none); see lib/engine/rewards.ts
 }
 export interface BlockSummary {
   attempted: number; correct: number; points: number; max: number;
@@ -80,6 +81,12 @@ export interface LevelConfig {
   // rule. Mirrors WISC-V teaching items. A block's own `teachingItems`
   // overrides this. See lib/engine/staircase.ts and AGENTS.md §8/decision 8.
   teachingItems?: number;
+  // Whether this level is part of the "fun engine" (praise variety, stars,
+  // badges) rather than the ungraded diagnostic. Defaults to true; Level 1
+  // (the diagnostic, feedback: "none") sets this to false so the runner uses
+  // correctness-free "neutralNext" praise lines instead of celebrating
+  // right/wrong answers she is never shown. See lib/engine/praise.ts.
+  fun?: boolean;
 }
 
 export function summarize(items: ItemRecord[], mode: "staircase" | "speedBlock"): BlockSummary {

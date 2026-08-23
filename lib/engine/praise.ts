@@ -37,7 +37,7 @@ export const PRAISE_BANK: Record<PraiseKind, string[]> & { correctFast: string[]
     "You found the answer so fast.",
     "That took sharp eyes to see.",
     "You matched every single piece.",
-    "You counted that perfectly.",
+    "You worked that out perfectly.",
     "You saw the pattern right away.",
     "That was a tricky shape and you got it.",
     "You listened so carefully.",

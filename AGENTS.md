@@ -45,6 +45,7 @@ spec `docs/superpowers/specs/2026-08-22-aoife-puzzles-design.md` · plan `docs/s
 | 15 | **Slow, one step at a time (2026-08-23)** | After six single-answer steps took her from 5 to 7 digits ("I can't remember them!") and two rebuilt ramps: practice levels use `stepUp: 2` (two correct in a row before the next difficulty), start WELL below her best (weak → 1, typical → ceiling − 3, strong → ceiling − 2), rebuilt ramps start at 1, and every ramp's bottom must be doable by a 4-year-old with one new idea per step. She must be succeeding most of the time or she disengages and the data stops. The diagnostic (Level 1) keeps `stepUp` 1. |
 | 14 | **Validity is sacred (2026-08-23)** | A puzzle that is broken, ambiguous, or unfair produces a FALSE weakness and defeats the purpose of the whole app. Every genre at every difficulty must be solvable, single-answer, visually unambiguous, and age-fair (see §5 fairness rules). Nothing deploys except through `npm run release` (lint + tsc + unit + fairness + e2e play-through + build); a failing check blocks the deploy. Suspicious results are flagged server-side (`flags` on blocks) and excluded from her profile. |
 | 13 | Remedial rule (2026-08-22, after launch) | **Every level after the diagnostic adapts to her profile: a weak area starts EASIER and gets MORE practice; a strong area starts near her ceiling and gets fewer reps.** Implemented in `lib/engine/adapt.ts`; levels opt in with `weighting: "remedial"`. Never ship a post-diagnostic level that ignores the profile. |
+| 20 | **Age-benchmark lens on the parent page (2026-08-26)** | Jalal: "build out our dashboard and the levels accordingly. that way we can accurately gauge how she is in comparison to others as well." The parent page's **Ages tab** shows approximate, research-anchored typical-age BANDS for the skill each difficulty demands (`lib/engine/benchmarks.ts`, digest `docs/research/2026-08-26-age-benchmarks-research.md`). Hard limits: parent page only, never child-visible; age RANGES with a stated basis — never percentiles, IQ numbers, or a single "mental age"; speed genres get NO band (per-minute norms are proprietary — a fake norm is a false comparison); a censored ("still winning when items ran out") or bailed ceiling can never produce a "below" verdict. This narrows the old blanket "no norms" line: profile SCORES remain self-relative only. |
 | 14 | Measurement quality (2026-08-23, after her Level 1 data showed it was needed) | **A broken or misunderstood puzzle must not become a false weakness in her profile.** `lib/engine/quality.ts` flags blocks like a first attempt at a new format that ended after two straight misses, or a run that mostly timed out; those flags exclude the block from her ceilings/values, are shown to the owner via Telegram, and are listed on the parent page. See §5 "Measurement quality" for the detail. |
 
 ## 2. Architecture
@@ -92,7 +93,9 @@ matrix, figureWeights, digitSpan, pictureSpan, coding, symbolSearch, similaritie
 Levels: 1 = diagnostic (retired genres, fun off) · 2 = RETIRED practice (unreleased) · 3 = "Pip's Games"
 (all 14 active genres, three parts, stepUp 2, teaching items, reveal, fun on) · 4 = "Pip's Power-Ups"
 (decision-#18 remedial, one part) · 5 = "Pip's Winning Streak" (2026-08-26: the four Level 4 genres
-promoted + a fromProfile victory lap; see `lib/levels/level5.ts` header) · 99 = hidden QA level.
+promoted + a fromProfile victory lap; see `lib/levels/level5.ts` header) · 6 = "Pip's Explorer Day"
+(2026-08-26: MEASUREMENT level for the six censored-ceiling genres L5 skips — fromProfile starts,
+fast lane ON + easeIn; see `lib/levels/level6.ts` header) · 99 = hidden QA level.
 
 Data flow: runner builds `SessionRecord` (one per part attempt) → after every block: `saveSessionLocal` +
 `enqueue` + `flushOutbox` → `POST /api/sessions` → Upstash `aoife_puzzles:session:<ulid>` +
@@ -249,6 +252,12 @@ No secrets in the repo. Never print them to a transcript.
 
 ## 6. State / TODO
 
+- 2026-08-26 (later): **Age Lens + Level 6 shipped** (spec `docs/superpowers/specs/2026-08-26-age-lens-design.md`,
+  decision #20). `lib/engine/benchmarks.ts` = research-anchored typical-age bands per genre/difficulty
+  (+ `measureStatus`: still-winning / at-top / bailed / measured — a censored ceiling renders as "≥ N");
+  parent `/parent` gained the 📏 Ages tab; Level 6 "Pip's Explorer Day" probes the six still-winning
+  genres (mosaic, patternTrain + the four verbal) with fromProfile starts, fast lane ON, easeIn ON.
+  Research digest: `docs/research/2026-08-26-age-benchmarks-research.md` (7 Perplexity threads).
 - 2026-08-26: Level 5 "Pip's Winning Streak" + Swap Shop re-band shipped (spec
   `docs/superpowers/specs/2026-08-26-level5-swapshop-reband-design.md`). Her Level 4 results: fireflyBoxes
   ceiling 5→7 (8/8), arithmetic 8/8 to ceiling 10 on the 1.5× clock (clock theory CONFIRMED), pictureSudoku

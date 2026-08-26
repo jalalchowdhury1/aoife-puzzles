@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { GenreId, SessionRecord } from "@/lib/engine/types";
+import { GENRES } from "@/lib/genres";
 import { computeInsights, type Insights, type SkillDetail } from "@/lib/engine/insights";
 import { lookupBankItem } from "@/lib/engine/bankLookup";
 import { loadSessions } from "@/lib/engine/storage";
@@ -18,6 +19,10 @@ import { ItemLog } from "@/components/parent/ItemLog";
 import { LineChart } from "@/components/parent/LineChart";
 import {fmtDate, fmtPct, fmtNum, plural } from "@/components/parent/format";
 import { FLAG_CODE_LABEL } from "@/components/parent/stats";
+import {
+  BENCHMARKS, cumulativeBenchmark, benchmarkAt, ageYearsAt, measureStatus, ageVerdict,
+  type MeasureStatus,
+} from "@/lib/engine/benchmarks";
 
 const KEY_STORAGE = "aoife-puzzles:parent-key";
 const TABS: TabDef[] = [
@@ -27,6 +32,7 @@ const TABS: TabDef[] = [
   { id: "matrix", label: "Matrix", emoji: "⊞" },
   { id: "timeline", label: "Timeline", emoji: "🗓" },
   { id: "wisc", label: "WISC lens", emoji: "🧠" },
+  { id: "ages", label: "Ages", emoji: "📏" },
 ];
 
 const NY_FMT = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" });
@@ -34,7 +40,10 @@ function todayNY(): string {
   return NY_FMT.format(new Date());
 }
 
-const NO_NORMS = "These numbers are relative to Aoife's own results only — never norms, percentiles, or IQ scores.";
+// Decision #20 (2026-08-26): the Ages tab may show approximate, research-anchored
+// typical-age RANGES per skill — still never percentiles or IQ scores, and only here
+// on the parent page. All other numbers stay relative to her own results.
+const NO_NORMS = "These numbers are relative to Aoife's own results only — never percentiles or IQ scores. (The Ages tab adds approximate research-anchored age ranges; read its caveats.)";
 
 export default function ParentPage() {
   const [key, setKey] = useState<string | null>(null);
@@ -201,6 +210,7 @@ export default function ParentPage() {
           {tab === "matrix" && <MatrixTab insights={insights} />}
           {tab === "timeline" && <TimelineTab insights={insights} />}
           {tab === "wisc" && <WiscTab insights={insights} />}
+          {tab === "ages" && <AgesTab insights={insights} />}
         </div>
       )}
 
@@ -694,6 +704,139 @@ function WiscTab({ insights }: { insights: Insights }) {
           })}
         </div>
       </section>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// 7. Ages (owner decision #20, 2026-08-26): approximate research-anchored
+//    typical-age bands for the skill each recorded ceiling demands. Bands and
+//    their anchors live in lib/engine/benchmarks.ts; the research digest is
+//    docs/research/2026-08-26-age-benchmarks-research.md. Never percentiles,
+//    never IQ numbers, never visible to Aoife.
+// ---------------------------------------------------------------------------
+
+const STATUS_LABEL: Record<MeasureStatus, string> = {
+  "still-winning": "still winning when the items ran out — her real level is HIGHER than shown",
+  "at-top": "reached the top of this game's ladder",
+  bailed: "she chose to stop (Not fun) — a comfort line, not a measured wall",
+  measured: "measured — real misses ended the last round",
+};
+
+const VERDICT_CHIP: Record<string, { label: string; cls: string }> = {
+  ahead: { label: "ahead of age", cls: "bg-[#6fcf6f]/20 text-[#2e7d32]" },
+  "age-typical": { label: "age-typical", cls: "bg-sky-300/25 text-sky-900" },
+  "below-band": { label: "below this band", cls: "bg-amber-300/30 text-amber-900" },
+  "no-anchor": { label: "no published norm", cls: "bg-ink/10 text-ink/60" },
+};
+
+function fmtBand(band: { lo: number; hi: number | null } | null): string {
+  if (!band) return "—";
+  return band.hi === null ? `${band.lo}+` : `${band.lo}–${band.hi}`;
+}
+
+function AgeRow({ insights, genre, age }: { insights: Insights; genre: GenreId; age: number }) {
+  const gb = BENCHMARKS[genre];
+  if (!gb) return null;
+  const genreDef = GENRES[genre];
+  const skill = insights.skills.find((s) => s.genre === genre);
+  const speed = gb.bands.length === 0;
+
+  if (speed) {
+    return (
+      <div className="flex flex-col gap-0.5 rounded-2xl bg-white p-3 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="font-semibold text-ink">{genreDef.kidTitle}</span>
+          <span className={`rounded-full px-2 py-0.5 text-xs ${VERDICT_CHIP["no-anchor"].cls}`}>
+            {VERDICT_CHIP["no-anchor"].label}
+          </span>
+        </div>
+        <p className="text-xs text-ink/60">{gb.caveat} Her trend lives in the Skills tab.</p>
+      </div>
+    );
+  }
+
+  if (!skill || skill.ceiling === null) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white p-3 shadow-sm">
+        <span className="font-semibold text-ink">{genreDef.kidTitle}{genreDef.retired ? " (older format)" : ""}</span>
+        <span className="text-xs text-ink/50">not measured yet</span>
+      </div>
+    );
+  }
+
+  const status = measureStatus(insights, genre);
+  const band = cumulativeBenchmark(genre, skill.ceiling);
+  const at = benchmarkAt(genre, skill.ceiling);
+  const verdict = ageVerdict(band?.typicalAge ?? null, age);
+  // A censored or bailed ceiling is a FLOOR — "below band" would be a false
+  // reading, so it softens to age-typical-so-far in those cases.
+  const softened = verdict === "below-band" && status !== "measured" ? "age-typical" : verdict;
+  const chip = VERDICT_CHIP[softened];
+  const prefix = status === "still-winning" ? "≥ " : "";
+
+  return (
+    <div className="flex flex-col gap-1 rounded-2xl bg-white p-3 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="font-semibold text-ink">
+          {genreDef.kidTitle}
+          {genreDef.retired ? <span className="text-xs text-ink/40"> (older format)</span> : null}
+        </span>
+        <div className="flex items-center gap-2">
+          <span className="tabular-nums text-sm text-ink/60">
+            level {prefix}{skill.ceiling}{status === "at-top" ? " (top)" : ""} / {skill.maxD}
+          </span>
+          <span className={`rounded-full px-2 py-0.5 text-xs ${chip.cls}`}>{chip.label}</span>
+        </div>
+      </div>
+      <p className="text-sm text-ink/80">
+        Strongest shown: <span className="font-medium">{band?.skill ?? at?.skill ?? "—"}</span>
+        {" · "}typical ages <span className="font-medium tabular-nums">{fmtBand(band?.typicalAge ?? null)}</span>
+      </p>
+      {status && status !== "measured" && (
+        <p className="text-xs text-ink/55">{STATUS_LABEL[status]}</p>
+      )}
+      {gb.caveat && <p className="text-xs text-ink/45">{gb.caveat}</p>}
+    </div>
+  );
+}
+
+function AgesTab({ insights }: { insights: Insights }) {
+  const age = ageYearsAt(insights.generatedAt);
+  const ageLabel = `${Math.floor(age)}y ${Math.round((age % 1) * 12)}m`;
+
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="rounded-2xl bg-sky-300/30 p-4 text-sm leading-relaxed text-ink">
+        <p className="font-semibold">Aoife is {ageLabel}. Each row shows the hardest skill she has demonstrated and the age range at which that skill is typical.</p>
+        <p className="mt-1 text-ink/70">
+          These are approximate bands from developmental research (digest:
+          docs/research/2026-08-26-age-benchmarks-research.md) — this game is not a standardized
+          test, and the WISC-V at GDC is the real ruler. Rows marked &ldquo;≥&rdquo; ran out of
+          items while she was still winning, so her true level there is unknown upward.
+        </p>
+      </div>
+
+      {insights.domains.map((d) => {
+        const rows = d.genres.filter((g) => BENCHMARKS[g]);
+        if (!rows.length) return null;
+        return (
+          <section key={d.domain}>
+            <h2 className="mb-2 font-bubble text-xl text-ink">{d.label}</h2>
+            <div className="flex flex-col gap-2">
+              {rows.map((g) => (
+                <AgeRow key={g} insights={insights} genre={g} age={age} />
+              ))}
+            </div>
+          </section>
+        );
+      })}
+
+      <p className="text-xs text-ink/50">
+        Never percentiles, never IQ numbers, never shown to Aoife. A &ldquo;below this band&rdquo;
+        chip appears only when real misses ended her last round; comfort stops and item caps are
+        labeled instead of counted against her.
+      </p>
     </div>
   );
 }

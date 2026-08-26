@@ -118,8 +118,8 @@ describe("Level 99 (hidden QA level)", () => {
 
 import { RELEASED_LEVELS } from "./index";
 describe("release gating", () => {
-  it("levels 1, 3, 4 and 5 are released; Level 2 (replica formats) is retired (decision #16)", () => {
-    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3, 4, 5]);
+  it("levels 1, 3, 4, 5 and 6 are released; Level 2 (replica formats) is retired (decision #16)", () => {
+    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3, 4, 5, 6]);
   });
   it("Level 3 uses every ACTIVE genre exactly once and only active genres", () => {
     const level3 = LEVELS.find((l) => l.id === 3)!;
@@ -231,5 +231,38 @@ describe("Level 5 (Pip's Winning Streak — built 2026-08-26 from her Level 4 da
     for (const block of level5.parts[1].blocks) {
       expect(block.start, block.genre).toBe("fromProfile");
     }
+  });
+});
+
+describe("Level 6 (Pip's Explorer Day — the measurement level, 2026-08-26)", () => {
+  const level6 = LEVELS.find((l) => l.id === 6)!;
+
+  it("covers exactly the six still-winning (censored-ceiling) genres Level 5 does not touch", () => {
+    const genres = level6.parts.flatMap((p) => p.blocks.map((b) => b.genre));
+    expect(genres).toEqual([
+      "mosaic", "patternTrain",
+      "whichTwo", "fillTheGap", "information", "whatWouldYouDo",
+    ]);
+    // Bug this prevents: re-measuring a genre Level 5 already measures, which
+    // would double her reps and stale one of the two measurements.
+    const level5 = LEVELS.find((l) => l.id === 5)!;
+    const l5genres = new Set(level5.parts.flatMap((p) => p.blocks.map((b) => b.genre)));
+    for (const g of genres) expect(l5genres.has(g), g).toBe(false);
+  });
+
+  it("every start resolves from her profile so the level cannot go stale before she reaches it", () => {
+    for (const part of level6.parts) {
+      for (const block of part.blocks) expect(block.start, block.genre).toBe("fromProfile");
+    }
+  });
+
+  it("is a prober, gently: fast lane ON (default), easeIn ON, stepUp 2, reveal, no teaching items", () => {
+    expect(level6.fastLane).toBeUndefined(); // default = on — this level's job is finding ceilings
+    expect(level6.easeIn).toBe(true);        // ...made safe by decision #19's free frontier misses
+    expect(level6.stepUp).toBe(2);
+    expect(level6.feedback).toBe("reveal");
+    expect(level6.teachingItems).toBe(0);
+    expect(level6.weighting).toBe("none");
+    expect(level6.released).toBe(true);
   });
 });

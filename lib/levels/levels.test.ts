@@ -118,8 +118,8 @@ describe("Level 99 (hidden QA level)", () => {
 
 import { RELEASED_LEVELS } from "./index";
 describe("release gating", () => {
-  it("levels 1, 3 and 4 are released; Level 2 (replica formats) is retired (decision #16)", () => {
-    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3, 4]);
+  it("levels 1, 3, 4 and 5 are released; Level 2 (replica formats) is retired (decision #16)", () => {
+    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3, 4, 5]);
   });
   it("Level 3 uses every ACTIVE genre exactly once and only active genres", () => {
     const level3 = LEVELS.find((l) => l.id === 3)!;
@@ -173,5 +173,63 @@ describe("Level 4 (Pip's Power-Ups — owner decision #18)", () => {
   it("gives Story Sums the 1.5x clock (her d10 losses were timeouts, not maths)", () => {
     const arith = level4.parts[0].blocks.find((b) => b.genre === "arithmetic")!;
     expect(arith.timeScale).toBe(1.5);
+  });
+});
+
+describe("Level 5 (Pip's Winning Streak — built 2026-08-26 from her Level 4 data)", () => {
+  const level5 = LEVELS.find((l) => l.id === 5)!;
+
+  it("exists, is released, and has two parts: the promoted Level 4 four, then a victory lap", () => {
+    expect(level5).toBeDefined();
+    expect(level5.released).toBe(true);
+    expect(level5.parts.map((p) => p.id)).toEqual(["A", "B"]);
+    expect(level5.parts[0].blocks.map((b) => b.genre)).toEqual([
+      "fireflyBoxes", "swapShop", "pictureSudoku", "arithmetic",
+    ]);
+    expect(level5.parts[1].blocks.map((b) => b.genre)).toEqual([
+      "fixPicture", "animalParade", "spotIt", "translator",
+    ]);
+  });
+
+  it("keeps the decision-#18 win-heavy template: stepUp 2, fast lane OFF, ease-in ON, reveal, no teaching items, hand-pinned weighting", () => {
+    expect(level5.stepUp).toBe(2);
+    expect(level5.fastLane).toBe(false);
+    expect(level5.easeIn).toBe(true);
+    expect(level5.feedback).toBe("reveal");
+    expect(level5.teachingItems).toBe(0);
+    expect(level5.weighting).toBe("none");
+  });
+
+  // Bug this prevents: a Part A start creeping up to or past her measured
+  // ceiling and recreating the wall the level exists to dissolve. Ceilings
+  // as of 2026-08-26 on the CURRENT ramps: fireflyBoxes 7, swapShop 8 (new
+  // scale — and the wall band is new d7, so its start must sit below even
+  // that), pictureSudoku 4, arithmetic 10. pictureSudoku starts ceiling − 1
+  // by design (mid-rebuild: she opened at 2 today and cruised; re-spending
+  // win-slots there would slow the build), the rest start 2+ below.
+  it("pins every Part A start strictly below her measured ceiling (and Swap Shop below its wall band)", () => {
+    const ceilings: Record<string, number> = { fireflyBoxes: 7, swapShop: 8, pictureSudoku: 4, arithmetic: 10 };
+    const expected: Record<string, number> = { fireflyBoxes: 5, swapShop: 5, pictureSudoku: 3, arithmetic: 8 };
+    for (const block of level5.parts[0].blocks) {
+      expect(typeof block.start, block.genre).toBe("number");
+      expect(block.start as number, block.genre).toBe(expected[block.genre]);
+      expect(block.start as number).toBeLessThan(ceilings[block.genre]);
+    }
+    // the Swap Shop wall is the first mixed-answer band (new d7): start below the half-step too
+    const swap = level5.parts[0].blocks.find((b) => b.genre === "swapShop")!;
+    expect(swap.start as number).toBeLessThan(6);
+  });
+
+  it("gives Swap Shop and Story Sums the 1.5x clock (both failed on time, not ability — the proven fix)", () => {
+    for (const genre of ["swapShop", "arithmetic"]) {
+      const block = level5.parts[0].blocks.find((b) => b.genre === genre)!;
+      expect(block.timeScale, genre).toBe(1.5);
+    }
+  });
+
+  it("resolves every Part B start from her live profile (no hand-tuned numbers to go stale)", () => {
+    for (const block of level5.parts[1].blocks) {
+      expect(block.start, block.genre).toBe("fromProfile");
+    }
   });
 });

@@ -90,7 +90,9 @@ knowledge, VC) · information=Do You Know (VC) · whatWouldYouDo=What Would You 
 RETIRED (code kept for her Level 1/2 history, `retired: true`, never in a level): blockDesign, visualPuzzles,
 matrix, figureWeights, digitSpan, pictureSpan, coding, symbolSearch, similarities, vocabulary, comprehension.
 Levels: 1 = diagnostic (retired genres, fun off) · 2 = RETIRED practice (unreleased) · 3 = "Pip's Games"
-(all 14 active genres, three parts, stepUp 2, teaching items, reveal, fun on) · 99 = hidden QA level.
+(all 14 active genres, three parts, stepUp 2, teaching items, reveal, fun on) · 4 = "Pip's Power-Ups"
+(decision-#18 remedial, one part) · 5 = "Pip's Winning Streak" (2026-08-26: the four Level 4 genres
+promoted + a fromProfile victory lap; see `lib/levels/level5.ts` header) · 99 = hidden QA level.
 
 Data flow: runner builds `SessionRecord` (one per part attempt) → after every block: `saveSessionLocal` +
 `enqueue` + `flushOutbox` → `POST /api/sessions` → Upstash `aoife_puzzles:session:<ulid>` +
@@ -214,7 +216,18 @@ No secrets in the repo. Never print them to a transcript.
   in her profile." line when any block was flagged. `components/ParentTable.tsx` also marks a per-genre row
   "⚠️ some results excluded" when that genre has any excluded block.
 - Symbol Search item score is 1/0; the block-level "correct − incorrect" is derivable from `BlockSummary`.
-- **Difficulty scales have history.** When a genre's ramp is rebuilt, add an entry to `SCALE_CHANGES` in `lib/engine/scale.ts` (genre, cutover ISO time, old→new map). `computeProfile` remaps pre-cutover ceilings so her record stays comparable; raw sessions in KV are never rewritten. 2026-08-23: Piece Picker (old d1 = new d5) and Balance (old d4 = new d6).
+- **Difficulty scales have history.** When a genre's ramp is rebuilt, add an entry to `SCALE_CHANGES` in `lib/engine/scale.ts` (genre, cutover ISO time, old→new map). `computeProfile` remaps pre-cutover ceilings so her record stays comparable; raw sessions in KV are never rewritten. 2026-08-23: Piece Picker (old d1 = new d5) and Balance (old d4 = new d6). 2026-08-26: Swap Shop (old d6 = new d7; old d9+d10 fold at 10 — see the ramp note below).
+- **Swap Shop ramp (2026-08-26, the owner's "0.5 level")**: her Level 4 block showed old d5→d6 was a
+  cliff that broke decision #15 — two fast d5 wins (5.3 s / 3.9 s), then two FULL-clock timeouts, because
+  old d6 introduced mixed-token piles AND a 45 s→30 s clock drop at once. Per decision #19 (fractional
+  difficulties rejected; re-band the ramp instead), a new d6 was inserted: one rule, question = 1 copy,
+  the answer still a plain read-off count exactly like d3/d5, but mixed piles now appear as WRONG options
+  only (≥ 1 mixed distractor guaranteed; the correct pile provably can't be mixed since any pile holding
+  the give-token overshoots the target). Old d6–d8 shifted to d7–d9; old d9+d10 folded into d10 (d10's
+  1–3 rate range subsumes d9's 1–2). Timing boundary moved with it: 45 s for every single-rule band
+  (d ≤ 7 — including the band she timed out on), 30 s for the chained bands d8–10. Fairness rules for the
+  new band live in `lib/genres/fairness/swapShop.test.ts` ("d6's correct pile is always a plain count",
+  "d6 always shows at least one mixed pile").
 - `.claude/` (agent worktrees) and `.npm-cache/` are gitignored and ESLint-ignored; keep them that way.
 - **Piece Picker ramp (2026-08-23)**: rebuilt from level 0 after a 5-year-old passed the 1/2/3-cell items
   then hit notched squares/L-pieces with 6 options and timed out four times running ("insanely hard even
@@ -236,6 +249,12 @@ No secrets in the repo. Never print them to a transcript.
 
 ## 6. State / TODO
 
+- 2026-08-26: Level 5 "Pip's Winning Streak" + Swap Shop re-band shipped (spec
+  `docs/superpowers/specs/2026-08-26-level5-swapshop-reband-design.md`). Her Level 4 results: fireflyBoxes
+  ceiling 5→7 (8/8), arithmetic 8/8 to ceiling 10 on the 1.5× clock (clock theory CONFIRMED), pictureSudoku
+  ceiling 3→4 (no bail), swapShop flagged `mass-timeouts` (the old-d6 cliff → re-band). First session with
+  zero "Not fun" taps. **Earned but not built: the arithmetic bank past d10** (she hit its cap with clean
+  d10 wins — decision #17 allows the extension when someone picks it up).
 - 2026-08-22: v0.1.0 shipped — Level 1 (3 parts) live; parent page; Telegram summaries.
 - 2026-08-22: Level 2 "Practice Round 1" exists, unlocked after Level 1 (`currentPosition` only surfaces it
   once every Level 1 part is complete). `feedback: "reveal"` + `weighting: "remedial"` — see §7.

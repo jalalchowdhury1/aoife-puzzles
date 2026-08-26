@@ -188,10 +188,39 @@ function buildD5(rng: Rng): SwapShopItem {
   return { rules, question, options, answer, values };
 }
 
-// d6: one rule; the options can now MIX the two tokens instead of only
-// showing counts of the "get" token (e.g. "1 star + 1 coin" for the same
-// total as "3 coins") — the first appearance of a genuinely mixed pile.
+// d6 (inserted 2026-08-26 — the owner's "0.5 level" between the read-off
+// bands and the mixed-pile bands): one rule, and the answer is STILL read
+// straight off the card as a plain count (rate 2-3, question = 1 copy),
+// exactly like d3/d5 — but mixed piles appear for the FIRST time, as wrong
+// options only. One new idea (a pile can mix two tokens, and a mixed pile
+// has a value you can price), zero new solving demands. Her 2026-08-26 data
+// showed the old d6 was a cliff: two fast d5 wins, then two full-clock
+// timeouts — it introduced mixed piles AND a 45s→30s clock drop at once,
+// against decision #15's one-new-idea rule.
 function buildD6(rng: Rng): SwapShopItem {
+  const [a, b] = pickTwo(rng);
+  const R = rng.int(2, 3);
+  const values: ValueMap = { [a]: R, [b]: 1 };
+  const rules: TradeRule[] = [{ give: repeat(a, 1), get: repeat(b, R) }];
+  const question = repeat(a, 1);
+  // Any pile containing `a` totals >= R+1, so the plain count b×R is provably
+  // the only pile at the target — the mixed distractor can never collide.
+  const k = rng.int(1, 2);
+  const mixed = [a, ...repeat(b, k)];
+  const counts = rng.shuffle([1, 2, 3, 4].filter(m => m !== R && m !== R + k)).slice(0, 2);
+  const entries = [
+    { tokens: repeat(b, R), isCorrect: true },
+    { tokens: mixed, isCorrect: false },
+    ...counts.map(m => ({ tokens: repeat(b, m), isCorrect: false })),
+  ];
+  const shuffled = rng.shuffle(entries);
+  return { rules, question, options: shuffled.map(e => e.tokens), answer: shuffled.findIndex(e => e.isCorrect), values };
+}
+
+// d7 (old d6): one rule; the CORRECT pile can now itself MIX the two tokens
+// (e.g. "1 star + 1 coin" for the same total as "3 coins") — the first band
+// where pricing a mixed pile is required, not just available.
+function buildD7(rng: Rng): SwapShopItem {
   const [a, b] = pickTwo(rng);
   const R = rng.int(2, 3);
   const values: ValueMap = { [a]: R, [b]: 1 };
@@ -203,10 +232,10 @@ function buildD6(rng: Rng): SwapShopItem {
   return { rules, question, options, answer, values };
 }
 
-// d7: two rules chained through a shared middle token (A -> B, C -> A), so
-// working out what 1 C is worth in Bs takes two substitutions in a row.
-// Ratios stay 1-2 so the compounded value never exceeds the 4-token cap.
-function buildD7(rng: Rng): SwapShopItem {
+// d8 (old d7): two rules chained through a shared middle token (A -> B,
+// C -> A), so working out what 1 C is worth in Bs takes two substitutions in
+// a row. Ratios stay 1-2 so the compounded value never exceeds the 4-token cap.
+function buildD8(rng: Rng): SwapShopItem {
   const [a, b, c] = pickThree(rng);
   const R1 = rng.int(1, 2);
   const R2 = rng.int(1, 2);
@@ -221,9 +250,9 @@ function buildD7(rng: Rng): SwapShopItem {
   return { rules, question, options, answer, values };
 }
 
-// d8: the same two chained rules, but now the options can mix any of the
-// three tokens (not just plain counts of the base token).
-function buildD8(rng: Rng): SwapShopItem {
+// d9 (old d8): the same two chained rules, but now the options can mix any
+// of the three tokens (not just plain counts of the base token).
+function buildD9(rng: Rng): SwapShopItem {
   const [a, b, c] = pickThree(rng);
   const R1 = rng.int(1, 2);
   const R2 = rng.int(1, 2);
@@ -238,25 +267,11 @@ function buildD8(rng: Rng): SwapShopItem {
   return { rules, question, options, answer, values };
 }
 
-// d9: same chained pair of rules, but now the QUESTION itself mixes two of
-// the three tokens ("1 kite + 1 star"), not just a single type.
-function buildD9(rng: Rng): SwapShopItem {
-  const [a, b, c] = pickThree(rng);
-  const R1 = rng.int(1, 2);
-  const R2 = rng.int(1, 2);
-  const values: ValueMap = { [b]: 1, [a]: R1, [c]: R1 * R2 };
-  const rules: TradeRule[] = [
-    { give: repeat(a, 1), get: repeat(b, R1) },
-    { give: repeat(c, 1), get: repeat(a, R2) },
-  ];
-  const question = rng.shuffle([repeat(c, 1), repeat(a, 1)]).flat();
-  const target = totalValue(question, values);
-  const { options, answer } = buildMixedOptions(rng, [a, b, c], values, target, question, 4);
-  return { rules, question, options, answer, values };
-}
-
 // d10: the capstone — three tokens, two chained rules, a mixed question AND
-// mixed options, with a wider rate range (1-3) for extra stretch.
+// mixed options, rate range 1-3. (2026-08-26 re-band: the old d9 — the same
+// shape at rates 1-2 — folded in here, since drawing rates from 1-3 covers
+// the gentler mix anyway; old d9 and old d10 both map to the new d10 in
+// scale.ts.)
 function buildD10(rng: Rng): SwapShopItem {
   const [a, b, c] = pickThree(rng);
   const R1 = rng.int(1, 3);
@@ -278,7 +293,7 @@ function buildItem(rng: Rng, d: Difficulty): SwapShopItem {
   if (d === 3) return buildD3(rng);
   if (d === 4) return buildD4(rng);
   if (d === 5) return buildD5(rng);
-  if (d === 6) return buildD6(rng);
+  if (d === 6) return buildD6(rng); // inserted 2026-08-26 ("0.5 level"); old d6-d9 shifted/folded up
   if (d === 7) return buildD7(rng);
   if (d === 8) return buildD8(rng);
   if (d === 9) return buildD9(rng);
@@ -373,7 +388,11 @@ export const swapShop: Genre<SwapShopItem, number> & { e2e: { kind: "options"; p
   sample,
   generate,
   score,
-  timing: { kind: "item", ms: itemMs([[5, 45000], [10, 30000]]) },
+  // 45s through every single-rule band (d<=7), 30s for the chained bands.
+  // 2026-08-26: the boundary moved up from d5/d6 — her two timeouts at the
+  // old d6 ran the full 30s window right after two fast d5 wins, i.e. the
+  // clock drop was part of the cliff, not a separate fact about her.
+  timing: { kind: "item", ms: itemMs([[7, 45000], [10, 30000]]) },
   mode: "staircase",
   e2e: { kind: "options", pick: 1 },
 };

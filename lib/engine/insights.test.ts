@@ -284,7 +284,9 @@ describe("computeInsights", () => {
     const relevant = insights.deltas.filter((d) => d.genre === "swapShop" || d.genre === "fixPicture");
     expect(relevant).toEqual([
       { genre: "fixPicture", kidTitle: fixPicture.kidTitle, from: 3, to: 6, when: "2026-08-22T14:00:00.000Z" },
-      { genre: "swapShop", kidTitle: swapShop.kidTitle, from: 5, to: 8, when: "2026-08-21T14:00:00.000Z" },
+      // the fixture's old-scale ceiling 8 sits before the 2026-08-26 Swap Shop
+      // re-band cutover, so it reads back remapped onto the current ramp (8 -> 9)
+      { genre: "swapShop", kidTitle: swapShop.kidTitle, from: 5, to: 9, when: "2026-08-21T14:00:00.000Z" },
       { genre: "fixPicture", kidTitle: fixPicture.kidTitle, from: null, to: 3, when: "2026-08-20T14:50:00.000Z" },
       { genre: "swapShop", kidTitle: swapShop.kidTitle, from: null, to: 5, when: "2026-08-20T14:00:00.000Z" },
     ]);

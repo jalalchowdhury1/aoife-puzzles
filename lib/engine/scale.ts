@@ -11,6 +11,11 @@ export const SCALE_CHANGES: ScaleChange[] = [
   { genre: "visualPuzzles", cutover: "2026-08-23T14:00:00Z", map: { 1: 5, 2: 6, 3: 7, 4: 8, 5: 8, 6: 9, 7: 9, 8: 10, 9: 10, 10: 10 } },
   // 2026-08-23: Balance ramp rebuilt (old d1-3 kept, old d4 == new d6).
   { genre: "figureWeights", cutover: "2026-08-23T14:00:00Z", map: { 1: 1, 2: 2, 3: 3, 4: 6, 5: 7, 6: 7, 7: 8, 8: 9, 9: 9, 10: 10 } },
+  // 2026-08-26: Swap Shop "0.5 level" inserted between the read-off bands and
+  // the mixed-pile bands (her two full-clock timeouts at old d6 came right
+  // after two fast d5 wins — the d5→d6 step taught two ideas at once). Old
+  // d6-d8 shift up one; old d9+d10 fold into the new d10.
+  { genre: "swapShop", cutover: "2026-08-26T16:30:00Z", map: { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 7, 7: 8, 8: 9, 9: 10, 10: 10 } },
 ];
 
 export function remapCeiling(genre: GenreId, startedAt: string, ceiling: number | null): number | null {

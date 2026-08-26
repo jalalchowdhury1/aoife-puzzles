@@ -12,7 +12,7 @@ function expectedOptionCount(d: number): number {
 
 function expectedRuleCount(d: number): number {
   if (d <= 2) return 0;
-  if (d <= 6) return 1;
+  if (d <= 7) return 1; // 2026-08-26 re-band: the inserted d6 pushed the single-rule bands up to d7
   return 2;
 }
 
@@ -82,9 +82,9 @@ describe("swapShop.generate", () => {
           else expect(total, `d${d}`).not.toBe(target);
         });
 
-        // at d <= 5, every option is built only from tokens shown on the
+        // at d <= 6, every option is built only from tokens shown on the
         // cards/question (no foreign token to rule out by "never seen it")
-        if (d <= 5) {
+        if (d <= 6) {
           const seen = new Set<Token>([
             ...item.question,
             ...item.rules.flatMap(r => [...r.give, ...r.get]),
@@ -96,6 +96,27 @@ describe("swapShop.generate", () => {
       }
     }
   }, 30000);
+});
+
+describe("swapShop d6 — the inserted '0.5 level' (2026-08-26)", () => {
+  it("keeps the answer a plain read-off (one rule, question = 1 copy, correct pile = plain count of the get token) while introducing mixed piles as distractors only", () => {
+    for (let seed = 0; seed < 500; seed++) {
+      const item = swapShop.generate(seed, 6);
+      expect(item.rules.length).toBe(1);
+      expect(item.question.length).toBe(1);
+      const get = item.rules[0].get[0];
+      const correct = item.options[item.answer];
+      // correct = the rule's get token, repeated exactly the rate shown
+      expect(new Set(correct).size).toBe(1);
+      expect(correct[0]).toBe(get);
+      expect(correct.length).toBe(item.rules[0].get.length);
+      // the new idea appears: at least one option mixes two token types...
+      const mixed = item.options.filter(o => new Set(o).size > 1);
+      expect(mixed.length).toBeGreaterThanOrEqual(1);
+      // ...but only ever as a wrong option
+      for (const m of mixed) expect(m).not.toBe(correct);
+    }
+  });
 });
 
 describe("swapShop.sample", () => {
@@ -130,9 +151,11 @@ describe("swapShop genre metadata", () => {
     expect(swapShop.domain).toBe("FR");
     expect(swapShop.mode).toBe("staircase");
     expect(swapShop.timing).toEqual({ kind: "item", ms: expect.any(Function) });
-    // itemMs: 45s at d<=5, 30s at d>=6, matching the common brief's timing knob
-    expect(swapShop.timing.kind === "item" && swapShop.timing.ms(5)).toBe(45000);
-    expect(swapShop.timing.kind === "item" && swapShop.timing.ms(6)).toBe(30000);
+    // itemMs: 45s through the single-rule bands (d<=7), 30s for the chained
+    // bands (2026-08-26: boundary moved up from d5/d6 — her old-d6 timeouts
+    // ran the full 30s window, so the clock drop was part of the cliff)
+    expect(swapShop.timing.kind === "item" && swapShop.timing.ms(7)).toBe(45000);
+    expect(swapShop.timing.kind === "item" && swapShop.timing.ms(8)).toBe(30000);
   });
   it("declares an options-kind e2e plan", () => {
     expect(swapShop.e2e).toEqual({ kind: "options", pick: 1 });

@@ -70,9 +70,9 @@ describe("swapShop fairness", () => {
     }
   });
 
-  it("rule count matches the band — 0 at d1-2, 1 at d3-6, 2 at d7-10 (prevents an under- or over-scaffolded item for its difficulty)", () => {
+  it("rule count matches the band — 0 at d1-2, 1 at d3-7, 2 at d8-10 (prevents an under- or over-scaffolded item for its difficulty; bands re-cut 2026-08-26)", () => {
     for (const { d, item } of ITEMS) {
-      const expected = d <= 2 ? 0 : d <= 6 ? 1 : 2;
+      const expected = d <= 2 ? 0 : d <= 7 ? 1 : 2;
       expect(item.rules.length, `d${d}`).toBe(expected);
     }
   });
@@ -94,9 +94,9 @@ describe("swapShop fairness", () => {
     }
   });
 
-  it("at d<=5, every option is built only from tokens shown on the cards/question (prevents ruling an option out by 'I've never seen that token' instead of by its value)", () => {
+  it("at d<=6, every option is built only from tokens shown on the cards/question (prevents ruling an option out by 'I've never seen that token' instead of by its value)", () => {
     for (const { d, item } of ITEMS) {
-      if (d > 5) continue;
+      if (d > 6) continue;
       const seen = new Set<Token>([...item.question, ...item.rules.flatMap(r => [...r.give, ...r.get])]);
       for (const opt of item.options) {
         for (const t of opt) expect(seen.has(t), `d${d}`).toBe(true);
@@ -118,17 +118,40 @@ describe("swapShop fairness", () => {
     }
   });
 
-  it("d3-d5's single-rule bands never need more than 4 of the 'get' token — the rate is capped so a doubled or bigger question never overflows the option budget", () => {
+  it("d3-d6's read-off bands never need more than 4 of the 'get' token — the rate is capped so the answer pile never overflows the option budget", () => {
     for (const { d, item } of ITEMS) {
-      if (d < 3 || d > 5) continue;
+      if (d < 3 || d > 6) continue;
       const target = totalValue(item.question, item.values);
       expect(target, `d${d}`).toBeLessThanOrEqual(4);
     }
   });
 
-  it("d7-10's two chained rules are mutually value-consistent through the shared middle token (prevents a broken chain where the two cards contradict each other)", () => {
+  // Bug these two prevent (2026-08-26 re-band): the "0.5 level" between the
+  // read-off bands and the mixed-pile bands silently becoming either (a) a
+  // second mixed-answer band — recreating the exact cliff it was inserted to
+  // remove — or (b) a plain repeat of d5 with no mixed pile in sight, so the
+  // new idea it exists to introduce never appears.
+  it("d6's correct pile is always a plain count read straight off the card, never a mixed pile (the half-step must not demand the idea it introduces)", () => {
     for (const { d, item } of ITEMS) {
-      if (d < 7) continue;
+      if (d !== 6) continue;
+      const correct = item.options[item.answer];
+      expect(new Set(correct).size, "correct pile mixes tokens").toBe(1);
+      expect(correct[0]).toBe(item.rules[0].get[0]);
+      expect(item.question.length, "question must stay at 1 copy").toBe(1);
+    }
+  });
+
+  it("d6 always shows at least one mixed pile among the wrong options (the band must actually introduce mixed piles, not regress to d5)", () => {
+    for (const { d, item } of ITEMS) {
+      if (d !== 6) continue;
+      const mixed = item.options.filter(o => new Set(o).size > 1);
+      expect(mixed.length).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("d8-10's two chained rules are mutually value-consistent through the shared middle token (prevents a broken chain where the two cards contradict each other)", () => {
+    for (const { d, item } of ITEMS) {
+      if (d < 8) continue;
       expect(item.rules.length, `d${d}`).toBe(2);
       const [r1, r2] = item.rules;
       // r1: give -> get; r2's give token is a different token from r1's give

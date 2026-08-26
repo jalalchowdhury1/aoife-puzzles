@@ -9,6 +9,13 @@ describe("difficulty scale history", () => {
     expect(remapCeiling("figureWeights", "2026-08-22T17:09:00Z", 3)).toBe(3);
     expect(remapCeiling("visualPuzzles", "2026-08-22T18:15:00Z", null)).toBe(null);
   });
+  it("maps pre-cutover Swap Shop ceilings onto the 2026-08-26 re-band (old d6-d8 shift up, old d9-d10 fold at 10)", () => {
+    expect(remapCeiling("swapShop", "2026-08-23T20:30:36Z", 7)).toBe(8);   // her L3 ceiling
+    expect(remapCeiling("swapShop", "2026-08-26T15:42:12Z", 5)).toBe(5);   // her flagged L4 block: read-off bands unchanged
+    expect(remapCeiling("swapShop", "2026-08-23T20:30:36Z", 9)).toBe(10);
+    expect(remapCeiling("swapShop", "2026-08-23T20:30:36Z", 10)).toBe(10);
+    expect(remapCeiling("swapShop", "2026-08-26T17:00:00Z", 6)).toBe(6);   // post-cutover: already on the new ramp
+  });
   it("leaves post-cutover sessions and other genres untouched", () => {
     expect(remapCeiling("visualPuzzles", "2026-08-24T10:00:00Z", 2)).toBe(2);
     expect(remapCeiling("matrix", "2026-08-22T18:15:00Z", 7)).toBe(7);

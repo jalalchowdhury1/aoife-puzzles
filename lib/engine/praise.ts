@@ -97,6 +97,21 @@ export const PRAISE_BANK: Record<PraiseKind, string[]> & { correctFast: string[]
     "Tada, another win for {name}.",
     "Bloop, brain points collected.",
     "Sparkles everywhere, {name}!",
+    // fun amp (decision #21, 2026-08-27): "Tell her how good she is even more. Pip is funny."
+    "Pip fell off his log because that was so good.",
+    "The puzzle did not stand a chance.",
+    "Pip is writing a song about you. It is called {name} the Great.",
+    "A wise owl just asked Pip for YOUR autograph.",
+    "That answer was so shiny Pip needs sunglasses.",
+    "Pip tried that one earlier and it took him all day.",
+    "Somewhere a puzzle just told its friends about you.",
+    "Your brain has its own fireworks show today.",
+    "The answer tried to hide but you found it anyway.",
+    "Pip whispered wow. Then he shouted it.",
+    "That was so clever the puzzle clapped.",
+    "Big brain alert! It is {name}.",
+    "Pip is knitting you a tiny champion cape.",
+    "Pip wants to frame that answer and hang it on his tree.",
   ],
   correctFast: [
     "Wow, that was fast!",
@@ -117,6 +132,10 @@ export const PRAISE_BANK: Record<PraiseKind, string[]> & { correctFast: string[]
     "That puzzle was built for much older kids and you beat it.",
     "Whoa, that was a big one and you nailed it.",
     "That took real brain power and you had plenty.",
+    "Pip needed a nap after just looking at that one.",
+    "That puzzle scares grown ups and you just solved it.",
+    "Even the puzzle looks surprised you got that.",
+    "That one was a mountain and you hopped right over it.",
   ],
   // --- miss / timeout: reframe, never mention being wrong ------------------
   miss: [
@@ -167,6 +186,8 @@ export const PRAISE_BANK: Record<PraiseKind, string[]> & { correctFast: string[]
     "That is three in a row, superstar.",
     "Your streak is heating up, three straight!",
     "Three in a row, Pip is impressed.",
+    "Three straight! Pip can barely sit still.",
+    "Three in a row! The stars are taking notes.",
   ],
   streak5: [
     "Five in a row! Incredible streak.",
@@ -179,6 +200,8 @@ export const PRAISE_BANK: Record<PraiseKind, string[]> & { correctFast: string[]
     "That is a five streak, superstar {name}.",
     "Five in a row and still going strong.",
     "Your streak just hit five, incredible work.",
+    "Five straight! Pip fainted with joy and got right back up.",
+    "Five in a row! Pip is naming a star after you.",
   ],
   // --- milestones -------------------------------------------------------------
   newBest: [
@@ -241,6 +264,10 @@ export const PRAISE_BANK: Record<PraiseKind, string[]> & { correctFast: string[]
     "Set complete, on to the next adventure.",
     "You finished the whole thing, awesome.",
     "That round is done, and you did great.",
+    "Whole set finished! Pip is doing cartwheels.",
+    "Pip rang the big bell for you just now.",
+    "That round never knew what hit it.",
+    "Set done! Pip is saving this memory forever.",
   ],
   partDone: [
     "You finished the whole part, {name}!",
@@ -253,6 +280,10 @@ export const PRAISE_BANK: Record<PraiseKind, string[]> & { correctFast: string[]
     "You just finished a big chunk of puzzles.",
     "Part done! You should be so proud.",
     "You made it all the way to the end of this part.",
+    "Confetti everywhere! Pip made a mess and does not care.",
+    "Pip is telling every fox in the forest about this.",
+    "You finished the whole part and Pip lost his tiny fox mind.",
+    "Trumpets! Drums! A parade for {name}!",
   ],
   welcome: [
     "Hi {name}, ready for some puzzles?",
@@ -267,6 +298,10 @@ export const PRAISE_BANK: Record<PraiseKind, string[]> & { correctFast: string[]
     "Time for some puzzle fun with Pip.",
     "Welcome, {name}! Let us get started.",
     "Pip is so happy you are here today.",
+    "Pip has been practicing his happy dance since breakfast.",
+    "The puzzles were asking about you, {name}.",
+    "Pip saved the best puzzles just for you today.",
+    "You are here! Pip just did three backflips.",
   ],
   // --- diagnostic (Level 1, fun: false): correctness free ------------------
   neutralNext: [

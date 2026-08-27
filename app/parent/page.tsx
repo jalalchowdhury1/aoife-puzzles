@@ -11,6 +11,8 @@ import { dayStreak } from "@/lib/engine/rewards";
 import { EXCLUDING_CODES, type QualityFlagCode } from "@/lib/engine/quality";
 import { LEVELS } from "@/lib/levels";
 import { Tabs, type TabDef } from "@/components/parent/Tabs";
+import type { TalkRecord } from "@/lib/talk/record";
+import { TALK_ITEMS, TALK_AREAS, type TalkArea } from "@/lib/talk/items";
 import { DomainBars } from "@/components/parent/DomainBars";
 import { EngagementChart } from "@/components/parent/EngagementChart";
 import { SkillCard } from "@/components/parent/SkillCard";
@@ -33,6 +35,7 @@ const TABS: TabDef[] = [
   { id: "timeline", label: "Timeline", emoji: "🗓" },
   { id: "wisc", label: "WISC lens", emoji: "🧠" },
   { id: "ages", label: "Ages", emoji: "📏" },
+  { id: "talk", label: "Talk", emoji: "🗣" },
 ];
 
 const NY_FMT = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" });
@@ -55,6 +58,9 @@ export default function ParentPage() {
   const [copied, setCopied] = useState(false);
   const [tab, setTab] = useState<string>("overview");
   const [focusedGenre, setFocusedGenre] = useState<GenreId | null>(null);
+  // Talk with Pip production records (decision #22) — a separate measurement
+  // class from the recognition data in `insights`; null until loaded.
+  const [talkRecords, setTalkRecords] = useState<TalkRecord[] | null>(null);
 
   // First visit: read whatever key was already entered, if any. localStorage
   // isn't available during SSR, so this can only happen after mount.
@@ -63,6 +69,23 @@ export default function ParentPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (stored) setKey(stored);
   }, []);
+
+  // Talk records load independently of sessions; a failure leaves the tab
+  // in its "could not load" state without touching the rest of the page.
+  useEffect(() => {
+    if (!key) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/talk", { headers: { "x-parent-key": key } });
+        const body: unknown = await res.json();
+        if (!cancelled && Array.isArray(body)) setTalkRecords(body as TalkRecord[]);
+      } catch {
+        // leave null: the Talk tab shows its own fallback
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [key]);
 
   // Fetches every session once the key is known, computing Insights
   // client-side. Falls back to the local storage mirror ("offline data")
@@ -211,6 +234,7 @@ export default function ParentPage() {
           {tab === "timeline" && <TimelineTab insights={insights} />}
           {tab === "wisc" && <WiscTab insights={insights} />}
           {tab === "ages" && <AgesTab insights={insights} />}
+          {tab === "talk" && <TalkTab records={talkRecords} />}
         </div>
       )}
 
@@ -837,6 +861,86 @@ function AgesTab({ insights }: { insights: Insights }) {
         chip appears only when real misses ended her last round; comfort stops and item caps are
         labeled instead of counted against her.
       </p>
+    </div>
+  );
+}
+
+// ---- Talk tab (decision #22): production vs recognition ---------------------
+// The puzzle genres measure RECOGNITION (she picks the best answer); Talk with
+// Pip measures PRODUCTION (she says the answer in her own words and a grown-up
+// judges 2/1/0). The real WISC-V verbal subtests score production, which is
+// why this lives on its own tab and never mixes into the profile numbers.
+function TalkTab({ records }: { records: TalkRecord[] | null }) {
+  if (records === null) {
+    return <p className="text-ink/60">No talk sessions loaded yet. Open Talk with Pip on her iPad (with a grown up) to start collecting production data.</p>;
+  }
+  const best = new Map<string, number>();
+  for (const r of records) {
+    for (const x of r.results) {
+      const prev = best.get(x.itemId);
+      if (prev === undefined || x.score > prev) best.set(x.itemId, x.score);
+    }
+  }
+  const areas = Object.entries(TALK_AREAS) as [TalkArea, { title: string; emoji: string }][];
+  const sittings = [...records].sort((a, b) => b.startedAt.localeCompare(a.startedAt)).slice(0, 10);
+  return (
+    <div className="space-y-6">
+      <p className="text-sm text-ink/60">
+        Production practice: Pip asks out loud, Aoife answers in her own words, the grown up judges.
+        ⭐⭐ = said the big idea (category level), ⭐ = a true surface feature, 🌱 = still growing.
+        Scores here are the grown up&apos;s judgement of SPOKEN answers and are kept apart from the puzzle profile.
+      </p>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-left text-ink/50">
+            <th className="py-1 pr-2">Area</th>
+            <th className="py-1 pr-2">Asked</th>
+            <th className="py-1 pr-2">⭐⭐ big idea</th>
+            <th className="py-1 pr-2">⭐ halfway</th>
+            <th className="py-1 pr-2">🌱 growing</th>
+            <th className="py-1">In bank</th>
+          </tr>
+        </thead>
+        <tbody>
+          {areas.map(([area, meta]) => {
+            const bankIds = TALK_ITEMS.filter((i) => i.area === area).map((i) => i.id);
+            const asked = bankIds.filter((id) => best.has(id));
+            const n2 = asked.filter((id) => best.get(id) === 2).length;
+            const n1 = asked.filter((id) => best.get(id) === 1).length;
+            const n0 = asked.filter((id) => best.get(id) === 0).length;
+            return (
+              <tr key={area} className="border-t border-ink/10">
+                <td className="py-1.5 pr-2">{meta.emoji} {meta.title}</td>
+                <td className="py-1.5 pr-2 tabular-nums">{asked.length}</td>
+                <td className="py-1.5 pr-2 tabular-nums">{n2}</td>
+                <td className="py-1.5 pr-2 tabular-nums">{n1}</td>
+                <td className="py-1.5 pr-2 tabular-nums">{n0}</td>
+                <td className="py-1.5 tabular-nums">{bankIds.length}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <div>
+        <h3 className="mb-1 font-semibold text-ink/80">Recent sittings</h3>
+        {sittings.length === 0 ? (
+          <p className="text-sm text-ink/50">None yet.</p>
+        ) : (
+          <ul className="space-y-1 text-sm text-ink/70">
+            {sittings.map((r) => {
+              const n2 = r.results.filter((x) => x.score === 2).length;
+              const n1 = r.results.filter((x) => x.score === 1).length;
+              const n0 = r.results.filter((x) => x.score === 0).length;
+              return (
+                <li key={r.id} className="tabular-nums">
+                  {new Date(r.startedAt).toLocaleDateString()} · {r.results.length} questions · ⭐⭐ {n2} · ⭐ {n1} · 🌱 {n0}
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </div>
+      <p className="text-xs text-ink/40">Items scored under ⭐⭐ come back automatically in her next sitting.</p>
     </div>
   );
 }

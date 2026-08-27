@@ -118,8 +118,8 @@ describe("Level 99 (hidden QA level)", () => {
 
 import { RELEASED_LEVELS } from "./index";
 describe("release gating", () => {
-  it("levels 1, 3, 4, 5 and 6 are released; Level 2 (replica formats) is retired (decision #16)", () => {
-    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3, 4, 5, 6]);
+  it("levels 1, 3, 4 and 7 are released; Level 2 (replica formats) and levels 5/6 (superseded by doors-only #21 before she played them) are hidden", () => {
+    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3, 4, 7]);
   });
   it("Level 3 uses every ACTIVE genre exactly once and only active genres", () => {
     const level3 = LEVELS.find((l) => l.id === 3)!;
@@ -179,9 +179,9 @@ describe("Level 4 (Pip's Power-Ups — owner decision #18)", () => {
 describe("Level 5 (Pip's Winning Streak — built 2026-08-26 from her Level 4 data)", () => {
   const level5 = LEVELS.find((l) => l.id === 5)!;
 
-  it("exists, is released, and has two parts: the promoted Level 4 four, then a victory lap", () => {
+  it("exists (unreleased since #21 — she never played it; kept as the Level 7 pin source) with two parts: the promoted Level 4 four, then a victory lap", () => {
     expect(level5).toBeDefined();
-    expect(level5.released).toBe(true);
+    expect(level5.released).toBe(false);
     expect(level5.parts.map((p) => p.id)).toEqual(["A", "B"]);
     expect(level5.parts[0].blocks.map((b) => b.genre)).toEqual([
       "fireflyBoxes", "swapShop", "pictureSudoku", "arithmetic",
@@ -263,6 +263,70 @@ describe("Level 6 (Pip's Explorer Day — the measurement level, 2026-08-26)", (
     expect(level6.feedback).toBe("reveal");
     expect(level6.teachingItems).toBe(0);
     expect(level6.weighting).toBe("none");
-    expect(level6.released).toBe(true);
+    expect(level6.released).toBe(false); // unreleased by #21 before she played it; Level 7B absorbs its verbal probe
+  });
+});
+
+import { DOOR_GENRES } from "./doors";
+describe("Doors-only era (owner decision #21, 2026-08-27)", () => {
+  it("DOOR_GENRES is exactly the six Davidson-door genres", () => {
+    expect(DOOR_GENRES).toEqual([
+      "whichTwo", "fillTheGap", "information", "whatWouldYouDo",
+      "arithmetic", "swapShop",
+    ]);
+  });
+
+  // Bug this prevents: a future level quietly reintroducing a non-door genre
+  // and re-spending her sittings on subtests outside the two target doors.
+  it("every released level with id >= 7 uses ONLY door genres", () => {
+    for (const level of LEVELS) {
+      if (level.id < 7 || level.id === 99 || level.released === false) continue;
+      for (const part of level.parts) {
+        for (const block of part.blocks) {
+          expect(DOOR_GENRES, `Level ${level.id} ${part.id}/${block.genre}`).toContain(block.genre);
+        }
+      }
+    }
+  });
+});
+
+describe("Level 7 (Pip's Dream Team — first doors-only level, decision #21)", () => {
+  const level7 = LEVELS.find((l) => l.id === 7)!;
+
+  it("exists, is released, and covers all six door genres exactly once", () => {
+    expect(level7).toBeDefined();
+    expect(level7.released).toBe(true);
+    const all = level7.parts.flatMap((p) => p.blocks.map((b) => b.genre));
+    expect(new Set(all)).toEqual(new Set(DOOR_GENRES));
+    expect(all.length).toBe(DOOR_GENRES.length);
+  });
+
+  it("Part A keeps Level 5A's win-ramp pins and clocks for the two QRI genres", () => {
+    const partA = level7.parts[0];
+    expect(partA.blocks.map((b) => b.genre)).toEqual(["swapShop", "arithmetic"]);
+    const swap = partA.blocks[0];
+    const arith = partA.blocks[1];
+    expect(swap.start).toBe(5);       // below the new-d7 mixed-answer wall band
+    expect(swap.timeScale).toBe(1.5); // her losses there were time, not ability
+    expect(arith.start).toBe(8);      // she owns d10 on the longer clock
+    expect(arith.timeScale).toBe(1.5);
+  });
+
+  it("Part B probes the verbal four fromProfile (absorbing Level 6B)", () => {
+    const partB = level7.parts[1];
+    expect(partB.blocks.map((b) => b.genre)).toEqual([
+      "whichTwo", "fillTheGap", "information", "whatWouldYouDo",
+    ]);
+    for (const block of partB.blocks) expect(block.start, block.genre).toBe("fromProfile");
+  });
+
+  it("keeps the win-heavy template: stepUp 2, fast lane OFF, easeIn ON, reveal, no teaching items, fun on", () => {
+    expect(level7.stepUp).toBe(2);
+    expect(level7.fastLane).toBe(false);
+    expect(level7.easeIn).toBe(true);
+    expect(level7.feedback).toBe("reveal");
+    expect(level7.teachingItems).toBe(0);
+    expect(level7.weighting).toBe("none");
+    expect(level7.fun).toBe(true);
   });
 });

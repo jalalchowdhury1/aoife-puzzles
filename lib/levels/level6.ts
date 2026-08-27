@@ -33,7 +33,10 @@ export const level6: LevelConfig = {
   teachingItems: 0,
   fun: true,
   easeIn: true,
-  released: true,
+  // Unreleased 2026-08-27 (owner decision #21, doors only): she had played
+  // NEITHER part of this level, so nothing is replayed; Level 7 absorbs its
+  // door-genre work. Kept for history like Level 2.
+  released: false,
   parts: [
     { id: "A", title: "Puzzle Explorer", sticker: "🧭", blocks: [
       { genre: "mosaic", start: "fromProfile" },

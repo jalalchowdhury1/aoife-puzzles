@@ -47,6 +47,9 @@ spec `docs/superpowers/specs/2026-08-22-aoife-puzzles-design.md` · plan `docs/s
 | 13 | Remedial rule (2026-08-22, after launch) | **Every level after the diagnostic adapts to her profile: a weak area starts EASIER and gets MORE practice; a strong area starts near her ceiling and gets fewer reps.** Implemented in `lib/engine/adapt.ts`; levels opt in with `weighting: "remedial"`. Never ship a post-diagnostic level that ignores the profile. |
 | 20 | **Age-benchmark lens on the parent page (2026-08-26)** | Jalal: "build out our dashboard and the levels accordingly. that way we can accurately gauge how she is in comparison to others as well." The parent page's **Ages tab** shows approximate, research-anchored typical-age BANDS for the skill each difficulty demands (`lib/engine/benchmarks.ts`, digest `docs/research/2026-08-26-age-benchmarks-research.md`). Hard limits: parent page only, never child-visible; age RANGES with a stated basis — never percentiles, IQ numbers, or a single "mental age"; speed genres get NO band (per-minute norms are proprietary — a fake norm is a false comparison); a censored ("still winning when items ran out") or bailed ceiling can never produce a "below" verdict. This narrows the old blanket "no norms" line: profile SCORES remain self-relative only. |
 | 14 | Measurement quality (2026-08-23, after her Level 1 data showed it was needed) | **A broken or misunderstood puzzle must not become a false weakness in her profile.** `lib/engine/quality.ts` flags blocks like a first attempt at a new format that ended after two straight misses, or a run that mostly timed out; those flags exclude the block from her ceilings/values, are shown to the owner via Telegram, and are listed on the parent page. See §5 "Measurement quality" for the detail. |
+| 21 | **DOORS ONLY (2026-08-27)** | Jalal (2026-08-26 evening, Davidson strategy: VECI alone at 145+, or VCI+QRI both): "Only doors. But since we are taking something away. Add in a fun factor. Tell her how good she is even more. Pip is funny." Every released level from **Level 7** on uses ONLY the six door genres in `lib/levels/doors.ts` (whichTwo, fillTheGap, information, whatWouldYouDo, arithmetic, swapShop) — guarded by levels.test.ts. Enforced at the LEVEL layer, not by retiring genres: levels 5/6 were unreleased before she played them (nothing replayed; Level 7 "Pip's Dream Team" absorbs their door work), while the 8 non-door genres stay active for history, QA/e2e/audit, and the Practice tab. Praise banks got a silly-Pip expansion in the same change. Spec: `docs/superpowers/specs/2026-08-27-davidson-doors-design.md`. |
+| 22 | **Talk with Pip — spoken production, grown-up judged (2026-08-27)** | Jalal: "we should have a conversation piece as well.. where she is asked the question and she answers with voice" + "keep it as a separate tab then. I will do that with her at a different time." `/talk` is a SEPARATE with-a-grown-up tab, never in her solo flow: Pip asks an open-ended question aloud (TTS; original items, `lib/talk/items.ts`, four areas mirroring the verbal doors), she answers OUT LOUD, the grown-up taps 2/1/0 against a model-answer strip (2 = the abstract category, 1 = a surface feature — how the real verbal subtests score). **HARD RULE: no speech-recognition auto-scoring, ever** (a misheard answer = a fabricated weakness, decision #14). Items under 2 resurface next sitting. Records live under `aoife_puzzles:talk:*` via /api/talk and NEVER enter computeProfile — production and recognition are separate measurement classes (parent page: Talk tab). This deliberately relaxes #16's format line for THIS grown-up-supervised tab only; all solo/scored play stays cousins-only. |
+| 23 | **Practice tab — replay what she got wrong (2026-08-27)** | Jalal: "for all of these things, make sure we can go back and practice the ones we got wrong." `/practice` replays her actual counted misses/timeouts (regenerated from (genre, seed, d)), framed as "rematches", UNTIMED, reveal on miss. Excluded from the queue: bails, teaching/frontier items, speed-block genres, retired replicas (`lib/engine/practice.ts`). An item clears once answered correctly anywhere later. Practice sessions post as `SessionRecord{level: 0, part: "P", practice: true}` and **computeProfile drops them at the door** — practice can never inflate ceilings or the Ages tab. Home shows "⭐ Rematches (n)" only when the queue is non-empty (`GET /api/practice`, public, refs only). NOTE: a queued (genre, seed, d) regenerates on the CURRENT ramp — after a scale.ts re-band the item differs from the one she originally saw (e.g. her old-d6 swapShop timeouts now regenerate as new-d6 read-off items, the gentler inserted band). Deliberate: rematches stay win-heavy and always valid on today's ramp. |
 
 ## 2. Architecture
 
@@ -92,10 +95,12 @@ RETIRED (code kept for her Level 1/2 history, `retired: true`, never in a level)
 matrix, figureWeights, digitSpan, pictureSpan, coding, symbolSearch, similarities, vocabulary, comprehension.
 Levels: 1 = diagnostic (retired genres, fun off) · 2 = RETIRED practice (unreleased) · 3 = "Pip's Games"
 (all 14 active genres, three parts, stepUp 2, teaching items, reveal, fun on) · 4 = "Pip's Power-Ups"
-(decision-#18 remedial, one part) · 5 = "Pip's Winning Streak" (2026-08-26: the four Level 4 genres
-promoted + a fromProfile victory lap; see `lib/levels/level5.ts` header) · 6 = "Pip's Explorer Day"
-(2026-08-26: MEASUREMENT level for the six censored-ceiling genres L5 skips — fromProfile starts,
-fast lane ON + easeIn; see `lib/levels/level6.ts` header) · 99 = hidden QA level.
+(decision-#18 remedial, one part) · 5 = "Pip's Winning Streak" (UNRELEASED 2026-08-27 by #21 — she never
+played it) · 6 = "Pip's Explorer Day" (UNRELEASED 2026-08-27 by #21 — she never played it) · 7 = "Pip's
+Dream Team" (2026-08-27: first DOORS-ONLY level — Part A = L5A's two door blocks with the same pins,
+Part B = L6B's verbal-four probe; see `lib/levels/level7.ts` header) · 99 = hidden QA level.
+Separate tabs (not levels): `/talk` = Talk with Pip (decision #22, grown-up judged production) ·
+`/practice` = Rematches (decision #23, replay of her missed items, never counted in the profile).
 
 Data flow: runner builds `SessionRecord` (one per part attempt) → after every block: `saveSessionLocal` +
 `enqueue` + `flushOutbox` → `POST /api/sessions` → Upstash `aoife_puzzles:session:<ulid>` +
@@ -252,6 +257,13 @@ No secrets in the repo. Never print them to a transcript.
 
 ## 6. State / TODO
 
+- 2026-08-27 (~4 AM overnight build): **Doors-only era + Talk + Practice shipped** (decisions #21/#22/#23,
+  spec `docs/superpowers/specs/2026-08-27-davidson-doors-design.md`). Levels 5/6 unreleased (unplayed),
+  Level 7 "Pip's Dream Team" released (position resolves to L7A); `/talk` (grown-up-judged spoken
+  production, own KV namespace + parent Talk tab) and `/practice` (rematch queue of her real misses,
+  profile-excluded) live; praise banks amped. e2e caught a real bubbled-click double-advance bug on the
+  between screens before ship (single-trigger rule now commented in both pages). Earned-but-unbuilt
+  arithmetic d11-15 still open.
 - 2026-08-26 (later): **Age Lens + Level 6 shipped** (spec `docs/superpowers/specs/2026-08-26-age-lens-design.md`,
   decision #20). `lib/engine/benchmarks.ts` = research-anchored typical-age bands per genre/difficulty
   (+ `measureStatus`: still-winning / at-top / bailed / measured — a censored ceiling renders as "≥ N");

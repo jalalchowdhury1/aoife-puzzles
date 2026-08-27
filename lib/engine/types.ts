@@ -93,6 +93,12 @@ export interface SessionRecord {
   id: string; level: number; part: string; startedAt: string; endedAt?: string;
   device: { ua: string; w: number; h: number };
   blocks: BlockRecord[]; complete: boolean; appVersion: string;
+  // Practice-tab replays of previously missed items (decision #23,
+  // 2026-08-27): saved as level 0 / part "P" with this flag set.
+  // computeProfile drops practice sessions entirely — a redo win after
+  // seeing the reveal proves learning, not ceiling, and must never
+  // inflate her ability data or the Ages tab.
+  practice?: boolean;
 }
 
 export interface BlockConfig {

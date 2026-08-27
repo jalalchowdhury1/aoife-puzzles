@@ -59,8 +59,12 @@ function bundleValue(list: GenreId[], genres: Partial<Record<GenreId, GenreStats
 }
 
 export function computeProfile(sessions: SessionRecord[]): Profile {
+  // Practice-tab replays (decision #23) are dropped at the door: a redo win
+  // after the answer was revealed proves learning, never ceiling — letting
+  // it in would slowly inflate her ability data and the Ages tab.
+  const measured = sessions.filter((s) => !s.practice);
   // Old-scale results are mapped onto the current ramps first (lib/engine/scale.ts).
-  const sorted = sessions.map(remapSession).sort((a, b) => a.startedAt.localeCompare(b.startedAt));
+  const sorted = measured.map(remapSession).sort((a, b) => a.startedAt.localeCompare(b.startedAt));
   const genres: Partial<Record<GenreId, GenreStats>> = {};
   const msByGenre: Partial<Record<GenreId, number[]>> = {};
   const flags: ProfileFlag[] = [];

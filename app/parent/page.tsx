@@ -6,8 +6,7 @@ import { GENRES } from "@/lib/genres";
 import { computeInsights, type Insights, type SkillDetail } from "@/lib/engine/insights";
 import { lookupBankItem } from "@/lib/engine/bankLookup";
 import { loadSessions } from "@/lib/engine/storage";
-import { EGAI, CPI } from "@/lib/engine/profile";
-import { dayStreak } from "@/lib/engine/rewards";
+import { DOOR_GENRES } from "@/lib/levels/doors";
 import { EXCLUDING_CODES, type QualityFlagCode } from "@/lib/engine/quality";
 import { LEVELS } from "@/lib/levels";
 import { Tabs, type TabDef } from "@/components/parent/Tabs";
@@ -17,7 +16,10 @@ import { DomainBars } from "@/components/parent/DomainBars";
 import { EngagementChart } from "@/components/parent/EngagementChart";
 import { SkillCard } from "@/components/parent/SkillCard";
 import { MatrixGrid, MatrixLegend } from "@/components/parent/MatrixGrid";
+import { StatTile } from "@/components/parent/StatTile";
 import { DavidsonTab } from "@/components/parent/DavidsonTab";
+import { DoorSkillsTab } from "@/components/parent/DoorSkillsTab";
+import { LastSessionTab } from "@/components/parent/LastSessionTab";
 import { ItemLog } from "@/components/parent/ItemLog";
 import { LineChart } from "@/components/parent/LineChart";
 import {fmtDate, fmtPct, fmtNum, plural } from "@/components/parent/format";
@@ -28,22 +30,22 @@ import {
 } from "@/lib/engine/benchmarks";
 
 const KEY_STORAGE = "aoife-puzzles:parent-key";
+// 2026-08-28 revamp (per Jalal): dashboard scoped down to only what Road 1
+// (WISC-V cognitive door) and Road 2 (WIAT-4 achievement door) need — see
+// docs/superpowers/specs/2026-08-28-dashboard-revamp-design.md. Overview,
+// the old separate Skills/Skill-detail pair, Matrix, Timeline, and Ages are
+// ARCHIVED (unlinked here, not deleted — their component functions still
+// live below/in this file, doc explains why) in favor of three door-scoped
+// perspectives (Davidson, WISC lens, Skills) plus a new Last Session tab.
+// Talk with Pip stays — it's a genuinely separate data source, not clutter.
 const TABS: TabDef[] = [
-  { id: "overview", label: "Overview", emoji: "🏠" },
-  { id: "skills", label: "Skills", emoji: "🧩" },
-  { id: "detail", label: "Skill detail", emoji: "🔎" },
-  { id: "matrix", label: "Matrix", emoji: "⊞" },
-  { id: "timeline", label: "Timeline", emoji: "🗓" },
-  { id: "wisc", label: "WISC lens", emoji: "🧠" },
-  { id: "ages", label: "Ages", emoji: "📏" },
   { id: "davidson", label: "Davidson", emoji: "🎯" },
+  { id: "wisc", label: "WISC lens", emoji: "🧠" },
+  { id: "skills", label: "Skills", emoji: "🧩" },
+  { id: "lastSession", label: "Last session", emoji: "🗓" },
   { id: "talk", label: "Talk", emoji: "🗣" },
 ];
 
-const NY_FMT = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" });
-function todayNY(): string {
-  return NY_FMT.format(new Date());
-}
 
 // Decision #20 (2026-08-26): the Ages tab may show approximate, research-anchored
 // typical-age RANGES per skill — still never percentiles or IQ scores, and only here
@@ -58,8 +60,7 @@ export default function ParentPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [tab, setTab] = useState<string>("overview");
-  const [focusedGenre, setFocusedGenre] = useState<GenreId | null>(null);
+  const [tab, setTab] = useState<string>("davidson");
   // Talk with Pip production records (decision #22) — a separate measurement
   // class from the recognition data in `insights`; null until loaded.
   const [talkRecords, setTalkRecords] = useState<TalkRecord[] | null>(null);
@@ -165,7 +166,6 @@ export default function ParentPage() {
   }, [key]);
 
   const insights = useMemo(() => computeInsights(sessions), [sessions]);
-  const streak = useMemo(() => dayStreak(sessions, todayNY()), [sessions]);
 
   function submitKey(e: FormEvent) {
     e.preventDefault();
@@ -181,11 +181,6 @@ export default function ParentPage() {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     });
-  }
-
-  function focusSkill(g: GenreId) {
-    setFocusedGenre(g);
-    setTab("detail");
   }
 
   if (!key) {
@@ -250,16 +245,10 @@ export default function ParentPage() {
         <p className="p-6 text-center text-ink/60">No sessions yet — play a part first.</p>
       ) : (
         <div className="flex flex-col gap-6 py-2">
-          {tab === "overview" && <OverviewTab insights={insights} streak={streak} />}
-          {tab === "skills" && <SkillsTab insights={insights} onSelect={focusSkill} />}
-          {tab === "detail" && (
-            <DetailTab insights={insights} focusedGenre={focusedGenre} onFocus={setFocusedGenre} />
-          )}
-          {tab === "matrix" && <MatrixTab insights={insights} />}
-          {tab === "timeline" && <TimelineTab insights={insights} />}
-          {tab === "wisc" && <WiscTab insights={insights} />}
-          {tab === "ages" && <AgesTab insights={insights} />}
           {tab === "davidson" && <DavidsonTab insights={insights} achievement={achievement} />}
+          {tab === "wisc" && <WiscTab insights={insights} />}
+          {tab === "skills" && <DoorSkillsTab insights={insights} />}
+          {tab === "lastSession" && <LastSessionTab insights={insights} />}
           {tab === "talk" && <TalkTab records={talkRecords} />}
         </div>
       )}
@@ -287,15 +276,6 @@ export default function ParentPage() {
 // ---------------------------------------------------------------------------
 // Shared bits
 // ---------------------------------------------------------------------------
-
-function StatTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex min-w-[84px] flex-1 flex-col items-center gap-0.5 rounded-2xl bg-white/60 px-3 py-2 text-center">
-      <span className="font-bubble text-xl text-teal-600">{value}</span>
-      <span className="text-[11px] leading-tight text-ink/60">{label}</span>
-    </div>
-  );
-}
 
 function SkillMiniBar({ skill }: { skill: SkillDetail }) {
   const pct = skill.ceiling === null ? 0 : Math.round((skill.ceiling / skill.maxD) * 100);
@@ -705,55 +685,48 @@ function TimelineTab({ insights }: { insights: Insights }) {
 // 6. WISC lens
 // ---------------------------------------------------------------------------
 
+// 2026-08-28 revamp: trimmed to only the 6 Davidson-door genres (previously
+// showed all ~14 active + retired genres via the full CHC-domain grouping,
+// plus the generic EGAI/CPI bundles — dropped here since they mixed in
+// non-door genres and the Davidson tab already gives the real door rollups).
+// A domain with zero door genres (Visual Spatial, Working Memory, Processing
+// Speed — see DOOR_GENRES in lib/levels/doors.ts) simply doesn't render. The
+// % shown per domain is a LOCAL average over only the door genres visible in
+// it, not insights.domains' value (which still counts every genre).
 function WiscTab({ insights }: { insights: Insights }) {
   const skillByGenre = new Map(insights.skills.map((s) => [s.genre, s]));
+  const doorGenres = new Set<GenreId>(DOOR_GENRES);
   return (
     <div className="flex flex-col gap-6">
       <p className="text-sm text-ink/70">
-        This groups her skills the way the real WISC-V groups subtests into index scores. Every number below is still only
-        relative to Aoife&apos;s own results — never norms, percentiles, or IQ scores.
+        This groups her Davidson-door skills the way the real WISC-V groups subtests into index scores. Every number below is
+        still only relative to Aoife&apos;s own results — never norms, percentiles, or IQ scores.
       </p>
 
-      {insights.domains.map((d) => (
-        <section key={d.domain}>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="font-bubble text-xl text-ink">{d.label}</h2>
-            <span className="text-sm text-ink/50">{fmtPct(d.value)}</span>
-          </div>
-          <div className="flex flex-col gap-2">
-            {d.genres.map((g) => {
-              const skill = skillByGenre.get(g);
-              return skill ? <SkillMiniBar key={g} skill={skill} /> : null;
-            })}
-          </div>
-        </section>
-      ))}
-
-      <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="font-bubble text-xl text-ink">EGAI-style bundle</h2>
-          <span className="text-sm text-ink/50">{fmtPct(insights.bundles.egai)}</span>
-        </div>
-        <div className="flex flex-col gap-2">
-          {EGAI.map((g) => {
-            const skill = skillByGenre.get(g);
-            return skill ? <SkillMiniBar key={g} skill={skill} /> : null;
-          })}
-        </div>
-      </section>
-
-      <section>
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="font-bubble text-xl text-ink">CPI-style bundle</h2>
-          <span className="text-sm text-ink/50">{fmtPct(insights.bundles.cpi)}</span>
-        </div>
-        <div className="flex flex-col gap-2">
-          {CPI.map((g) => {
-            const skill = skillByGenre.get(g);
-            return skill ? <SkillMiniBar key={g} skill={skill} /> : null;
-          })}
-        </div>
-      </section>
+      {insights.domains.map((d) => {
+        const genres = d.genres.filter((g) => doorGenres.has(g));
+        if (genres.length === 0) return null;
+        const ratios: number[] = [];
+        for (const g of genres) {
+          const s = skillByGenre.get(g);
+          if (s && s.ceiling !== null) ratios.push(s.ceiling / s.maxD);
+        }
+        const localValue = ratios.length ? ratios.reduce((a, b) => a + b, 0) / ratios.length : null;
+        return (
+          <section key={d.domain}>
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="font-bubble text-xl text-ink">{d.label}</h2>
+              <span className="text-sm text-ink/50">{fmtPct(localValue)}</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              {genres.map((g) => {
+                const skill = skillByGenre.get(g);
+                return skill ? <SkillMiniBar key={g} skill={skill} /> : null;
+              })}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }

@@ -17,6 +17,7 @@ import { DomainBars } from "@/components/parent/DomainBars";
 import { EngagementChart } from "@/components/parent/EngagementChart";
 import { SkillCard } from "@/components/parent/SkillCard";
 import { MatrixGrid, MatrixLegend } from "@/components/parent/MatrixGrid";
+import { DavidsonTab } from "@/components/parent/DavidsonTab";
 import { ItemLog } from "@/components/parent/ItemLog";
 import { LineChart } from "@/components/parent/LineChart";
 import {fmtDate, fmtPct, fmtNum, plural } from "@/components/parent/format";
@@ -35,6 +36,7 @@ const TABS: TabDef[] = [
   { id: "timeline", label: "Timeline", emoji: "🗓" },
   { id: "wisc", label: "WISC lens", emoji: "🧠" },
   { id: "ages", label: "Ages", emoji: "📏" },
+  { id: "davidson", label: "Davidson", emoji: "🎯" },
   { id: "talk", label: "Talk", emoji: "🗣" },
 ];
 
@@ -61,6 +63,12 @@ export default function ParentPage() {
   // Talk with Pip production records (decision #22) — a separate measurement
   // class from the recognition data in `insights`; null until loaded.
   const [talkRecords, setTalkRecords] = useState<TalkRecord[] | null>(null);
+  // Davidson tab (2026-08-28): achievement-door status from aoife-reads, via
+  // our own server-side proxy route (no cross-origin fetch, no secret needed
+  // client-side). null until loaded; readsStarted itself stays null if the
+  // proxy couldn't reach aoife-reads, so the tab can say "couldn't check"
+  // instead of a false "not started".
+  const [achievement, setAchievement] = useState<{ readsStarted: boolean | null; readsSessionCount: number | null } | null>(null);
 
   // First visit: read whatever key was already entered, if any. localStorage
   // isn't available during SSR, so this can only happen after mount.
@@ -82,6 +90,23 @@ export default function ParentPage() {
         if (!cancelled && Array.isArray(body)) setTalkRecords(body as TalkRecord[]);
       } catch {
         // leave null: the Talk tab shows its own fallback
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [key]);
+
+  useEffect(() => {
+    if (!key) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/davidson-achievement", { headers: { "x-parent-key": key } });
+        const body: unknown = await res.json();
+        if (!cancelled && body && typeof body === "object" && "readsStarted" in body) {
+          setAchievement(body as { readsStarted: boolean | null; readsSessionCount: number | null });
+        }
+      } catch {
+        // leave null: the Davidson tab shows its own "checking…" fallback
       }
     })();
     return () => { cancelled = true; };
@@ -234,6 +259,7 @@ export default function ParentPage() {
           {tab === "timeline" && <TimelineTab insights={insights} />}
           {tab === "wisc" && <WiscTab insights={insights} />}
           {tab === "ages" && <AgesTab insights={insights} />}
+          {tab === "davidson" && <DavidsonTab insights={insights} achievement={achievement} />}
           {tab === "talk" && <TalkTab records={talkRecords} />}
         </div>
       )}

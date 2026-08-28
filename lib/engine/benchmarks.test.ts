@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  BENCHMARKS, benchmarkAt, cumulativeBenchmark, ageYearsAt, measureStatus, ageVerdict,
+  BENCHMARKS, benchmarkAt, cumulativeBenchmark, ageYearsAt, measureStatus, ageVerdict, yearsAheadLabel,
 } from "./benchmarks";
 import { GENRES, GENRE_LIST } from "../genres";
 import { genreMaxD } from "./types";
@@ -151,5 +151,37 @@ describe("measureStatus", () => {
   it("null with no data for the genre", () => {
     const ins = computeInsights([]);
     expect(measureStatus(ins, "mosaic")).toBeNull();
+  });
+});
+
+describe("yearsAheadLabel (Davidson tracker)", () => {
+  it("no band at all", () => {
+    expect(yearsAheadLabel(null, 5.6, "measured")).toBe("—");
+  });
+
+  it("clearly ahead, measured: tilde-prefixed whole-year range", () => {
+    expect(yearsAheadLabel({ lo: 13, hi: 14 }, 5.6, "measured")).toBe("~7–8 yrs");
+  });
+
+  it("clearly ahead but still-winning/at-top: >= prefix since her true ceiling is unmeasured upward", () => {
+    expect(yearsAheadLabel({ lo: 8, hi: 10 }, 5.6, "still-winning")).toBe("≥ 2–4 yrs");
+    expect(yearsAheadLabel({ lo: 12, hi: null }, 5.6, "at-top")).toBe("≥ 6+ yrs");
+  });
+
+  it("gap under a year, even if technically ahead, reads as on-pace rather than a misleading '0 yrs'", () => {
+    expect(yearsAheadLabel({ lo: 6, hi: 8 }, 5.6, "measured")).toBe("on pace for her age");
+  });
+
+  it("age-typical: on pace, no number", () => {
+    expect(yearsAheadLabel({ lo: 5, hi: 7 }, 5.6, "measured")).toBe("on pace for her age");
+  });
+
+  it("below-band with a real measured miss: band only, never a 'years behind' framing", () => {
+    expect(yearsAheadLabel({ lo: 3, hi: 4 }, 5.6, "measured")).toBe("typical ages 3–4");
+    expect(yearsAheadLabel({ lo: 6, hi: 7 }, 9, "measured")).toBe("typical ages 6–7");
+  });
+
+  it("below-band but NOT a real measured miss (e.g. bailed) never reads as behind — softens to on-pace", () => {
+    expect(yearsAheadLabel({ lo: 3, hi: 4 }, 5.6, "bailed")).toBe("on pace for her age");
   });
 });

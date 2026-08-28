@@ -295,3 +295,28 @@ export function ageVerdict(band: AgeBand | null, ageYears: number): AgeVerdict {
   if (band.hi !== null && ageYears > band.hi + 0.25) return "below-band";
   return "age-typical";
 }
+
+/**
+ * Davidson tracker (2026-08-28): the one new number that tab needs — how many
+ * whole years ahead of her own age the band's floor sits, computed from real
+ * inputs already displayed elsewhere (never a synthesized percentile/IQ
+ * figure). "≥" prefixes a still-winning/at-top ceiling since her true level
+ * is unmeasured upward — same convention as the level number elsewhere.
+ * A below-band verdict from a real measured miss shows the band only, never
+ * a "years behind" framing (this project never counts backward); softens to
+ * "on pace" otherwise, mirroring AgeRow's censored-ceiling softening rule.
+ */
+export function yearsAheadLabel(band: AgeBand | null, ageYears: number, status: MeasureStatus | null): string {
+  if (band === null) return "—";
+  const verdict = ageVerdict(band, ageYears);
+  if (verdict === "below-band" && status === "measured") {
+    return band.hi === null ? `typical ages ${band.lo}+` : `typical ages ${band.lo}–${band.hi}`;
+  }
+  const gapLo = band.lo - ageYears;
+  if (gapLo < 1) return "on pace for her age";
+  const prefix = status === "still-winning" || status === "at-top" ? "≥ " : "~";
+  const lo = Math.floor(gapLo);
+  if (band.hi === null) return `${prefix}${lo}+ yrs`;
+  const hi = Math.max(lo, Math.floor(band.hi - ageYears));
+  return `${prefix}${lo}–${hi} yrs`;
+}

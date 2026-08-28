@@ -9,6 +9,7 @@ import { SkillCard } from "./SkillCard";
 import { StatTile } from "./StatTile";
 import { LineChart } from "./LineChart";
 import { ItemLog } from "./ItemLog";
+import { CollapsibleSection } from "./CollapsibleSection";
 import { fmtDate, fmtNum, fmtPct } from "./format";
 
 // "Skills" perspective on the Davidson tracker (2026-08-28 revamp, spec
@@ -24,7 +25,7 @@ export function DoorSkillsTab({ insights }: { insights: Insights }) {
   const [focused, setFocused] = useState<GenreId | null>(null);
   const skill = skills.find((s) => s.genre === focused) ?? skills[0] ?? null;
 
-  if (!skill) return <p className="text-ink/60">No skill data yet.</p>;
+  if (!skill) return <p className="pd-glass p-6 text-white/60">No skill data yet.</p>;
 
   const ceilingPoints = skill.ceilingDates.map((c) => ({ x: fmtDate(c.date), y: c.ceiling, excluded: c.excluded }));
 
@@ -36,35 +37,34 @@ export function DoorSkillsTab({ insights }: { insights: Insights }) {
         ))}
       </div>
 
-      <h2 className="font-bubble text-2xl text-ink">{skill.kidTitle}</h2>
+      <h2 className="text-2xl font-bold text-white">{skill.kidTitle}</h2>
 
-      <section>
-        <h3 className="mb-1 text-sm font-semibold text-ink/70">Ceiling over time</h3>
+      <section className="pd-glass p-5">
+        <h3 className="mb-3 text-sm font-bold text-white/85">Ceiling over time</h3>
         {ceilingPoints.length === 0 ? (
-          <p className="text-sm text-ink/50">No measurements yet.</p>
+          <p className="text-sm text-white/45">No measurements yet.</p>
         ) : (
           <>
             <LineChart points={ceilingPoints} yMax={skill.maxD} valueLabel={(v) => String(v)} />
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-ink/50">
-              <span className="inline-block h-3 w-3 rounded-full border-2 border-teal-400 bg-cream" /> hollow = excluded from her
-              profile
+            <p className="mt-2 flex items-center gap-1.5 text-xs text-white/40">
+              <span className="inline-block h-3 w-3 rounded-full border-2 border-[var(--pd-accent-light)] bg-[#0a0c10]" /> hollow =
+              excluded from her profile
             </p>
           </>
         )}
       </section>
 
-      <section>
-        <h3 className="mb-1 text-sm font-semibold text-ink/70">Per difficulty</h3>
-        <div className="overflow-x-auto rounded-2xl border border-teal-100">
-          <table className="w-full min-w-[520px] text-left text-sm text-ink">
+      <CollapsibleSection title="Per difficulty" storageKey="skills-perdiff" defaultOpen>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[520px] border-separate border-spacing-y-1.5 text-left text-sm">
             <thead>
-              <tr className="border-b border-teal-100 bg-teal-50/60">
-                <th className="px-3 py-2 font-semibold">d</th>
-                <th className="px-3 py-2 font-semibold">Attempts</th>
-                <th className="px-3 py-2 font-semibold">Correct</th>
-                <th className="px-3 py-2 font-semibold">Time-outs</th>
-                <th className="px-3 py-2 font-semibold">Median s</th>
-                <th className="px-3 py-2 font-semibold">Mastered</th>
+              <tr className="text-xs font-semibold uppercase tracking-wide text-white/40">
+                <th className="px-3 py-1">d</th>
+                <th className="px-3 py-1">Attempts</th>
+                <th className="px-3 py-1">Correct</th>
+                <th className="px-3 py-1">Time-outs</th>
+                <th className="px-3 py-1">Median s</th>
+                <th className="px-3 py-1">Mastered</th>
               </tr>
             </thead>
             <tbody>
@@ -72,27 +72,27 @@ export function DoorSkillsTab({ insights }: { insights: Insights }) {
                 const acc = pd.attempts > 0 ? pd.correct / pd.attempts : null;
                 const bg =
                   acc === null
-                    ? undefined
+                    ? "rgba(255,255,255,0.04)"
                     : acc === 0
-                      ? "rgba(240,107,122,0.25)"
-                      : `rgba(43,179,169,${Math.max(0.12, acc * 0.55)})`;
+                      ? "rgba(240,107,122,0.16)"
+                      : `rgba(43,179,169,${Math.max(0.1, acc * 0.4)})`;
                 return (
-                  <tr key={pd.d} className="border-b border-teal-50" style={{ background: bg }}>
-                    <td className="px-3 py-1.5 font-semibold tabular-nums">{pd.d}</td>
-                    <td className="px-3 py-1.5 tabular-nums">{pd.attempts}</td>
-                    <td className="px-3 py-1.5 tabular-nums">{pd.correct}</td>
-                    <td className="px-3 py-1.5 tabular-nums">{pd.timeouts}</td>
-                    <td className="px-3 py-1.5 tabular-nums">{pd.medianSeconds === null ? "—" : fmtNum(pd.medianSeconds)}</td>
-                    <td className="px-3 py-1.5">{pd.mastered ? "✓" : ""}</td>
+                  <tr key={pd.d} style={{ background: bg }}>
+                    <td className="rounded-l-xl px-3 py-1.5 font-semibold tabular-nums text-white/90">{pd.d}</td>
+                    <td className="px-3 py-1.5 tabular-nums text-white/70">{pd.attempts}</td>
+                    <td className="px-3 py-1.5 tabular-nums text-white/70">{pd.correct}</td>
+                    <td className="px-3 py-1.5 tabular-nums text-white/70">{pd.timeouts}</td>
+                    <td className="px-3 py-1.5 tabular-nums text-white/70">{pd.medianSeconds === null ? "—" : fmtNum(pd.medianSeconds)}</td>
+                    <td className="rounded-r-xl px-3 py-1.5 text-[var(--pd-accent-light)]">{pd.mastered ? "✓" : ""}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
         </div>
-      </section>
+      </CollapsibleSection>
 
-      <section className="flex flex-wrap gap-2">
+      <section className="flex flex-wrap gap-3">
         <StatTile label="Fast rate" value={fmtPct(skill.fastRate)} />
         <StatTile label="Teaching misses" value={String(skill.teachingMisses)} />
         <StatTile label="Not-fun taps" value={String(skill.bails)} />
@@ -100,14 +100,13 @@ export function DoorSkillsTab({ insights }: { insights: Insights }) {
       </section>
 
       {skill.missedBankItems.length > 0 && (
-        <section>
-          <h3 className="mb-1 text-sm font-semibold text-ink/70">Missed questions</h3>
+        <CollapsibleSection title="Missed questions" subtitle={`${skill.missedBankItems.length}`} storageKey="skills-missed" defaultOpen>
           <div className="flex flex-col gap-3">
             {skill.missedBankItems.map((m, i) => {
               const bank = lookupBankItem(m.bankId);
               if (!bank) {
                 return (
-                  <div key={i} className="rounded-2xl bg-white/50 p-3 text-sm text-ink/60">
+                  <div key={i} className="pd-row p-3 text-sm text-white/55">
                     {fmtDate(m.date)} · d{m.d} — item {m.bankId} not found in the bank.
                   </div>
                 );
@@ -117,36 +116,33 @@ export function DoorSkillsTab({ insights }: { insights: Insights }) {
                 null
               );
               return (
-                <div key={i} className="flex flex-col gap-1 rounded-2xl bg-white/60 p-3 text-sm text-ink">
-                  <div className="flex items-center justify-between text-xs text-ink/50">
-                    <span>
-                      {fmtDate(m.date)} · d{m.d}
-                    </span>
+                <div key={i} className="pd-row flex flex-col gap-1 p-4 text-sm text-white/80">
+                  <div className="text-xs text-white/40">
+                    {fmtDate(m.date)} · d{m.d}
                   </div>
-                  <p className="font-semibold">
+                  <p className="font-semibold text-white">
                     {bank.emoji ? `${bank.emoji} ` : ""}
                     {bank.prompt}
                   </p>
                   <p>
-                    Her pick: <span className="font-semibold text-rose-500">{m.herPick ?? "—"}</span>
+                    Her pick: <span className="font-semibold text-[var(--pd-rose)]">{m.herPick ?? "—"}</span>
                   </p>
                   {best && (
                     <p>
-                      Best answer: <span className="font-semibold text-teal-600">{best.text}</span>
+                      Best answer: <span className="font-semibold text-[var(--pd-accent-light)]">{best.text}</span>
                     </p>
                   )}
-                  <p className="text-ink/70">{bank.explanation}</p>
+                  <p className="text-white/60">{bank.explanation}</p>
                 </div>
               );
             })}
           </div>
-        </section>
+        </CollapsibleSection>
       )}
 
-      <section>
-        <h3 className="mb-1 text-sm font-semibold text-ink/70">Item log</h3>
+      <CollapsibleSection title="Item log" subtitle={`${skill.items.length}`} storageKey="skills-itemlog" defaultOpen={false}>
         <ItemLog items={skill.items} />
-      </section>
+      </CollapsibleSection>
     </div>
   );
 }

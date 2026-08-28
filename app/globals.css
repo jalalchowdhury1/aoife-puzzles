@@ -29,3 +29,115 @@ html, body { background: var(--color-cream); color: var(--color-ink); font-famil
   0%, 100% { transform: rotate(0deg); }
   50% { transform: rotate(8deg); }
 }
+
+/* ===========================================================================
+   Parent dashboard (2026-08-28 revamp): Liquid Glass, scoped under .pd-root
+   so none of this ever touches Aoife's play experience above — desktop web,
+   viewed by Jalal, not the iPad. New tokens, not overrides of the child
+   theme's --color-* tokens (those stay exactly as they were).
+   =========================================================================== */
+.pd-root {
+  --pd-ink: #f3f5f7;
+  --pd-ink-dim: rgba(243, 245, 247, 0.6);
+  --pd-ink-dimmer: rgba(243, 245, 247, 0.42);
+  --pd-glass-bg: rgba(255, 255, 255, 0.06);
+  --pd-glass-bg-hover: rgba(255, 255, 255, 0.1);
+  --pd-glass-border: rgba(255, 255, 255, 0.13);
+  --pd-accent: #2bb3a9;
+  --pd-accent-light: #8cf0b0;
+  --pd-amber: #f5b63d;
+  --pd-rose: #f06b7a;
+  --pd-sky: #8cc9ff;
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  color: var(--pd-ink);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", var(--font-body), sans-serif;
+  background:
+    radial-gradient(900px 560px at 12% -10%, rgba(43, 179, 169, 0.42), transparent 60%),
+    radial-gradient(760px 560px at 100% 8%, rgba(140, 201, 255, 0.2), transparent 55%),
+    radial-gradient(900px 700px at 55% 115%, rgba(124, 92, 255, 0.16), transparent 60%),
+    #0a0c10;
+  background-size: 160% 160%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pd-root { animation: pd-drift 30s ease-in-out infinite alternate; }
+}
+@keyframes pd-drift {
+  0% { background-position: 0% 0%, 100% 0%, 50% 100%; }
+  100% { background-position: 8% 6%, 92% 10%, 46% 92%; }
+}
+.pd-root::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.pd-root, .pd-root * { user-select: text; }
+
+.pd-glass {
+  background: var(--pd-glass-bg);
+  -webkit-backdrop-filter: blur(24px);
+  backdrop-filter: blur(24px);
+  border: 1px solid var(--pd-glass-border);
+  border-radius: 22px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+.pd-row {
+  background: var(--pd-glass-bg);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  transition: background 0.15s ease;
+}
+.pd-row:hover { background: var(--pd-glass-bg-hover); }
+.pd-pill {
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pd-ink-dim);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+.pd-pill-active {
+  color: #0a0c10;
+  background: linear-gradient(180deg, var(--pd-accent-light), var(--pd-accent));
+  box-shadow: 0 4px 16px rgba(43, 179, 169, 0.45);
+}
+.pd-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.pd-dot { width: 7px; height: 7px; border-radius: 999px; display: inline-block; flex-shrink: 0; }
+.pd-chip-good { background: rgba(140, 240, 176, 0.15); color: var(--pd-accent-light); }
+.pd-chip-good .pd-dot { background: var(--pd-accent-light); box-shadow: 0 0 8px var(--pd-accent-light); }
+.pd-chip-info { background: rgba(140, 201, 255, 0.15); color: var(--pd-sky); }
+.pd-chip-info .pd-dot { background: var(--pd-sky); box-shadow: 0 0 8px var(--pd-sky); }
+.pd-chip-warn { background: rgba(245, 182, 61, 0.16); color: var(--pd-amber); }
+.pd-chip-warn .pd-dot { background: var(--pd-amber); box-shadow: 0 0 8px var(--pd-amber); }
+.pd-chip-bad { background: rgba(240, 107, 122, 0.16); color: var(--pd-rose); }
+.pd-chip-bad .pd-dot { background: var(--pd-rose); box-shadow: 0 0 8px var(--pd-rose); }
+.pd-chip-mute { background: rgba(255, 255, 255, 0.08); color: var(--pd-ink-dimmer); }
+.pd-chip-mute .pd-dot { background: rgba(255, 255, 255, 0.35); }
+
+.pd-bar { height: 6px; border-radius: 999px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.pd-bar > div { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--pd-accent), var(--pd-accent-light)); }
+
+/* Collapsible sections (<details>), remembered open/closed via localStorage
+   by the components that use them — this just styles the disclosure triangle. */
+.pd-details > summary { cursor: pointer; list-style: none; }
+.pd-details > summary::-webkit-details-marker { display: none; }
+.pd-details > summary .pd-chevron { transition: transform 0.15s ease; display: inline-block; }
+.pd-details[open] > summary .pd-chevron { transform: rotate(90deg); }

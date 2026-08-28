@@ -18,7 +18,7 @@ export function Sparkline({
   if (points.length === 0) {
     return (
       <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-        <text x={4} y={height / 2 + 3} fontSize={10} fill="var(--color-ink)" opacity={0.4}>
+        <text x={4} y={height / 2 + 3} fontSize={10} fill="#fff" opacity={0.35}>
           No data yet
         </text>
       </svg>
@@ -40,7 +40,7 @@ export function Sparkline({
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} className="overflow-visible">
-      <polyline points={line} fill="none" stroke="var(--color-teal-400)" strokeWidth={2} />
+      <polyline points={line} fill="none" stroke="#8cf0b0" strokeWidth={2} />
       {coords.map((c, i) =>
         c.y === null ? null : (
           <circle
@@ -48,8 +48,8 @@ export function Sparkline({
             cx={c.x}
             cy={c.y}
             r={c.excluded ? 3 : 2.5}
-            fill={c.excluded ? "var(--color-cream)" : "var(--color-teal-400)"}
-            stroke="var(--color-teal-400)"
+            fill={c.excluded ? "#0a0c10" : "#8cf0b0"}
+            stroke="#8cf0b0"
             strokeWidth={c.excluded ? 1.5 : 0}
           />
         )

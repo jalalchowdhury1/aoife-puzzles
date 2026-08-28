@@ -185,90 +185,89 @@ export default function ParentPage() {
 
   if (!key) {
     return (
-      <main className="flex flex-1 flex-col items-center justify-center gap-6 bg-cream p-8 text-center">
-        <h1 className="font-bubble text-3xl text-ink">Parent Page</h1>
-        {error && <p className="text-rose-500">{error}</p>}
-        <form onSubmit={submitKey} className="flex flex-col items-center gap-4">
-          <input
-            type="password"
-            value={keyInput}
-            onChange={(e) => setKeyInput(e.target.value)}
-            placeholder="Parent key"
-            autoFocus
-            className="min-h-[64px] w-64 rounded-2xl border-4 border-teal-100 px-4 text-lg text-ink"
-          />
-          <button
-            type="submit"
-            className="min-h-[64px] rounded-full bg-teal-400 px-10 text-xl font-bubble text-white disabled:opacity-40"
-          >
-            Enter
-          </button>
-        </form>
+      <main className="pd-root flex flex-1 flex-col items-center justify-center gap-6 p-8 text-center">
+        <div className="pd-glass relative z-10 flex flex-col items-center gap-6 p-10">
+          <h1 className="text-2xl font-bold tracking-tight text-white">Parent Page</h1>
+          {error && <p className="pd-chip pd-chip-bad">{error}</p>}
+          <form onSubmit={submitKey} className="flex flex-col items-center gap-4">
+            <input
+              type="password"
+              value={keyInput}
+              onChange={(e) => setKeyInput(e.target.value)}
+              placeholder="Parent key"
+              autoFocus
+              className="min-h-[56px] w-64 rounded-2xl border border-white/15 bg-white/5 px-4 text-lg text-white placeholder:text-white/35 focus:outline-none focus:ring-2 focus:ring-[var(--pd-accent-light)]"
+            />
+            <button type="submit" className="pd-pill pd-pill-active min-h-[52px] px-10 text-base disabled:opacity-40">
+              Enter
+            </button>
+          </form>
+        </div>
       </main>
     );
   }
 
   if (loading) {
     return (
-      <main className="flex flex-1 items-center justify-center bg-cream">
-        <p className="text-ink">Loading…</p>
+      <main className="pd-root flex flex-1 items-center justify-center">
+        <p className="relative z-10 text-white/70">Loading…</p>
       </main>
     );
   }
 
   return (
-    <main className="flex flex-1 flex-col gap-4 bg-cream p-4 sm:p-6">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="font-bubble text-2xl text-ink sm:text-3xl">Aoife&apos;s Skills</h1>
-          <p className="text-xs text-ink/50">{NO_NORMS}</p>
+    <main className="pd-root flex flex-1 flex-col gap-6 p-6 sm:p-10">
+      <div className="relative z-10 mx-auto flex w-full max-w-[1180px] flex-col gap-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white sm:text-[26px]">Aoife&apos;s Skills</h1>
+            <p className="mt-1 text-xs text-white/45">{NO_NORMS}</p>
+          </div>
+          <button type="button" onClick={copyJson} className="pd-glass min-h-[40px] shrink-0 px-4 text-sm font-semibold text-white/80 hover:text-white">
+            {copied ? "Copied!" : "Copy JSON"}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={copyJson}
-          className="min-h-[44px] shrink-0 rounded-full bg-teal-100 px-4 text-sm font-semibold text-ink"
-        >
-          {copied ? "Copied!" : "Copy JSON"}
-        </button>
+
+        {offline && (
+          <p className="pd-glass p-3 text-sm font-semibold text-[var(--pd-amber)]">
+            Offline data — showing this device&apos;s local records; the server didn&apos;t answer.
+          </p>
+        )}
+        {error && <p className="pd-chip pd-chip-bad w-fit">{error}</p>}
+
+        <Tabs tabs={TABS} active={tab} onChange={setTab} />
+
+        {sessions.length === 0 ? (
+          <p className="pd-glass p-6 text-center text-white/60">No sessions yet — play a part first.</p>
+        ) : (
+          <div className="flex flex-col gap-6 py-2">
+            {tab === "davidson" && <DavidsonTab insights={insights} achievement={achievement} />}
+            {tab === "wisc" && <WiscTab insights={insights} />}
+            {tab === "skills" && <DoorSkillsTab insights={insights} />}
+            {tab === "lastSession" && <LastSessionTab insights={insights} />}
+            {tab === "talk" && <TalkTab records={talkRecords} />}
+          </div>
+        )}
+
+        <details className="pd-glass pd-details mt-4 p-4 text-sm text-white/70">
+          <summary className="font-semibold text-white/85">
+            <span className="pd-chevron inline-block">▸</span> Replay a part
+          </summary>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {LEVELS.flatMap((level) =>
+              level.parts.map((part) => (
+                <a
+                  key={`${level.id}-${part.id}`}
+                  href={`/play?level=${level.id}&part=${part.id}&replay=1`}
+                  className="pd-row min-h-[40px] px-4 py-2 text-sm font-semibold text-white/80 hover:text-white"
+                >
+                  {part.sticker} Level {level.id} · {part.title}
+                </a>
+              ))
+            )}
+          </div>
+        </details>
       </div>
-
-      {offline && (
-        <p className="rounded-xl bg-amber-400/20 p-3 text-sm font-semibold text-ink">
-          Offline data — showing this device&apos;s local records; the server didn&apos;t answer.
-        </p>
-      )}
-      {error && <p className="text-rose-500">{error}</p>}
-
-      <Tabs tabs={TABS} active={tab} onChange={setTab} />
-
-      {sessions.length === 0 ? (
-        <p className="p-6 text-center text-ink/60">No sessions yet — play a part first.</p>
-      ) : (
-        <div className="flex flex-col gap-6 py-2">
-          {tab === "davidson" && <DavidsonTab insights={insights} achievement={achievement} />}
-          {tab === "wisc" && <WiscTab insights={insights} />}
-          {tab === "skills" && <DoorSkillsTab insights={insights} />}
-          {tab === "lastSession" && <LastSessionTab insights={insights} />}
-          {tab === "talk" && <TalkTab records={talkRecords} />}
-        </div>
-      )}
-
-      <details className="mt-4 rounded-2xl border border-teal-100 bg-white/40 p-3 text-sm text-ink/70">
-        <summary className="cursor-pointer font-semibold text-ink">Replay a part</summary>
-        <div className="mt-3 flex flex-wrap gap-3">
-          {LEVELS.flatMap((level) =>
-            level.parts.map((part) => (
-              <a
-                key={`${level.id}-${part.id}`}
-                href={`/play?level=${level.id}&part=${part.id}&replay=1`}
-                className="min-h-[44px] rounded-full bg-teal-100 px-4 py-2 text-sm font-semibold text-ink"
-              >
-                {part.sticker} Level {level.id} · {part.title}
-              </a>
-            ))
-          )}
-        </div>
-      </details>
     </main>
   );
 }
@@ -280,16 +279,13 @@ export default function ParentPage() {
 function SkillMiniBar({ skill }: { skill: SkillDetail }) {
   const pct = skill.ceiling === null ? 0 : Math.round((skill.ceiling / skill.maxD) * 100);
   return (
-    <div className="flex flex-col gap-1">
+    <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between text-sm">
-        <span className={skill.retired ? "text-ink/40" : "text-ink"}>
-          {skill.kidTitle}
-          {skill.retired && <span className="ml-1 text-xs">(retired)</span>}
-        </span>
-        <span className="tabular-nums text-ink/50">{skill.ceiling === null ? "—" : `${skill.ceiling} / ${skill.maxD}`}</span>
+        <span className="font-medium text-white/85">{skill.kidTitle}</span>
+        <span className="tabular-nums text-white/45">{skill.ceiling === null ? "—" : `${skill.ceiling} / ${skill.maxD}`}</span>
       </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-teal-50">
-        <div className={`h-full rounded-full ${skill.retired ? "bg-ink/20" : "bg-teal-400"}`} style={{ width: `${pct}%` }} />
+      <div className="pd-bar">
+        <div style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
@@ -698,10 +694,10 @@ function WiscTab({ insights }: { insights: Insights }) {
   const doorGenres = new Set<GenreId>(DOOR_GENRES);
   return (
     <div className="flex flex-col gap-6">
-      <p className="text-sm text-ink/70">
+      <div className="pd-glass p-4 text-sm leading-relaxed text-white/75">
         This groups her Davidson-door skills the way the real WISC-V groups subtests into index scores. Every number below is
         still only relative to Aoife&apos;s own results — never norms, percentiles, or IQ scores.
-      </p>
+      </div>
 
       {insights.domains.map((d) => {
         const genres = d.genres.filter((g) => doorGenres.has(g));
@@ -713,12 +709,12 @@ function WiscTab({ insights }: { insights: Insights }) {
         }
         const localValue = ratios.length ? ratios.reduce((a, b) => a + b, 0) / ratios.length : null;
         return (
-          <section key={d.domain}>
-            <div className="mb-2 flex items-center justify-between">
-              <h2 className="font-bubble text-xl text-ink">{d.label}</h2>
-              <span className="text-sm text-ink/50">{fmtPct(localValue)}</span>
+          <section key={d.domain} className="pd-glass p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-white">{d.label}</h2>
+              <span className="pd-chip pd-chip-good">{fmtPct(localValue)}</span>
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-4">
               {genres.map((g) => {
                 const skill = skillByGenre.get(g);
                 return skill ? <SkillMiniBar key={g} skill={skill} /> : null;
@@ -871,7 +867,11 @@ function AgesTab({ insights }: { insights: Insights }) {
 // why this lives on its own tab and never mixes into the profile numbers.
 function TalkTab({ records }: { records: TalkRecord[] | null }) {
   if (records === null) {
-    return <p className="text-ink/60">No talk sessions loaded yet. Open Talk with Pip on her iPad (with a grown up) to start collecting production data.</p>;
+    return (
+      <p className="pd-glass p-6 text-white/60">
+        No talk sessions loaded yet. Open Talk with Pip on her iPad (with a grown up) to start collecting production data.
+      </p>
+    );
   }
   const best = new Map<string, number>();
   for (const r of records) {
@@ -883,63 +883,65 @@ function TalkTab({ records }: { records: TalkRecord[] | null }) {
   const areas = Object.entries(TALK_AREAS) as [TalkArea, { title: string; emoji: string }][];
   const sittings = [...records].sort((a, b) => b.startedAt.localeCompare(a.startedAt)).slice(0, 10);
   return (
-    <div className="space-y-6">
-      <p className="text-sm text-ink/60">
-        Production practice: Pip asks out loud, Aoife answers in her own words, the grown up judges.
-        ⭐⭐ = said the big idea (category level), ⭐ = a true surface feature, 🌱 = still growing.
-        Scores here are the grown up&apos;s judgement of SPOKEN answers and are kept apart from the puzzle profile.
-      </p>
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="text-left text-ink/50">
-            <th className="py-1 pr-2">Area</th>
-            <th className="py-1 pr-2">Asked</th>
-            <th className="py-1 pr-2">⭐⭐ big idea</th>
-            <th className="py-1 pr-2">⭐ halfway</th>
-            <th className="py-1 pr-2">🌱 growing</th>
-            <th className="py-1">In bank</th>
-          </tr>
-        </thead>
-        <tbody>
-          {areas.map(([area, meta]) => {
-            const bankIds = TALK_ITEMS.filter((i) => i.area === area).map((i) => i.id);
-            const asked = bankIds.filter((id) => best.has(id));
-            const n2 = asked.filter((id) => best.get(id) === 2).length;
-            const n1 = asked.filter((id) => best.get(id) === 1).length;
-            const n0 = asked.filter((id) => best.get(id) === 0).length;
-            return (
-              <tr key={area} className="border-t border-ink/10">
-                <td className="py-1.5 pr-2">{meta.emoji} {meta.title}</td>
-                <td className="py-1.5 pr-2 tabular-nums">{asked.length}</td>
-                <td className="py-1.5 pr-2 tabular-nums">{n2}</td>
-                <td className="py-1.5 pr-2 tabular-nums">{n1}</td>
-                <td className="py-1.5 pr-2 tabular-nums">{n0}</td>
-                <td className="py-1.5 tabular-nums">{bankIds.length}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+    <div className="flex flex-col gap-6">
+      <div className="pd-glass p-4 text-sm leading-relaxed text-white/75">
+        Production practice: Pip asks out loud, Aoife answers in her own words, the grown up judges. ⭐⭐ = said the big idea
+        (category level), ⭐ = a true surface feature, 🌱 = still growing. Scores here are the grown up&apos;s judgement of
+        SPOKEN answers and are kept apart from the puzzle profile.
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[560px] border-separate border-spacing-y-2 text-left text-sm">
+          <thead>
+            <tr className="text-xs font-semibold uppercase tracking-wide text-white/40">
+              <th className="px-4 py-1">Area</th>
+              <th className="px-4 py-1">Asked</th>
+              <th className="px-4 py-1">⭐⭐ big idea</th>
+              <th className="px-4 py-1">⭐ halfway</th>
+              <th className="px-4 py-1">🌱 growing</th>
+              <th className="px-4 py-1">In bank</th>
+            </tr>
+          </thead>
+          <tbody>
+            {areas.map(([area, meta]) => {
+              const bankIds = TALK_ITEMS.filter((i) => i.area === area).map((i) => i.id);
+              const asked = bankIds.filter((id) => best.has(id));
+              const n2 = asked.filter((id) => best.get(id) === 2).length;
+              const n1 = asked.filter((id) => best.get(id) === 1).length;
+              const n0 = asked.filter((id) => best.get(id) === 0).length;
+              return (
+                <tr key={area} className="pd-row">
+                  <td className="rounded-l-2xl px-4 py-2.5 font-semibold text-white/90">{meta.emoji} {meta.title}</td>
+                  <td className="px-4 py-2.5 tabular-nums text-white/70">{asked.length}</td>
+                  <td className="px-4 py-2.5 tabular-nums text-white/70">{n2}</td>
+                  <td className="px-4 py-2.5 tabular-nums text-white/70">{n1}</td>
+                  <td className="px-4 py-2.5 tabular-nums text-white/70">{n0}</td>
+                  <td className="rounded-r-2xl px-4 py-2.5 tabular-nums text-white/50">{bankIds.length}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
       <div>
-        <h3 className="mb-1 font-semibold text-ink/80">Recent sittings</h3>
+        <h3 className="mb-2 text-sm font-bold text-white/85">Recent sittings</h3>
         {sittings.length === 0 ? (
-          <p className="text-sm text-ink/50">None yet.</p>
+          <p className="text-sm text-white/45">None yet.</p>
         ) : (
-          <ul className="space-y-1 text-sm text-ink/70">
+          <div className="flex flex-col gap-1.5">
             {sittings.map((r) => {
               const n2 = r.results.filter((x) => x.score === 2).length;
               const n1 = r.results.filter((x) => x.score === 1).length;
               const n0 = r.results.filter((x) => x.score === 0).length;
               return (
-                <li key={r.id} className="tabular-nums">
+                <div key={r.id} className="pd-row px-4 py-2 text-sm tabular-nums text-white/65">
                   {new Date(r.startedAt).toLocaleDateString()} · {r.results.length} questions · ⭐⭐ {n2} · ⭐ {n1} · 🌱 {n0}
-                </li>
+                </div>
               );
             })}
-          </ul>
+          </div>
         )}
       </div>
-      <p className="text-xs text-ink/40">Items scored under ⭐⭐ come back automatically in her next sitting.</p>
+      <p className="text-xs text-white/35">Items scored under ⭐⭐ come back automatically in her next sitting.</p>
     </div>
   );
 }

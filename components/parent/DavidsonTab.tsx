@@ -8,7 +8,8 @@ import {
 import { GENRES } from "@/lib/genres";
 import { fmtDate } from "./format";
 
-// Davidson tracker (2026-08-28, spec docs/superpowers/specs/2026-08-28-davidson-tracker-design.md).
+// Davidson tracker (2026-08-28, spec docs/superpowers/specs/2026-08-28-davidson-tracker-design.md;
+// Liquid Glass look 2026-08-28, spec docs/superpowers/specs/2026-08-28-parent-dashboard-glass-design.md).
 // Regroups the six live door genres (lib/levels/doors.ts DOOR_GENRES) by the
 // two actual WISC-V admission pathways instead of by domain, and adds the
 // achievement door (WIAT-4) alongside. Never a fabricated composite/IQ
@@ -31,13 +32,6 @@ const DOOR_META: Record<Door, { label: string; needs: string }> = {
   vciqri: { label: "Door 2 — VCI + QRI", needs: "Needs: Similarities + Vocabulary, PLUS Figure Weights + Arithmetic" },
 };
 
-const CHIP = {
-  ahead: "bg-[#6fcf6f]/25 text-[#2e7d32]",
-  typical: "bg-sky-300/25 text-sky-900",
-  behind: "bg-amber-300/30 text-amber-900",
-  pending: "bg-ink/10 text-ink/60",
-} as const;
-
 function DoorBox({ door, insights, age }: { door: Door; insights: Insights; age: number }) {
   const required = DOOR_SUBTESTS.filter((s) => s.doors.includes(door));
   let measured = 0;
@@ -49,13 +43,18 @@ function DoorBox({ door, insights, age }: { door: Door; insights: Insights; age:
     const benchmark = cumulativeBenchmark(s.genre, skill.ceiling);
     if (ageVerdict(benchmark?.typicalAge ?? null, age) === "ahead") ahead += 1;
   }
+  const pct = required.length ? (measured / required.length) * 100 : 0;
   return (
-    <div className="flex-1 min-w-[220px] rounded-2xl bg-[#6fcf6f]/15 p-3">
-      <div className="font-semibold text-ink">{DOOR_META[door].label}</div>
-      <div className="mt-1 text-xs text-ink/60">{DOOR_META[door].needs}</div>
-      <div className="mt-2 text-lg font-bold text-ink">
-        {measured} of {required.length} measured{measured > 0 ? ` — ${ahead} ahead ✅` : ""}
+    <div className="pd-glass flex-1 min-w-[240px] p-5">
+      <div className="text-xs font-bold uppercase tracking-wide text-white/50">{DOOR_META[door].label}</div>
+      <div className="mt-1 text-xs text-white/45">{DOOR_META[door].needs}</div>
+      <div className="mt-4 flex items-end justify-between">
+        <span className="text-[34px] font-extrabold leading-none tracking-tight text-white">
+          {measured}<span className="text-white/40">/{required.length}</span>
+        </span>
+        {measured > 0 && <span className="pd-chip pd-chip-good">{ahead} ahead ✅</span>}
       </div>
+      <div className="pd-bar mt-3.5"><div style={{ width: `${pct}%` }} /></div>
     </div>
   );
 }
@@ -86,7 +85,7 @@ function whatHappened(insights: Insights, genre: GenreId): string {
 
 function DoorTags({ doors }: { doors: Door[] }) {
   const label = doors.length === 2 ? "both doors" : doors[0] === "veci" ? "Door 1 only" : "Door 2 only";
-  return <div className="text-[11px] text-ink/50">{label}</div>;
+  return <div className="text-[11px] text-white/40">{label}</div>;
 }
 
 function SubtestRow({ insights, age, def }: { insights: Insights; age: number; def: (typeof DOOR_SUBTESTS)[number] }) {
@@ -97,25 +96,25 @@ function SubtestRow({ insights, age, def }: { insights: Insights; age: number; d
   const band = benchmark?.typicalAge ?? null;
   const bandText = band ? (band.hi === null ? `ages ${band.lo}+` : `ages ${band.lo}–${band.hi}`) : "—";
   const verdict = ageVerdict(band, age);
-  const chip = verdict === "ahead" ? CHIP.ahead : verdict === "below-band" ? CHIP.behind : verdict === "age-typical" ? CHIP.typical : CHIP.pending;
+  const chipCls = verdict === "ahead" ? "pd-chip-good" : verdict === "below-band" ? "pd-chip-warn" : verdict === "age-typical" ? "pd-chip-info" : "pd-chip-mute";
   const chipLabel =
-    verdict === "ahead" ? `✅ ahead${status === "still-winning" || status === "at-top" ? ", still climbing" : ""}` :
+    verdict === "ahead" ? `ahead${status === "still-winning" || status === "at-top" ? ", climbing" : ""}` :
     verdict === "age-typical" ? "on pace" :
     verdict === "below-band" && status === "measured" ? "needs a peek" : "not measured yet";
 
   return (
-    <tr className="border-b border-teal-100/60 align-top">
-      <td className="py-2 pr-2">
-        <div className="font-semibold text-ink">{def.subtest}</div>
-        <div className="text-[11px] text-ink/50">{def.aside}</div>
+    <tr className="pd-row align-top">
+      <td className="rounded-l-2xl py-3.5 pl-4 pr-2">
+        <div className="font-semibold text-white">{def.subtest}</div>
+        <div className="text-[11px] text-white/40">{def.aside}</div>
         <DoorTags doors={def.doors} />
       </td>
-      <td className="py-2 pr-2 text-ink/80">{genreDef.kidTitle}</td>
-      <td className="py-2 pr-2 text-ink/80">{whatHappened(insights, def.genre)}</td>
-      <td className="py-2 pr-2 text-ink/70 tabular-nums">{bandText}</td>
-      <td className="py-2 pr-2 text-ink/70 tabular-nums">{skill ? yearsAheadLabel(band, age, status) : "—"}</td>
-      <td className="py-2">
-        <span className={`rounded-full px-2 py-0.5 text-xs ${chip}`}>{chipLabel}</span>
+      <td className="py-3.5 pr-2 text-white/65">{genreDef.kidTitle}</td>
+      <td className="py-3.5 pr-2 text-white/70">{whatHappened(insights, def.genre)}</td>
+      <td className="py-3.5 pr-2 tabular-nums text-white/55">{bandText}</td>
+      <td className="py-3.5 pr-2 tabular-nums font-semibold text-[var(--pd-accent-light)]">{skill ? yearsAheadLabel(band, age, status) : "—"}</td>
+      <td className="rounded-r-2xl py-3.5 pr-4">
+        <span className={`pd-chip ${chipCls}`}><span className="pd-dot" />{chipLabel}</span>
       </td>
     </tr>
   );
@@ -139,30 +138,29 @@ export function DavidsonTab({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="rounded-2xl bg-sky-300/25 p-4 text-sm leading-relaxed text-ink">
-        <p className="font-semibold">
-          Davidson only needs her to be exceptional on ONE of two roads below — she doesn&apos;t need both.
-          &ldquo;Ahead of age&rdquo; means kids that age typically do this; she&apos;s doing it now. Aoife is {ageLabel} old.
-        </p>
+      <div className="pd-glass p-4 text-sm leading-relaxed text-white/80">
+        Davidson only needs her to be exceptional on <span className="font-bold text-white">ONE</span> of two roads below — she
+        doesn&apos;t need both. &ldquo;Ahead of age&rdquo; means kids that age typically do this; she&apos;s doing it now. Aoife
+        is {ageLabel} old.
       </div>
 
       <section>
-        <h2 className="mb-2 font-bubble text-xl text-ink">Road 1 — Thinking skills (WISC-V)</h2>
-        <div className="mb-3 flex flex-wrap gap-3">
+        <h2 className="mb-3 text-lg font-bold text-white">Road 1 — Thinking skills (WISC-V)</h2>
+        <div className="mb-4 flex flex-wrap gap-4">
           <DoorBox door="veci" insights={insights} age={age} />
           <DoorBox door="vciqri" insights={insights} age={age} />
         </div>
-        <p className="mb-2 text-xs text-ink/50">Similarities and Vocabulary count toward both doors — shown once each, tagged below.</p>
+        <p className="mb-2 text-xs text-white/40">Similarities and Vocabulary count toward both doors — shown once each, tagged below.</p>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[680px] border-separate border-spacing-y-2 text-left text-sm">
             <thead>
-              <tr className="text-xs text-ink/50">
-                <th className="py-1 pr-2">WISC-V subtest</th>
+              <tr className="text-xs font-semibold uppercase tracking-wide text-white/35">
+                <th className="py-1 pl-4 pr-2">WISC-V subtest</th>
                 <th className="py-1 pr-2">Her puzzle</th>
                 <th className="py-1 pr-2">What happened</th>
                 <th className="py-1 pr-2">Typical age</th>
                 <th className="py-1 pr-2">Roughly how far ahead</th>
-                <th className="py-1">Status</th>
+                <th className="py-1 pr-4">Status</th>
               </tr>
             </thead>
             <tbody>
@@ -175,33 +173,34 @@ export function DavidsonTab({
       </section>
 
       <section>
-        <h2 className="mb-2 font-bubble text-xl text-ink">Road 2 — School skills (WIAT-4)</h2>
+        <h2 className="mb-3 text-lg font-bold text-white">Road 2 — School skills (WIAT-4)</h2>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[520px] text-left text-sm">
+          <table className="w-full min-w-[560px] border-separate border-spacing-y-2 text-left text-sm">
             <thead>
-              <tr className="text-xs text-ink/50">
-                <th className="py-1 pr-2">Composite</th>
+              <tr className="text-xs font-semibold uppercase tracking-wide text-white/35">
+                <th className="py-1 pl-4 pr-2">Composite</th>
                 <th className="py-1 pr-2">Needs</th>
                 <th className="py-1 pr-2">Where it lives</th>
-                <th className="py-1">Status</th>
+                <th className="py-1 pr-4">Status</th>
               </tr>
             </thead>
             <tbody>
               {ACHIEVEMENT_ROWS.map((row) => {
                 const isReads = row.app.startsWith("Word Woods");
                 let label: string;
-                if (!isReads) label = "⏳ not tracked yet";
-                else if (achievement === null) label = "⏳ checking…";
-                else if (achievement.readsStarted === null) label = "⏳ couldn’t check just now";
-                else if (achievement.readsStarted) label = `✅ started — ${achievement.readsSessionCount} session${achievement.readsSessionCount === 1 ? "" : "s"} so far`;
-                else label = "⏳ not started — she hasn’t opened the app yet";
+                if (!isReads) label = "not tracked yet";
+                else if (achievement === null) label = "checking…";
+                else if (achievement.readsStarted === null) label = "couldn’t check just now";
+                else if (achievement.readsStarted) label = `started — ${achievement.readsSessionCount} session${achievement.readsSessionCount === 1 ? "" : "s"} so far`;
+                else label = "not started — she hasn’t opened the app yet";
+                const chipCls = achievement?.readsStarted ? "pd-chip-good" : "pd-chip-mute";
                 return (
-                  <tr key={row.composite} className="border-b border-teal-100/60">
-                    <td className="py-2 pr-2 font-semibold text-ink">{row.composite}</td>
-                    <td className="py-2 pr-2 text-ink/80">{row.needs}</td>
-                    <td className="py-2 pr-2 text-ink/80">{row.app}</td>
-                    <td className="py-2">
-                      <span className={`rounded-full px-2 py-0.5 text-xs ${CHIP.pending}`}>{label}</span>
+                  <tr key={row.composite} className="pd-row">
+                    <td className="rounded-l-2xl py-3.5 pl-4 pr-2 font-semibold text-white">{row.composite}</td>
+                    <td className="py-3.5 pr-2 text-white/65">{row.needs}</td>
+                    <td className="py-3.5 pr-2 text-white/65">{row.app}</td>
+                    <td className="rounded-r-2xl py-3.5 pr-4">
+                      <span className={`pd-chip ${chipCls}`}><span className="pd-dot" />{label}</span>
                     </td>
                   </tr>
                 );
@@ -211,7 +210,7 @@ export function DavidsonTab({
         </div>
       </section>
 
-      <p className="text-xs text-ink/50">
+      <p className="text-xs text-white/35">
         Never a made-up composite or IQ number — every cell above traces to something she actually did, or honestly says &ldquo;not yet.&rdquo;
       </p>
     </div>

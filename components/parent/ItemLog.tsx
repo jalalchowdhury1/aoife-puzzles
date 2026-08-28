@@ -27,21 +27,21 @@ export function ItemLog({ items }: { items: ItemDetail[] }) {
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="overflow-x-auto rounded-2xl border border-teal-100">
-        <table className="w-full min-w-[420px] text-left text-sm text-ink">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[420px] border-separate border-spacing-y-1.5 text-left text-sm">
           <thead>
-            <tr className="border-b border-teal-100 bg-teal-50/60">
-              <th className="px-3 py-2 font-semibold">Date</th>
-              <th className="px-3 py-2 font-semibold">Level · Part</th>
-              <th className="px-3 py-2 font-semibold">d</th>
-              <th className="px-3 py-2 font-semibold">Result</th>
-              <th className="px-3 py-2 font-semibold">Seconds</th>
+            <tr className="text-xs font-semibold uppercase tracking-wide text-white/40">
+              <th className="px-3 py-1">Date</th>
+              <th className="px-3 py-1">Level · Part</th>
+              <th className="px-3 py-1">d</th>
+              <th className="px-3 py-1">Result</th>
+              <th className="px-3 py-1">Seconds</th>
             </tr>
           </thead>
           <tbody>
             {shown.length === 0 && (
               <tr>
-                <td className="px-3 py-3 text-ink/50" colSpan={5}>
+                <td className="px-3 py-3 text-white/45" colSpan={5}>
                   No items yet.
                 </td>
               </tr>
@@ -50,28 +50,24 @@ export function ItemLog({ items }: { items: ItemDetail[] }) {
               <tr
                 key={i}
                 title={it.excludedBlock ? "Excluded from her profile — see Flags." : undefined}
-                className={`border-b border-teal-50 ${it.excludedBlock ? "opacity-40" : ""}`}
+                className={`pd-row ${it.excludedBlock ? "opacity-40" : ""}`}
               >
-                <td className="px-3 py-1.5 tabular-nums whitespace-nowrap">{fmtDate(it.date)}</td>
-                <td className="px-3 py-1.5 whitespace-nowrap">
+                <td className="rounded-l-xl px-3 py-1.5 tabular-nums whitespace-nowrap text-white/70">{fmtDate(it.date)}</td>
+                <td className="px-3 py-1.5 whitespace-nowrap text-white/70">
                   {it.level} · {it.part}
                 </td>
-                <td className="px-3 py-1.5 tabular-nums">{it.d}</td>
-                <td className="px-3 py-1.5" title={glyphTitle(it)}>
+                <td className="px-3 py-1.5 tabular-nums text-white/70">{it.d}</td>
+                <td className="px-3 py-1.5 text-white/85" title={glyphTitle(it)}>
                   {glyph(it)}
                 </td>
-                <td className="px-3 py-1.5 tabular-nums">{it.seconds.toFixed(1)}</td>
+                <td className="rounded-r-xl px-3 py-1.5 tabular-nums text-white/70">{it.seconds.toFixed(1)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       {sorted.length > SHOW_COUNT && (
-        <button
-          type="button"
-          onClick={() => setShowAll((v) => !v)}
-          className="min-h-[40px] self-start rounded-full bg-teal-100 px-4 text-xs font-semibold text-ink"
-        >
+        <button type="button" onClick={() => setShowAll((v) => !v)} className="pd-row min-h-[40px] self-start px-4 text-xs font-semibold text-white/80 hover:text-white">
           {showAll ? "Show latest 100" : `Show all ${sorted.length}`}
         </button>
       )}

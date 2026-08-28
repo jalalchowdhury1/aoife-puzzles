@@ -56,8 +56,8 @@ export function LineChart({
       <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Line chart">
         {ticks.map((t, i) => (
           <g key={i}>
-            <line x1={padL} x2={width - padR} y1={scaleY(t)} y2={scaleY(t)} stroke="var(--color-teal-100)" strokeWidth={1} />
-            <text x={0} y={scaleY(t) + 3} fontSize={9} fill="var(--color-ink)" opacity={0.55}>
+            <line x1={padL} x2={width - padR} y1={scaleY(t)} y2={scaleY(t)} stroke="rgba(255,255,255,0.1)" strokeWidth={1} />
+            <text x={0} y={scaleY(t) + 3} fontSize={9} fill="#fff" opacity={0.4}>
               {Math.round(t)}
             </text>
           </g>
@@ -70,7 +70,7 @@ export function LineChart({
               cx={c.cx}
               cy={c.cy}
               r={c.excluded ? 4 : 3}
-              fill={c.excluded ? "var(--color-cream)" : color}
+              fill={c.excluded ? "#0a0c10" : color}
               stroke={color}
               strokeWidth={c.excluded ? 1.5 : 0}
             >
@@ -83,7 +83,7 @@ export function LineChart({
         )}
         {coords.map((c, i) =>
           i % labelEvery === 0 ? (
-            <text key={`x${i}`} x={c.cx} y={height - 4} fontSize={9} textAnchor="middle" fill="var(--color-ink)" opacity={0.6}>
+            <text key={`x${i}`} x={c.cx} y={height - 4} fontSize={9} textAnchor="middle" fill="#fff" opacity={0.45}>
               {c.x}
             </text>
           ) : null

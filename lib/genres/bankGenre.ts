@@ -19,6 +19,7 @@ export interface ChoiceItem {
 export interface ChoiceGenreMeta {
   id: GenreId; subtest: string; domain: Domain; kidTitle: string; instructions: string;
   sampleId: string; sampleExplanation: string;
+  maxDifficulty?: number;   // widened past 10 only when her data earned it (decision #17)
 }
 
 /** Picks a bank item at difficulty `d`, excluding `exclude`; widens |d' - d| outward if the exact tier is empty. */
@@ -37,6 +38,7 @@ function pickWidening<T extends { id: string; d: Difficulty }>(
 export function makeChoiceGenre(meta: ChoiceGenreMeta, bank: readonly ChoiceBankItem[]): Genre<ChoiceItem, number> {
   return {
     id: meta.id, subtest: meta.subtest, domain: meta.domain, kidTitle: meta.kidTitle, instructions: meta.instructions,
+    ...(meta.maxDifficulty !== undefined ? { maxDifficulty: meta.maxDifficulty } : {}),
     mode: "staircase",
     timing: { kind: "none" },
     sample() {
@@ -88,6 +90,7 @@ export interface ArithmeticItem { bankId: string; d: Difficulty; text: string; a
 
 export interface ArithmeticGenreMeta {
   id: GenreId; subtest: string; domain: Domain; kidTitle: string; instructions: string;
+  maxDifficulty?: number;   // widened past 10 only when her data earned it (decision #17)
 }
 
 function renderTemplate(template: string, vars: Record<string, number>): string {
@@ -121,6 +124,7 @@ export function renderArithmetic(tmpl: ArithmeticBankItem, rng: Rng): { text: st
 export function makeArithmeticGenre(meta: ArithmeticGenreMeta, bank: readonly ArithmeticBankItem[]): Genre<ArithmeticItem, number> {
   return {
     id: meta.id, subtest: meta.subtest, domain: meta.domain, kidTitle: meta.kidTitle, instructions: meta.instructions,
+    ...(meta.maxDifficulty !== undefined ? { maxDifficulty: meta.maxDifficulty } : {}),
     mode: "staircase",
     timing: { kind: "item", ms: () => 30_000 },
     sample() {

@@ -143,7 +143,8 @@ describe("measureStatus", () => {
   });
 
   it("at-top when the ceiling equals the genre's own maxD — the game ran out of ladder, not her", () => {
-    const ins = computeInsights([mkSession([mkBlock("arithmetic", { attempted: 6, correct: 6, ceiling: 10 })])]);
+    // arithmetic's maxD is 15 since the 2026-08-28 widening (decision #17).
+    const ins = computeInsights([mkSession([mkBlock("arithmetic", { attempted: 6, correct: 6, ceiling: 15 })])]);
     expect(measureStatus(ins, "arithmetic")).toBe("at-top");
   });
 

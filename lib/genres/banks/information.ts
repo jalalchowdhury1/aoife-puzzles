@@ -414,4 +414,214 @@ export const INFORMATION_BANK: ChoiceBankItem[] = [
     ],
     explanation: "Energy that comes from the sun is called solar energy.",
   },
+  // ------------------------------------------------------------------
+  // d11-15: the widened band (decision #17, 2026-08-28 — she reached the
+  // d10 cap on 2026-08-27). Ages roughly 13 through 15; still widely
+  // taught, single-answer facts only. Same shape rules as d1-10.
+  // ------------------------------------------------------------------
+  // d11: age 13 to 14
+  {
+    id: "in-41", d: 11, prompt: "What is the smallest prime number?",
+    options: [
+      { text: "Two", points: 1 },
+      { text: "One", points: 0 },
+      { text: "Three", points: 0 },
+      { text: "Zero", points: 0 },
+    ],
+    explanation: "Two is the smallest prime number. One is not counted as a prime.",
+  },
+  {
+    id: "in-42", d: 11, prompt: "What is the chemical formula for water?",
+    options: [
+      { text: "H2O", points: 1 },
+      { text: "CO2", points: 0 },
+      { text: "O2", points: 0 },
+      { text: "NaCl", points: 0 },
+    ],
+    explanation: "The chemical formula for water is H2O: two hydrogen atoms and one oxygen atom.",
+  },
+  {
+    id: "in-43", d: 11, prompt: "Which organs filter waste out of the blood to make urine?",
+    options: [
+      { text: "The kidneys", points: 1 },
+      { text: "The lungs", points: 0 },
+      { text: "The ears", points: 0 },
+      { text: "The muscles", points: 0 },
+    ],
+    explanation: "The kidneys filter waste out of the blood to make urine.",
+  },
+  {
+    id: "in-44", d: 11, prompt: "Which gas, added to the air by burning fuels, traps extra heat around the Earth?",
+    options: [
+      { text: "Carbon dioxide", points: 1 },
+      { text: "Oxygen", points: 0 },
+      { text: "Helium", points: 0 },
+      { text: "Neon", points: 0 },
+    ],
+    explanation: "Carbon dioxide from burning fuels traps extra heat around the Earth.",
+  },
+  // d12: age 13 to 14
+  {
+    id: "in-45", d: 12, prompt: "What is the name of the galaxy that contains our solar system?",
+    options: [
+      { text: "The Milky Way", points: 1 },
+      { text: "Andromeda", points: 0 },
+      { text: "The Big Dipper", points: 0 },
+      { text: "Orion", points: 0 },
+    ],
+    explanation: "Our solar system is inside the Milky Way galaxy.",
+  },
+  {
+    id: "in-46", d: 12, prompt: "Which blood cells help the body fight infection?",
+    options: [
+      { text: "White blood cells", points: 1 },
+      { text: "Red blood cells", points: 0 },
+      { text: "Skin cells", points: 0 },
+      { text: "Bone cells", points: 0 },
+    ],
+    explanation: "White blood cells help the body fight infection.",
+  },
+  {
+    id: "in-47", d: 12, prompt: "What instrument is used to measure air pressure?",
+    options: [
+      { text: "A barometer", points: 1 },
+      { text: "A thermometer", points: 0 },
+      { text: "An odometer", points: 0 },
+      { text: "A stethoscope", points: 0 },
+    ],
+    explanation: "A barometer measures air pressure.",
+  },
+  {
+    id: "in-48", d: 12, prompt: "Which is faster, light or sound?",
+    options: [
+      { text: "Light", points: 1 },
+      { text: "Sound", points: 0 },
+      { text: "They are the same speed", points: 0 },
+      { text: "Neither one moves", points: 0 },
+    ],
+    explanation: "Light travels much faster than sound, which is why you see lightning before you hear thunder.",
+  },
+  // d13: age 14
+  {
+    id: "in-49", d: 13, prompt: "Which particle in an atom carries a negative charge?",
+    options: [
+      { text: "The electron", points: 1 },
+      { text: "The proton", points: 0 },
+      { text: "The neutron", points: 0 },
+      { text: "The photon", points: 0 },
+    ],
+    explanation: "The electron carries a negative charge.",
+  },
+  {
+    id: "in-50", d: 13, prompt: "Which ancient civilization built the great pyramids at Giza?",
+    options: [
+      { text: "The Egyptians", points: 1 },
+      { text: "The Romans", points: 0 },
+      { text: "The Vikings", points: 0 },
+      { text: "The Aztecs", points: 0 },
+    ],
+    explanation: "The ancient Egyptians built the great pyramids at Giza.",
+  },
+  {
+    id: "in-51", d: 13, prompt: "What is the main gas that makes up the Sun?",
+    options: [
+      { text: "Hydrogen", points: 1 },
+      { text: "Oxygen", points: 0 },
+      { text: "Carbon dioxide", points: 0 },
+      { text: "Iron vapor", points: 0 },
+    ],
+    explanation: "The Sun is made mostly of hydrogen.",
+  },
+  {
+    id: "in-52", d: 13, prompt: "What do we call it when liquid water slowly turns into a gas at its surface?",
+    options: [
+      { text: "Evaporation", points: 1 },
+      { text: "Condensation", points: 0 },
+      { text: "Freezing", points: 0 },
+      { text: "Melting", points: 0 },
+    ],
+    explanation: "Evaporation is when liquid water slowly turns into a gas at its surface.",
+  },
+  // d14: age 14 to 15
+  {
+    id: "in-53", d: 14, prompt: "What is the name for the slow change of living things over many generations?",
+    options: [
+      { text: "Evolution", points: 1 },
+      { text: "Erosion", points: 0 },
+      { text: "Rotation", points: 0 },
+      { text: "Hibernation", points: 0 },
+    ],
+    explanation: "Evolution is the slow change of living things over many generations.",
+  },
+  {
+    id: "in-54", d: 14, prompt: "Which part of a cell is often called its powerhouse because it releases energy from food?",
+    options: [
+      { text: "The mitochondria", points: 1 },
+      { text: "The nucleus", points: 0 },
+      { text: "The cell wall", points: 0 },
+      { text: "The vacuole", points: 0 },
+    ],
+    explanation: "The mitochondria release energy from food, so they are called the powerhouse of the cell.",
+  },
+  {
+    id: "in-55", d: 14, prompt: "What is molten rock called after it erupts out of a volcano?",
+    options: [
+      { text: "Lava", points: 1 },
+      { text: "Magma", points: 0 },
+      { text: "Ash", points: 0 },
+      { text: "Granite", points: 0 },
+    ],
+    explanation: "Molten rock is called magma underground and lava once it erupts out of a volcano.",
+  },
+  {
+    id: "in-56", d: 14, prompt: "Which measurement tells how much matter an object contains?",
+    options: [
+      { text: "Mass", points: 1 },
+      { text: "Weight", points: 0 },
+      { text: "Volume", points: 0 },
+      { text: "Length", points: 0 },
+    ],
+    explanation: "Mass tells how much matter an object contains. Weight can change with gravity, but mass does not.",
+  },
+  // d15: age 15
+  {
+    id: "in-57", d: 15, prompt: "Which element is the basis of the chemistry of all living things on Earth?",
+    options: [
+      { text: "Carbon", points: 1 },
+      { text: "Gold", points: 0 },
+      { text: "Helium", points: 0 },
+      { text: "Sodium", points: 0 },
+    ],
+    explanation: "The chemistry of all living things on Earth is based on carbon.",
+  },
+  {
+    id: "in-58", d: 15, prompt: "What do we call the bending of light as it passes from air into water?",
+    options: [
+      { text: "Refraction", points: 1 },
+      { text: "Reflection", points: 0 },
+      { text: "Radiation", points: 0 },
+      { text: "Rotation", points: 0 },
+    ],
+    explanation: "Refraction is the bending of light as it passes from air into water.",
+  },
+  {
+    id: "in-59", d: 15, prompt: "In which body system are the trachea and the bronchi found?",
+    options: [
+      { text: "The respiratory system", points: 1 },
+      { text: "The digestive system", points: 0 },
+      { text: "The circulatory system", points: 0 },
+      { text: "The nervous system", points: 0 },
+    ],
+    explanation: "The trachea and the bronchi are parts of the respiratory system, which we breathe with.",
+  },
+  {
+    id: "in-60", d: 15, prompt: "What is the name for an animal that has no backbone?",
+    options: [
+      { text: "An invertebrate", points: 1 },
+      { text: "A vertebrate", points: 0 },
+      { text: "A reptile", points: 0 },
+      { text: "A mammal", points: 0 },
+    ],
+    explanation: "An animal that has no backbone is called an invertebrate.",
+  },
 ];

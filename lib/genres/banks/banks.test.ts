@@ -15,19 +15,22 @@ function noDashes(s: string): boolean {
   return !NO_DASH.test(s);
 }
 
-function checkChoiceBankShape(bank: ChoiceBankItem[], name: string, minPerD: number) {
+// `dRange` defaults to the standard 1-10 ramp; a widened bank (decision #17,
+// e.g. information to d15) passes its own full range so every authored band
+// is coverage-checked, not just the base ten.
+function checkChoiceBankShape(bank: ChoiceBankItem[], name: string, minPerD: number, dRange: Difficulty[] = DIFFICULTIES) {
   describe(`${name} bank shape`, () => {
     it("has unique ids", () => {
       const ids = bank.map(b => b.id);
       expect(new Set(ids).size).toBe(ids.length);
     });
 
-    it("has every item's d within 1..10", () => {
-      for (const item of bank) expect(DIFFICULTIES).toContain(item.d);
+    it(`has every item's d within 1..${dRange[dRange.length - 1]}`, () => {
+      for (const item of bank) expect(dRange).toContain(item.d);
     });
 
     it(`has at least ${minPerD} items at every difficulty`, () => {
-      for (const d of DIFFICULTIES) {
+      for (const d of dRange) {
         const count = bank.filter(b => b.d === d).length;
         expect(count, `difficulty ${d}`).toBeGreaterThanOrEqual(minPerD);
       }
@@ -90,7 +93,10 @@ describe("vocabulary bank picture items", () => {
   });
 });
 
-checkChoiceBankShape(INFORMATION_BANK, "information", 4);
+// Information was widened to d15 on 2026-08-28 (decision #17 — she reached
+// the d10 cap on 2026-08-27), so its whole 1-15 ramp is coverage-checked.
+const INFORMATION_DS = [...DIFFICULTIES, 11, 12, 13, 14, 15] as Difficulty[];
+checkChoiceBankShape(INFORMATION_BANK, "information", 4, INFORMATION_DS);
 checkPointsProfile(INFORMATION_BANK, "information", () => [1, 0, 0, 0]);
 
 checkChoiceBankShape(COMPREHENSION_BANK, "comprehension", 4);
@@ -102,14 +108,24 @@ describe("arithmetic bank shape", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("has every item's d within 1..10", () => {
-    for (const item of ARITHMETIC_BANK) expect(DIFFICULTIES).toContain(item.d);
+  // Arithmetic was widened to d15 on 2026-08-28 (decision #17 — she topped
+  // the d10 cap with clean wins on the 1.5x clock).
+  it("has every item's d within 1..15", () => {
+    const allDs = [...DIFFICULTIES, 11, 12, 13, 14, 15] as Difficulty[];
+    for (const item of ARITHMETIC_BANK) expect(allDs).toContain(item.d);
   });
 
-  it("has at least 6 items at every difficulty", () => {
+  it("has at least 6 items at every base difficulty (1-10)", () => {
     for (const d of DIFFICULTIES) {
       const count = ARITHMETIC_BANK.filter((b: ArithmeticBankItem) => b.d === d).length;
       expect(count, `difficulty ${d}`).toBeGreaterThanOrEqual(6);
+    }
+  });
+
+  it("has at least 4 items at every widened difficulty (11-15)", () => {
+    for (const d of [11, 12, 13, 14, 15] as Difficulty[]) {
+      const count = ARITHMETIC_BANK.filter((b: ArithmeticBankItem) => b.d === d).length;
+      expect(count, `difficulty ${d}`).toBeGreaterThanOrEqual(4);
     }
   });
 

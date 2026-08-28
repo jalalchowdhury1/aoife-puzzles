@@ -164,6 +164,10 @@ export const BENCHMARKS: Partial<Record<GenreId, GenreBenchmark>> = {
       { dMin: 5, dMax: 6, skill: "Two-step problems within 100, time & money", typicalAge: { lo: 7, hi: 9 }, basis: CCSS },
       { dMin: 7, dMax: 8, skill: "Multiply/divide in stories, remainders", typicalAge: { lo: 8, hi: 10 }, basis: CCSS },
       { dMin: 9, dMax: 10, skill: "Multi-step with fractions of groups and rates", typicalAge: { lo: 9, hi: 11 }, basis: CCSS },
+      // d11-15 widened 2026-08-28 (decision #17 — she topped d10 cleanly).
+      { dMin: 11, dMax: 12, skill: "Fractions of totals, simple percents, chains", typicalAge: { lo: 10, hi: 12 }, basis: CCSS },
+      { dMin: 13, dMax: 13, skill: "Unit rates and averages", typicalAge: { lo: 11, hi: 13 }, basis: CCSS },
+      { dMin: 14, dMax: 15, skill: "Working backwards; combined rates, ratio shares", typicalAge: { lo: 12, hi: 14 }, basis: CCSS },
     ],
   },
   // ---- VC cousins (banks authored to an age-6->13 ramp, decision #10) ------
@@ -195,6 +199,10 @@ export const BENCHMARKS: Partial<Record<GenreId, GenreBenchmark>> = {
       { dMin: 5, dMax: 6, skill: "Clocks, calendars, basic science systems", typicalAge: { lo: 8, hi: 10 }, basis: VERBAL },
       { dMin: 7, dMax: 8, skill: "Curriculum knowledge (geography, units)", typicalAge: { lo: 10, hi: 12 }, basis: VERBAL },
       { dMin: 9, dMax: 10, skill: "Integrated cross-subject knowledge", typicalAge: { lo: 12, hi: 13 }, basis: VERBAL },
+      // d11-15 widened 2026-08-28 (decision #17 — she reached the d10 cap).
+      { dMin: 11, dMax: 12, skill: "Middle-school science and measurement facts", typicalAge: { lo: 13, hi: 14 }, basis: VERBAL },
+      { dMin: 13, dMax: 14, skill: "Atoms, cells, earth science, ancient history", typicalAge: { lo: 14, hi: 15 }, basis: VERBAL },
+      { dMin: 15, dMax: 15, skill: "Physics of light, body systems, classification", typicalAge: { lo: 14, hi: null }, basis: VERBAL },
     ],
   },
   whatWouldYouDo: {

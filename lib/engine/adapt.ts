@@ -108,7 +108,13 @@ export function adaptPart(part: PartConfig, level: LevelConfig, profile: Profile
     let maxItems: number;
 
     if (!remedial) {
-      start = block.start === "fromProfile" ? clamp(ceiling === null ? 1 : ceiling - 1, maxD) : (block.start ?? 1);
+      // "fromProfile" = ceiling − 1 (practice); "fromProfileTop" = AT the
+      // ceiling (ceiling-probe blocks, decision #24 — the point is testing
+      // whether the recorded ceiling is real or just where the items ran out).
+      start =
+        block.start === "fromProfile" ? clamp(ceiling === null ? 1 : ceiling - 1, maxD)
+        : block.start === "fromProfileTop" ? clamp(ceiling === null ? 1 : ceiling, maxD)
+        : (block.start ?? 1);
       maxItems = block.maxItems ?? 8;
     } else if (SPEED_GENRES.has(block.genre)) {
       start = 1;

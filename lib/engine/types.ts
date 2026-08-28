@@ -102,7 +102,12 @@ export interface SessionRecord {
 }
 
 export interface BlockConfig {
-  genre: GenreId; start?: number | "fromProfile"; maxItems?: number; display?: "audio" | "both";
+  // start: "fromProfile" = her ceiling − 1 (the practice default);
+  // "fromProfileTop" = AT her measured ceiling (ceiling-probe blocks,
+  // decision #24 / Level 8 — the block's job is finding where the ceiling
+  // really is, so it starts on it rather than under it). Never measured →
+  // both fall back to 1.
+  genre: GenreId; start?: number | "fromProfile" | "fromProfileTop"; maxItems?: number; display?: "audio" | "both";
   teachingItems?: number;              // overrides the level-wide teachingItems for this block
   stepUp?: number;                     // overrides the level-wide stepUp for this block
   // Overrides a speed genre's block-length countdown (normally SPEED_BLOCK_MS
@@ -117,6 +122,20 @@ export interface BlockConfig {
   // confidence levels where a strong genre's top items were lost to the
   // clock, not the maths (Level 4: her two d10 Story Sums TIMEOUTS).
   timeScale?: number;
+  // Per-block fast-lane override (decision #24, 2026-08-27). Jalal:
+  // "If she does it super fast and correct = fast lane. If she does it
+  // correct but not fast, in fact slow, then keep the same progress path."
+  // + "Fast lane for information and fill the gap. The other 2 let it be
+  // on the normal way." Block value wins; absent falls back to the level's
+  // fastLane (which itself defaults on). Only meaningful when stepUp > 1.
+  fastLane?: boolean;
+  // Tighter "fast" bar for UNTIMED staircase genres in THIS block, in ms
+  // (decision #24). The engine-wide default of 10s is looser than her own
+  // typical pace on some verbal genres (information median ~8.6s), so a
+  // merely ordinary answer would trip the fast lane — the exact case the
+  // owner rejected. Set it clearly below her median for the genre. Timed
+  // genres ignore it (their bar stays fraction-of-cap).
+  fastMs?: number;
 }
 export interface PartConfig { id: string; title: string; sticker: string; blocks: BlockConfig[] }
 export interface LevelConfig {

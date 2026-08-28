@@ -176,6 +176,41 @@ describe("adaptPart", () => {
     expect(resolved[0].start).toBe(7); // max(1, ceiling 8 - 1)
     expect(resolved[1].start).toBe(4); // number as given
   });
+
+  // Decision #24 (Level 8 ceiling probes): "fromProfileTop" starts AT the
+  // measured ceiling. Bug this prevents: a probe silently resolving to
+  // ceiling - 1 and re-censoring the ceiling the block exists to test.
+  it("resolves 'fromProfileTop' to her ceiling itself (fallback 1 when never measured)", () => {
+    const fpPart: PartConfig = {
+      id: "T",
+      title: "T",
+      sticker: "x",
+      blocks: [{ genre: "blockDesign", start: "fromProfileTop" }, { genre: "matrix", start: "fromProfileTop" }],
+    };
+    const resolved = adaptPart(fpPart, noneLevel, profile);
+    expect(resolved[0].start).toBe(8);        // ceiling 8, not 7
+    expect(resolved[0].knownCeiling).toBe(8); // easeIn frontier sits right above it
+    expect(resolved[1].start).toBe(1);        // matrix never measured in this profile
+  });
+
+  // Decision #24: the per-block fastLane/fastMs knobs must survive
+  // adaptation untouched — the runner reads them off the ResolvedBlock.
+  it("passes per-block fastLane and fastMs through resolution", () => {
+    const fpPart: PartConfig = {
+      id: "F",
+      title: "F",
+      sticker: "x",
+      blocks: [
+        { genre: "information", start: "fromProfileTop", fastLane: true, fastMs: 5_000 },
+        { genre: "whichTwo", start: "fromProfileTop" },
+      ],
+    };
+    const resolved = adaptPart(fpPart, noneLevel, profile);
+    expect(resolved[0].fastLane).toBe(true);
+    expect(resolved[0].fastMs).toBe(5_000);
+    expect(resolved[1].fastLane).toBeUndefined();
+    expect(resolved[1].fastMs).toBeUndefined();
+  });
 });
 
 import { SCALE_CHANGES as SC } from "./scale";

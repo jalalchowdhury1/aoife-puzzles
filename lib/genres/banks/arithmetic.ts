@@ -390,4 +390,150 @@ export const ARITHMETIC_BANK: ArithmeticBankItem[] = [
     vars: { a: [5, 20], b: [4, 10], c: [5, 20] },
     answer: v => v.a * v.b - v.c,
   },
+  // ------------------------------------------------------------------
+  // d11-15: the widened band (decision #17, 2026-08-28 — she topped the
+  // d10 cap with clean wins on the 1.5x clock). Multi-step chains,
+  // simple percents, working backwards, unit rates, ratio shares.
+  // Every template still renders a non-negative integer answer.
+  // ------------------------------------------------------------------
+  // d11: two-step chains with fractions of the WHOLE result
+  {
+    id: "ar-61", d: 11,
+    template: "Aoife buys {a} packs of stickers with {b} stickers in each pack. She uses half of all her stickers. How many stickers does she have left?",
+    vars: { a: [2, 6], b: [4, 12] },
+    ok: v => (v.a * v.b) % 2 === 0,
+    answer: v => (v.a * v.b) / 2,
+  },
+  {
+    id: "ar-62", d: 11,
+    template: "One tenth of the {a} children at a school wear glasses. How many children wear glasses?",
+    vars: { a: [20, 90] },
+    ok: v => v.a % 10 === 0,
+    answer: v => v.a / 10,
+  },
+  {
+    id: "ar-63", d: 11,
+    template: "Aoife walks for {a} minutes every day. How many minutes does she walk in two whole weeks?",
+    vars: { a: [5, 20] },
+    answer: v => 14 * v.a,
+  },
+  {
+    id: "ar-64", d: 11,
+    template: "A box holds {a} red pens and twice as many blue pens. How many pens are in the box altogether?",
+    vars: { a: [3, 12] },
+    answer: v => 3 * v.a,
+  },
+  // d12: simple percents and three-step chains
+  {
+    id: "ar-65", d: 12,
+    template: "A toy costs {a} dollars. Its price goes up by ten percent. What is the new price in dollars?",
+    vars: { a: [10, 90] },
+    ok: v => v.a % 10 === 0,
+    answer: v => v.a + v.a / 10,
+  },
+  {
+    id: "ar-66", d: 12,
+    template: "There are {a} students in a hall. Twenty five percent of them are in the choir. How many students are in the choir?",
+    vars: { a: [8, 80] },
+    ok: v => v.a % 4 === 0,
+    answer: v => v.a / 4,
+  },
+  {
+    id: "ar-67", d: 12,
+    template: "Aoife scores {a} points in round one, doubles her score in round two, then loses {b} points. How many points does she have now?",
+    vars: { a: [5, 20], b: [2, 9] },
+    answer: v => 2 * v.a - v.b,
+  },
+  {
+    id: "ar-68", d: 12,
+    template: "A game costs {a} dollars. In a sale the price is cut in half, and then {b} more dollars are taken off. What is the final price in dollars?",
+    vars: { a: [12, 60], b: [2, 5] },
+    ok: v => v.a % 2 === 0 && v.a / 2 > v.b,
+    answer: v => v.a / 2 - v.b,
+  },
+  // d13: unit rates and averages
+  {
+    id: "ar-69", d: 13,
+    template: "Aoife reads {a} pages in {b} minutes, always at the same speed. How many pages does she read in one minute?",
+    vars: { a: [10, 60], b: [2, 6] },
+    ok: v => v.a % v.b === 0,
+    answer: v => v.a / v.b,
+  },
+  {
+    id: "ar-70", d: 13,
+    template: "Three friends score {a}, {b} and {c} points in a game. What is their average score?",
+    vars: { a: [2, 20], b: [2, 20], c: [2, 20] },
+    ok: v => (v.a + v.b + v.c) % 3 === 0,
+    answer: v => (v.a + v.b + v.c) / 3,
+  },
+  {
+    id: "ar-71", d: 13,
+    template: "A tap fills {a} liters of water every minute. How many minutes does it take to fill a {b} liter tank?",
+    vars: { a: [2, 9], b: [10, 90] },
+    ok: v => v.b % v.a === 0,
+    answer: v => v.b / v.a,
+  },
+  {
+    id: "ar-72", d: 13,
+    template: "A baker uses {a} cups of flour to make {b} loaves of bread. How many cups does she need for {c} loaves?",
+    vars: { a: [4, 24], b: [2, 6], c: [3, 9] },
+    ok: v => v.a % v.b === 0,
+    answer: v => (v.a / v.b) * v.c,
+  },
+  // d14: working backwards
+  {
+    id: "ar-73", d: 14,
+    template: "Aoife thinks of a number. She doubles it and then adds {a}. The result is {b}. What was her number?",
+    vars: { a: [2, 10], b: [10, 50] },
+    ok: v => v.b > v.a && (v.b - v.a) % 2 === 0,
+    answer: v => (v.b - v.a) / 2,
+  },
+  {
+    id: "ar-74", d: 14,
+    template: "Aoife spends half of her money on a book and then {a} dollars on a snack. She has {b} dollars left. How many dollars did she start with?",
+    vars: { a: [2, 9], b: [2, 20] },
+    answer: v => 2 * (v.a + v.b),
+  },
+  {
+    id: "ar-75", d: 14,
+    template: "A number machine takes a number, subtracts {a} from it, then multiplies the result by three. The answer that comes out is {b}. What number went in?",
+    vars: { a: [1, 9], b: [6, 60] },
+    ok: v => v.b % 3 === 0,
+    answer: v => v.b / 3 + v.a,
+  },
+  {
+    id: "ar-76", d: 14,
+    template: "A quarter of the {a} children at camp can swim. Half of the swimmers wear goggles. How many children wear goggles?",
+    vars: { a: [8, 80] },
+    ok: v => v.a % 8 === 0,
+    answer: v => v.a / 8,
+  },
+  // d15: capstone — ratio shares, combined rates, doubling chains
+  {
+    id: "ar-77", d: 15,
+    template: "Aoife and her friend share {a} stickers so that Aoife gets two stickers for every one sticker her friend gets. How many stickers does Aoife get?",
+    vars: { a: [6, 60] },
+    ok: v => v.a % 3 === 0,
+    answer: v => (2 * v.a) / 3,
+  },
+  {
+    id: "ar-78", d: 15,
+    template: "One tap fills {a} liters per minute and another tap fills {b} liters per minute. Running together, how many minutes do they take to fill a {c} liter tub?",
+    vars: { a: [2, 6], b: [2, 6], c: [12, 96] },
+    ok: v => v.c % (v.a + v.b) === 0,
+    answer: v => v.c / (v.a + v.b),
+  },
+  {
+    id: "ar-79", d: 15,
+    template: "A recipe for {a} people needs {b} eggs. How many eggs are needed to cook for {c} people?",
+    vars: { a: [2, 4], b: [2, 12], c: [6, 12] },
+    ok: v => v.b % v.a === 0,
+    answer: v => (v.b / v.a) * v.c,
+  },
+  {
+    id: "ar-80", d: 15,
+    template: "Aoife saves {a} dollars in week one and doubles the amount she saves every week after that. How many dollars does she save in week three?",
+    vars: { a: [2, 12] },
+    answer: v => 4 * v.a,
+  },
 ];

@@ -655,7 +655,11 @@ function PlayRunner() {
       const cap = genre.timing.ms(stair!.d) * (cfg.timeScale ?? 1) * (frontierNow ? 1.5 : 1);
       fast = ms < cap * 0.5;
     } else if (genre.timing.kind === "none" && genre.mode === "staircase") {
-      fast = ms < 10_000;   // untimed genres: a quick confident answer counts as fast (fast lane)
+      // Untimed genres: a quick confident answer counts as fast (fast lane).
+      // `cfg.fastMs` (decision #24) tightens the bar per block — the 10s
+      // default sits ABOVE her typical pace on some verbal genres, and a
+      // merely ordinary answer must not read as "super fast".
+      fast = ms < (cfg.fastMs ?? 10_000);
     }
     const bankId: string | undefined = genre.bankId?.(item);
 
@@ -671,7 +675,7 @@ function PlayRunner() {
     // staircase and skip this.
     const newStair =
       genre.mode === "staircase"
-        ? stepStair(stair!, finalScore.correct, fast === true && levelCfg?.fastLane !== false)
+        ? stepStair(stair!, finalScore.correct, fast === true && (cfg.fastLane ?? levelCfg?.fastLane) !== false)
         : null;
     const isFreeMiss = newStair?.lastMissFree === true;
 

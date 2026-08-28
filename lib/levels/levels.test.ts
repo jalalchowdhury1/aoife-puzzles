@@ -118,8 +118,8 @@ describe("Level 99 (hidden QA level)", () => {
 
 import { RELEASED_LEVELS } from "./index";
 describe("release gating", () => {
-  it("levels 1, 3, 4 and 7 are released; Level 2 (replica formats) and levels 5/6 (superseded by doors-only #21 before she played them) are hidden", () => {
-    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3, 4, 7]);
+  it("levels 1, 3, 4, 7 and 8 are released; Level 2 (replica formats) and levels 5/6 (superseded by doors-only #21 before she played them) are hidden", () => {
+    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3, 4, 7, 8]);
   });
   it("Level 3 uses every ACTIVE genre exactly once and only active genres", () => {
     const level3 = LEVELS.find((l) => l.id === 3)!;
@@ -328,5 +328,75 @@ describe("Level 7 (Pip's Dream Team — first doors-only level, decision #21)", 
     expect(level7.teachingItems).toBe(0);
     expect(level7.weighting).toBe("none");
     expect(level7.fun).toBe(true);
+  });
+});
+
+describe("Level 8 (Pip's Sky Climb — the ceiling-probe level, decision #24)", () => {
+  const level8 = LEVELS.find((l) => l.id === 8)!;
+
+  it("exists, is released, and covers all six door genres exactly once", () => {
+    expect(level8).toBeDefined();
+    expect(level8.released).toBe(true);
+    const all = level8.parts.flatMap((p) => p.blocks.map((b) => b.genre));
+    expect(new Set(all)).toEqual(new Set(DOOR_GENRES));
+    expect(all.length).toBe(DOOR_GENRES.length);
+  });
+
+  // Bug this prevents: a probe block quietly reverting to ceiling − 1
+  // starts or short blocks, silently re-censoring the very ceilings this
+  // level exists to measure.
+  it("probes the three censored/capped genres AT her ceiling with long blocks", () => {
+    const probes = level8.parts.flatMap((p) => p.blocks).filter((b) => b.start === "fromProfileTop");
+    expect(probes.map((b) => b.genre).sort()).toEqual(["arithmetic", "information", "whichTwo"]);
+    for (const b of probes) expect(b.maxItems, b.genre).toBe(14);
+  });
+
+  // Decision #24 verbatim: "Fast lane for information and fill the gap.
+  // The other 2 let it be on the normal way." Bug this prevents: the lane
+  // leaking onto a genre the owner explicitly excluded, or the tightened
+  // fast bar being dropped so a typical-pace answer counts as "super fast".
+  it("fast lane is ON for exactly information and fillTheGap, with a bar below her medians", () => {
+    expect(level8.fastLane).toBe(false); // level default OFF; blocks opt in
+    const blocks = level8.parts.flatMap((p) => p.blocks);
+    for (const b of blocks) {
+      if (b.genre === "information") {
+        expect(b.fastLane).toBe(true);
+        expect(b.fastMs).toBeLessThan(8_600); // her median (2026-08-27)
+      } else if (b.genre === "fillTheGap") {
+        expect(b.fastLane).toBe(true);
+        expect(b.fastMs).toBeLessThan(12_500); // her median (2026-08-27)
+      } else {
+        expect(b.fastLane, b.genre).toBeUndefined();
+        expect(b.fastMs, b.genre).toBeUndefined();
+      }
+    }
+  });
+
+  it("swapShop is a short confirmation block (well characterised at ceiling 8)", () => {
+    const swap = level8.parts.flatMap((p) => p.blocks).find((b) => b.genre === "swapShop")!;
+    expect(swap.start).toBe("fromProfile");
+    expect(swap.maxItems).toBe(6);
+    expect(swap.timeScale).toBe(1.5);
+  });
+
+  it("keeps the QRI clock: arithmetic on 1.5x (her d10 losses were time, not maths)", () => {
+    const arith = level8.parts.flatMap((p) => p.blocks).find((b) => b.genre === "arithmetic")!;
+    expect(arith.timeScale).toBe(1.5);
+  });
+
+  it("keeps the gentle template: stepUp 2, easeIn ON, reveal, no teaching items, fun on", () => {
+    expect(level8.stepUp).toBe(2);
+    expect(level8.easeIn).toBe(true);
+    expect(level8.feedback).toBe("reveal");
+    expect(level8.teachingItems).toBe(0);
+    expect(level8.weighting).toBe("none");
+    expect(level8.fun).toBe(true);
+  });
+
+  it("every part opens easier and closes on the probe (the Level 7 strong-close pattern)", () => {
+    for (const part of level8.parts) {
+      const last = part.blocks[part.blocks.length - 1];
+      expect(["fromProfileTop"]).toContain(last.start);
+    }
   });
 });

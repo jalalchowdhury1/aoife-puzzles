@@ -40,7 +40,20 @@ const RCPM = "RCPM data (n=947): identity items near ceiling at 6; progression/c
 const LATIN = "latin-square/sudoku ladder: 3x3 with choices 5-7; 4x4 one-line 6-8; row+column 7-9+";
 const SUBST = "transitive/substitution research: two-premise coordination reliable ~7-8 (grades 3-4)";
 const CCSS = "Common Core word-problem grade mapping (grade ~ age-5+grade years)";
-const VERBAL = "verbal development ladder ages 4-13; banks are authored to an age-6->13 ramp (decision #10)";
+// 2026-08-29 re-audit (decision #28). The old VERBAL basis was CIRCULAR: the
+// banks were authored to an age-6->13 ramp (decision #10) and the research
+// pass then "confirmed" the ramp matched ages 6-13. It also mapped
+// MULTIPLE-CHOICE items onto norms for spoken PRODUCTION, which is harder.
+// These bands are now anchored on group-administered MULTIPLE-CHOICE
+// batteries (CogAT Verbal Classification/Analogies, OLSAT Verbal Reasoning)
+// whose format actually matches ours — but no published test norms items of
+// this kind by single-year age, so they stay LOW confidence and say so.
+const VERBAL = "recognition-format estimate (CogAT/OLSAT verbal MC batteries); LOW confidence, see caveat";
+// Shown on every verbal genre's Ages row. The single most important honest
+// qualifier on this whole tab: she is PICKING an answer, and the real verbal
+// subtests ask her to SAY one.
+const RECOGNITION = "She picks from 3 or 4 written choices. The real WISC-V verbal subtests ask a child to SAY the answer unprompted, which is harder, so any age here is a floor, not a match. Published tests do not norm items like these by single-year age, so treat these ranges as rough.";
+
 const SPEEDNOTE =
   "No published items-per-minute norms exist for children's matching-speed tasks (Wechsler tables are proprietary) — speed is shown only as her own trend.";
 
@@ -168,19 +181,21 @@ export const BENCHMARKS: Partial<Record<GenreId, GenreBenchmark>> = {
       { dMin: 11, dMax: 12, skill: "Fractions of totals, simple percents, chains", typicalAge: { lo: 10, hi: 12 }, basis: CCSS },
       { dMin: 13, dMax: 13, skill: "Unit rates and averages", typicalAge: { lo: 11, hi: 13 }, basis: CCSS },
       { dMin: 14, dMax: 15, skill: "Working backwards; combined rates, ratio shares", typicalAge: { lo: 12, hi: 14 }, basis: CCSS },
-      // d16-20 widened 2026-08-29 (decision #26 — she topped d15 with 13/14
-      // and no miss above d10). These are the pre algebra moves, still told
-      // as stories: CCSS places them in grades 6-8.
-      { dMin: 16, dMax: 16, skill: "Chained fractions of a total; sequences with a fixed step", typicalAge: { lo: 12, hi: 14 }, basis: CCSS },
-      { dMin: 17, dMax: 17, skill: "Combined rates and weighted averages", typicalAge: { lo: 13, hi: 15 }, basis: CCSS },
-      { dMin: 18, dMax: 18, skill: "Two unknowns from a total plus a relationship", typicalAge: { lo: 13, hi: 15 }, basis: CCSS },
-      { dMin: 19, dMax: 19, skill: "Working backwards through a chain of operations", typicalAge: { lo: 13, hi: 15 }, basis: CCSS },
-      { dMin: 20, dMax: 20, skill: "Multi stage problems combining all of the above", typicalAge: { lo: 14, hi: null }, basis: CCSS },
+      // d16-20 RE-AUTHORED 2026-08-29 (decision #28): the first version of
+      // this band was mis-pitched at grades 4-7 — BELOW the d14-15 it sat on
+      // — so a climb would have recorded a fake ceiling. Now genuinely
+      // grade 8+ by CCSS, and the ages rise monotonically again.
+      { dMin: 16, dMax: 16, skill: "The unknown on both sides (when do two costs meet?)", typicalAge: { lo: 13, hi: 14 }, basis: CCSS },
+      { dMin: 17, dMax: 17, skill: "Successive fraction changes that compound (or cancel)", typicalAge: { lo: 13, hi: 14 }, basis: CCSS },
+      { dMin: 18, dMax: 18, skill: "Two unknowns from two facts (a real system)", typicalAge: { lo: 13, hi: 14 }, basis: CCSS },
+      { dMin: 19, dMax: 19, skill: "Inverse proportion (fewer workers, more days)", typicalAge: { lo: 13, hi: 14 }, basis: CCSS },
+      { dMin: 20, dMax: 20, skill: "Capstone chaining systems, compound change and inverse rates", typicalAge: { lo: 14, hi: null }, basis: CCSS },
     ],
   },
   // ---- VC cousins (banks authored to an age-6->13 ramp, decision #10) ------
   whichTwo: {
     genre: "whichTwo",
+    caveat: RECOGNITION,
     bands: [
       { dMin: 1, dMax: 2, skill: "Obvious category pairs (animals, foods)", typicalAge: { lo: 5, hi: 7 }, basis: VERBAL },
       { dMin: 3, dMax: 4, skill: "Function/category with tempting theme distractors", typicalAge: { lo: 7, hi: 9 }, basis: VERBAL },
@@ -191,13 +206,14 @@ export const BENCHMARKS: Partial<Record<GenreId, GenreBenchmark>> = {
       // and topped d10 without a miss). The ramp keeps climbing the same
       // axis: how abstract is the rule that joins the pair?
       { dMin: 11, dMax: 12, skill: "Pairs joined by a hidden shared process, not a category", typicalAge: { lo: 13, hi: 14 }, basis: VERBAL },
-      { dMin: 13, dMax: 13, skill: "Social systems joined by the role they play between people", typicalAge: { lo: 14, hi: 15 }, basis: VERBAL },
-      { dMin: 14, dMax: 14, skill: "Processes joined by how they unfold over time", typicalAge: { lo: 14, hi: 15 }, basis: VERBAL },
-      { dMin: 15, dMax: 15, skill: "Ideas about ideas: representation, belief and meaning", typicalAge: { lo: 15, hi: null }, basis: VERBAL },
+      { dMin: 13, dMax: 13, skill: "Social systems joined by the role they play between people", typicalAge: { lo: 13, hi: 14 }, basis: VERBAL },
+      { dMin: 14, dMax: 14, skill: "Processes joined by how they unfold over time", typicalAge: { lo: 13, hi: 14 }, basis: VERBAL },
+      { dMin: 15, dMax: 15, skill: "Ideas about ideas: representation, belief and meaning", typicalAge: { lo: 13, hi: 14 }, basis: VERBAL },
     ],
   },
   fillTheGap: {
     genre: "fillTheGap",
+    caveat: RECOGNITION,
     bands: [
       { dMin: 1, dMax: 2, skill: "Concrete, everyday-word sentences", typicalAge: { lo: 5, hi: 7 }, basis: VERBAL },
       { dMin: 3, dMax: 4, skill: "School-language words in context", typicalAge: { lo: 7, hi: 9 }, basis: VERBAL },
@@ -208,6 +224,7 @@ export const BENCHMARKS: Partial<Record<GenreId, GenreBenchmark>> = {
   },
   information: {
     genre: "information",
+    caveat: RECOGNITION,
     bands: [
       { dMin: 1, dMax: 2, skill: "Everyday facts (seasons, animals, home)", typicalAge: { lo: 5, hi: 7 }, basis: VERBAL },
       { dMin: 3, dMax: 4, skill: "Early-school facts (days vs months, coins)", typicalAge: { lo: 7, hi: 9 }, basis: VERBAL },
@@ -215,19 +232,20 @@ export const BENCHMARKS: Partial<Record<GenreId, GenreBenchmark>> = {
       { dMin: 7, dMax: 8, skill: "Curriculum knowledge (geography, units)", typicalAge: { lo: 10, hi: 12 }, basis: VERBAL },
       { dMin: 9, dMax: 10, skill: "Integrated cross-subject knowledge", typicalAge: { lo: 12, hi: 13 }, basis: VERBAL },
       // d11-15 widened 2026-08-28 (decision #17 — she reached the d10 cap).
-      { dMin: 11, dMax: 12, skill: "Middle-school science and measurement facts", typicalAge: { lo: 13, hi: 14 }, basis: VERBAL },
-      { dMin: 13, dMax: 14, skill: "Atoms, cells, earth science, ancient history", typicalAge: { lo: 14, hi: 15 }, basis: VERBAL },
-      { dMin: 15, dMax: 15, skill: "Physics of light, body systems, classification", typicalAge: { lo: 14, hi: null }, basis: VERBAL },
+      { dMin: 11, dMax: 12, skill: "Middle-school science and measurement facts", typicalAge: { lo: 12, hi: 14 }, basis: VERBAL },
+      { dMin: 13, dMax: 14, skill: "Atoms, cells, earth science, ancient history", typicalAge: { lo: 12, hi: 14 }, basis: VERBAL },
+      { dMin: 15, dMax: 15, skill: "Physics of light, body systems, classification", typicalAge: { lo: 13, hi: 14 }, basis: VERBAL },
     ],
   },
   whatWouldYouDo: {
     genre: "whatWouldYouDo",
+    caveat: RECOGNITION,
     bands: [
       { dMin: 1, dMax: 2, skill: "Safe, conventional responses (tell an adult)", typicalAge: { lo: 5, hi: 7 }, basis: VERBAL },
       { dMin: 3, dMax: 4, skill: "More than one solution; simple fairness", typicalAge: { lo: 7, hi: 9 }, basis: VERBAL },
       { dMin: 5, dMax: 6, skill: "Intent vs accident; taking turns and repair", typicalAge: { lo: 8, hi: 10 }, basis: VERBAL },
       { dMin: 7, dMax: 8, skill: "Perspective, consequences, negotiation", typicalAge: { lo: 10, hi: 12 }, basis: VERBAL },
-      { dMin: 9, dMax: 10, skill: "Trade-offs and when to escalate", typicalAge: { lo: 12, hi: 13 }, basis: VERBAL },
+      { dMin: 9, dMax: 10, skill: "Trade-offs and when to escalate", typicalAge: { lo: 11, hi: 13 }, basis: VERBAL },
     ],
   },
   // ---- PS cousins: NO bands, deliberately ---------------------------------

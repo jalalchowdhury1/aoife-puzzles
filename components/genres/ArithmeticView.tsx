@@ -98,7 +98,15 @@ export function ArithmeticView({ item, disabled, display, reveal, lastResponse, 
         )}
       </div>
 
-      <div className="grid w-full max-w-xs shrink-0 grid-cols-3 gap-3 bg-cream pb-4 pt-3 shadow-[0_-8px_16px_-10px_rgba(0,0,0,0.15)]">
+      {/* `sticky bottom-0`, the same pattern the other tall-stimulus views use
+          (FireflyBoxesView, ChoiceView, WhichTwoView, PictureSudokuView).
+          Being a shrink-0 sibling was NOT enough: this view's root is
+          `min-h-full` inside a scrolling host that also holds the countdown
+          bar, so root height + countdown exceeded the host and pushed Done
+          ~20px below the fold at her 1180x713 iPad — measured during the
+          Level 9 self-play on 2026-08-29, with the longer d16-20 questions.
+          Sticky pins it to the bottom of the visible area regardless. */}
+      <div className="sticky bottom-0 grid w-full max-w-xs shrink-0 grid-cols-3 gap-3 bg-cream pb-4 pt-3 shadow-[0_-8px_16px_-10px_rgba(0,0,0,0.15)]">
         {DIGITS.map(d => (
           <button
             key={d}

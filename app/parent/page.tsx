@@ -55,7 +55,10 @@ const TABS: TabDef[] = [
 // Decision #20 (2026-08-26): the Ages tab may show approximate, research-anchored
 // typical-age RANGES per skill — still never percentiles or IQ scores, and only here
 // on the parent page. All other numbers stay relative to her own results.
-const NO_NORMS = "These numbers are relative to Aoife's own results only — never percentiles or IQ scores. (The Ages tab adds approximate research-anchored age ranges; read its caveats.)";
+// Reworded 2026-08-29 (decision #28): the old text pointed readers at "the
+// Ages tab", which was archived in the dashboard revamp — the age ranges now
+// live inline in the Davidson tab, with the recognition caveat beside them.
+const NO_NORMS = "These numbers are relative to Aoife's own results only — never percentiles or IQ scores. Age ranges in the Davidson tab are rough, research-anchored estimates; read the note beside them.";
 
 export default function ParentPage() {
   const [key, setKey] = useState<string | null>(null);

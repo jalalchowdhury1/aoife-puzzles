@@ -170,6 +170,17 @@ export function DavidsonTab({
             </tbody>
           </table>
         </div>
+        {/* Decision #28 (2026-08-29 re-audit): the verbal age ranges were
+            recalibrated against multiple-choice test formats (CogAT/OLSAT)
+            and every "15+" claim removed. This note is the load-bearing
+            honesty line — her puzzles let her PICK an answer, the real
+            subtests make her SAY one. */}
+        <p className="mt-3 text-xs leading-relaxed text-white/40">
+          A note on the age ranges: they are rough estimates, and for the four word games they are a{" "}
+          <span className="text-white/60">floor</span> — her puzzles let her pick from written choices, while the real
+          WISC-V verbal subtests ask a child to answer out loud in her own words, which is harder. That spoken skill is
+          exactly what the <span className="text-white/60">Talk with Pip</span> tab practices.
+        </p>
       </section>
 
       <section>

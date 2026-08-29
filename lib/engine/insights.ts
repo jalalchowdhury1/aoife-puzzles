@@ -72,6 +72,11 @@ export interface Insights {
   matrix: { genre: GenreId; kidTitle: string; retired: boolean; maxD: number; cells: MatrixCell[] }[];
   timeline: {
     sessionId: string; date: string; level: number; part: string; complete: boolean; minutes: number;
+    // Practice-tab rematches (level 0 / part P). They are real questions she
+    // answered, so the All questions archive shows them — but computeProfile
+    // drops them (decision #23), so anything ability-shaped must be able to
+    // filter them out rather than silently mix them in.
+    practice: boolean;
     blocks: {
       genre: GenreId; kidTitle: string; mode: string; summary: BlockSummary;
       flags: { code: string; detail: string }[]; excluded: boolean; items: ItemDetail[];
@@ -317,7 +322,10 @@ export function computeInsights(sessions: SessionRecord[]): Insights {
       };
     });
     const minutes = session.blocks.reduce((sum, b) => sum + blockMinutes(b), 0);
-    return { sessionId: session.id, date: session.startedAt, level: session.level, part: session.part, complete: session.complete, minutes, blocks };
+    return {
+      sessionId: session.id, date: session.startedAt, level: session.level, part: session.part,
+      complete: session.complete, practice: session.practice === true, minutes, blocks,
+    };
   });
 
   // ---- deltas: every ceiling increase for every staircase genre, most recent first ----

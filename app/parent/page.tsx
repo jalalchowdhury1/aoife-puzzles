@@ -20,6 +20,7 @@ import { StatTile } from "@/components/parent/StatTile";
 import { DavidsonTab } from "@/components/parent/DavidsonTab";
 import { DoorSkillsTab } from "@/components/parent/DoorSkillsTab";
 import { LastSessionTab } from "@/components/parent/LastSessionTab";
+import { AllQuestionsTab } from "@/components/parent/AllQuestionsTab";
 import { ItemLog } from "@/components/parent/ItemLog";
 import { LineChart } from "@/components/parent/LineChart";
 import {fmtDate, fmtPct, fmtNum, plural } from "@/components/parent/format";
@@ -43,6 +44,10 @@ const TABS: TabDef[] = [
   { id: "wisc", label: "WISC lens", emoji: "🧠" },
   { id: "skills", label: "Skills", emoji: "🧩" },
   { id: "lastSession", label: "Last session", emoji: "🗓" },
+  // The archive (2026-08-29): every question she has ever answered, filterable.
+  // "Last session" is one sitting by design and looks sparse after a short
+  // practice round — this is the place to see everything.
+  { id: "allQuestions", label: "All questions", emoji: "📜" },
   { id: "talk", label: "Talk", emoji: "🗣" },
 ];
 
@@ -245,6 +250,7 @@ export default function ParentPage() {
             {tab === "wisc" && <WiscTab insights={insights} />}
             {tab === "skills" && <DoorSkillsTab insights={insights} />}
             {tab === "lastSession" && <LastSessionTab insights={insights} />}
+            {tab === "allQuestions" && <AllQuestionsTab insights={insights} />}
             {tab === "talk" && <TalkTab records={talkRecords} />}
           </div>
         )}

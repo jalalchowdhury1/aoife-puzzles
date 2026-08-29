@@ -16,9 +16,16 @@ export type Domain = "VS" | "FR" | "WM" | "PS" | "VC";
 // past 10 via Genre.maxDifficulty ONLY after real data shows she has hit the
 // existing top (owner, 2026-08-23: "go beyond level 10 for those she has
 // already reached") — see lib/genres/patternTrain.ts / pictureSudoku.ts for
-// the first (and, for now, only) genres that do this.
-export type Difficulty = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
-export const MAX_DIFFICULTY = 15;
+// the first genres that did this.
+//
+// The ceiling moved 15 -> 20 on 2026-08-29 (decision #26) because she TOPPED
+// a widened ramp: Level 8A took Story Sums from d10 to a clean d15 with 13/14,
+// so d15 stopped being her ceiling and became ours. Raising the union type is
+// the whole change — nothing else in the engine hard-codes the old top.
+export type Difficulty =
+  | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10
+  | 11 | 12 | 13 | 14 | 15 | 16 | 17 | 18 | 19 | 20;
+export const MAX_DIFFICULTY = 20;
 // The default 1-10 ramp every genre's own unit/fairness tests sweep. A genre
 // with `maxDifficulty` > 10 additionally tests its own 11..maxDifficulty band
 // in its own test files — DIFFICULTIES itself is intentionally NOT widened,

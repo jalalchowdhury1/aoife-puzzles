@@ -1,4 +1,5 @@
 import type { Insights, MatrixCell } from "@/lib/engine/insights";
+import { MAX_DIFFICULTY } from "@/lib/engine/types";
 
 export const STATUS_COLOR: Record<MatrixCell["status"], string> = {
   mastered: "bg-teal-400",
@@ -20,7 +21,7 @@ export const STATUS_LABEL: Record<MatrixCell["status"], string> = {
  * (or hasn't) reached, one small square per cell. Skill-name column stays
  * sticky-left so the grid can scroll horizontally on a phone.
  */
-export function MatrixGrid({ rows, maxCols = 15 }: { rows: Insights["matrix"]; maxCols?: number }) {
+export function MatrixGrid({ rows, maxCols = MAX_DIFFICULTY }: { rows: Insights["matrix"]; maxCols?: number }) {
   const cols = Array.from({ length: maxCols }, (_, i) => i + 1);
   return (
     <div className="overflow-x-auto rounded-2xl border border-teal-100 bg-white/40">

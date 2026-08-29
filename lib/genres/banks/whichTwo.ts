@@ -31,6 +31,19 @@ export interface WhichTwoBankItem {
 //   d9-10 hard abstractions: pairs of related concepts, distractors from a
 //         wholly different conceptual space so there is never a second
 //         plausible pairing among the abstract words themselves.
+// Widened to d15 on 2026-08-29 (decision #17 earned, decision #26): her Level
+// 8C ceiling probe went 10/10 and topped d10 without a single miss, so d10
+// stopped measuring her and started measuring the bank. The new bands keep
+// climbing the SAME axis (how abstract is the shared rule?) rather than
+// adding vocabulary difficulty for its own sake:
+//   d11-12 hidden shared PROCESS: the pair is joined by the mechanism behind
+//          both, not by what either one is.
+//   d13    social systems: pairs joined by the role they play between people.
+//   d14    change over time: pairs joined by how they unfold, not what they are.
+//   d15    ideas about ideas: representation, belief, and meaning itself.
+// Every 2 point reason states the abstract rule; every 1 point reason is a
+// true but surface observation; every 0 point reason is plainly false of the
+// pair (that is the scoring contract the real verbal subtests use).
 export const WHICH_TWO_BANK: WhichTwoBankItem[] = [
   // ---------------------------------------------------------------------
   // d1: concrete objects, pictures, age 6
@@ -720,5 +733,325 @@ export const WHICH_TWO_BANK: WhichTwoBankItem[] = [
     ],
     explanation: "Empathy and compassion are both about understanding and caring how someone else feels.",
     distractorNote: "A ladder and a peach are physical objects, unrelated to understanding someone else's feelings.",
+  },
+
+  // ---------------------------------------------------------------------
+  // d11: a hidden shared PROCESS, ages 13+
+  // ---------------------------------------------------------------------
+  {
+    id: "wt-51", d: 11,
+    items: [{ text: "erosion" }, { text: "extinction" }, { text: "rocket" }, { text: "blanket" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both slow losses that happen because a force keeps acting over a very long time", points: 2 },
+      { text: "They both take a long time", points: 1 },
+      { text: "They are both kinds of weather", points: 0 },
+    ],
+    explanation: "Erosion and extinction are both slow losses caused by a force that keeps acting over a very long time.",
+    distractorNote: "A rocket and a blanket are ordinary objects; neither is a slow process of loss, and they share nothing with each other.",
+  },
+  {
+    id: "wt-52", d: 11,
+    items: [{ text: "rehearsal" }, { text: "draft" }, { text: "anchor" }, { text: "melon" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both practice versions made before the real one, so mistakes can be found and fixed first", points: 2 },
+      { text: "They both come before something else", points: 1 },
+      { text: "They are both kinds of fruit", points: 0 },
+    ],
+    explanation: "A rehearsal and a draft are both practice versions made before the real thing, so mistakes can be fixed first.",
+    distractorNote: "An anchor and a melon are physical objects from unrelated worlds (boats and food); neither is a practice attempt.",
+  },
+  {
+    id: "wt-53", d: 11,
+    items: [{ text: "quarantine" }, { text: "curfew" }, { text: "pebble" }, { text: "violin" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both rules that limit where people may go, used to keep everybody safe", points: 2 },
+      { text: "They both stop people doing what they want", points: 1 },
+      { text: "They are both musical words", points: 0 },
+    ],
+    explanation: "A quarantine and a curfew are both rules that limit where people may go, used to keep everybody safe.",
+    distractorNote: "A pebble and a violin are a stone and an instrument; neither is a rule about movement, and they do not belong together either.",
+  },
+  {
+    id: "wt-54", d: 11,
+    items: [{ text: "immunity" }, { text: "insulation" }, { text: "ladder" }, { text: "apricot" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both protections that stop something harmful from getting through", points: 2 },
+      { text: "They both keep things out", points: 1 },
+      { text: "They are both parts of the body", points: 0 },
+    ],
+    explanation: "Immunity and insulation are both protections that stop something harmful from getting through.",
+    distractorNote: "A ladder and an apricot are a tool and a fruit; neither protects anything, and they have nothing in common with each other.",
+  },
+  {
+    id: "wt-55", d: 11,
+    items: [{ text: "rumour" }, { text: "avalanche" }, { text: "seagull" }, { text: "curtain" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They both start tiny and grow bigger and faster the further they travel", points: 2 },
+      { text: "They can both cause a lot of trouble", points: 1 },
+      { text: "They are both always cold", points: 0 },
+    ],
+    explanation: "A rumour and an avalanche both start tiny and grow bigger and faster the further they travel.",
+    distractorNote: "A seagull and a curtain are a bird and a furnishing, from unrelated worlds: neither grows or spreads, and they share no category with each other either. (The first draft used teaspoon and curtain, which were BOTH household objects and so formed a second plausible pair.)",
+  },
+
+  // ---------------------------------------------------------------------
+  // d12: a hidden shared process, now about evidence and reasoning
+  // ---------------------------------------------------------------------
+  {
+    id: "wt-56", d: 12,
+    items: [{ text: "estimate" }, { text: "hypothesis" }, { text: "saddle" }, { text: "plum" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both careful guesses made on purpose before anybody can know the real answer", points: 2 },
+      { text: "They are both a kind of guess", points: 1 },
+      { text: "They are both always correct", points: 0 },
+    ],
+    explanation: "An estimate and a hypothesis are both careful guesses made on purpose before anybody can know the real answer.",
+    distractorNote: "A saddle and a plum are riding gear and a fruit; neither is a guess, and they do not pair with each other.",
+  },
+  {
+    id: "wt-57", d: 12,
+    items: [{ text: "symptom" }, { text: "clue" }, { text: "trombone" }, { text: "hedge" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both small visible signs that point to a bigger cause you cannot see directly", points: 2 },
+      { text: "They both help you work something out", points: 1 },
+      { text: "They are both very loud", points: 0 },
+    ],
+    explanation: "A symptom and a clue are both small visible signs pointing to a bigger cause you cannot see directly.",
+    distractorNote: "A trombone and a hedge are an instrument and a garden plant; neither is a sign of anything hidden.",
+  },
+  {
+    id: "wt-58", d: 12,
+    items: [{ text: "bias" }, { text: "distortion" }, { text: "kettle" }, { text: "meadow" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They both bend the truth, so what you end up seeing is not quite what is really there", points: 2 },
+      { text: "They both change how something looks", points: 1 },
+      { text: "They are both shapes", points: 0 },
+    ],
+    explanation: "Bias and distortion both bend the truth, so what you end up seeing is not quite what is really there.",
+    distractorNote: "A kettle and a meadow are an object and a place; neither alters the truth, and they share nothing with each other.",
+  },
+  {
+    id: "wt-59", d: 12,
+    items: [{ text: "average" }, { text: "summary" }, { text: "hammer" }, { text: "orchid" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They both squeeze a great deal of information down into one short stand in for all of it", points: 2 },
+      { text: "They both make something shorter", points: 1 },
+      { text: "They are both tools you hold", points: 0 },
+    ],
+    explanation: "An average and a summary both squeeze a great deal of information down into one short stand in for all of it.",
+    distractorNote: "A hammer and an orchid are a tool and a flower; neither condenses information, and they do not pair together.",
+  },
+  {
+    id: "wt-60", d: 12,
+    items: [{ text: "survey" }, { text: "experiment" }, { text: "ribbon" }, { text: "canyon" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both planned ways of collecting evidence in order to answer a question", points: 2 },
+      { text: "They both take some planning", points: 1 },
+      { text: "They are both places outdoors", points: 0 },
+    ],
+    explanation: "A survey and an experiment are both planned ways of collecting evidence in order to answer a question.",
+    distractorNote: "A ribbon and a canyon are an object and a landform; neither gathers evidence, and nothing links them to each other.",
+  },
+
+  // ---------------------------------------------------------------------
+  // d13: social systems, joined by the role they play between people
+  // ---------------------------------------------------------------------
+  {
+    id: "wt-61", d: 13,
+    items: [{ text: "democracy" }, { text: "jury" }, { text: "pancake" }, { text: "glacier" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They both settle something by letting a group decide together instead of one person choosing", points: 2 },
+      { text: "They both involve a lot of people", points: 1 },
+      { text: "They are both always frozen", points: 0 },
+    ],
+    explanation: "A democracy and a jury both settle something by letting a group decide together instead of one person choosing.",
+    distractorNote: "A pancake and a glacier are food and ice; neither decides anything, and they have no shared category.",
+  },
+  {
+    id: "wt-62", d: 13,
+    items: [{ text: "tax" }, { text: "subscription" }, { text: "walnut" }, { text: "lantern" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both payments made again and again in return for something you keep on receiving", points: 2 },
+      { text: "They both cost money", points: 1 },
+      { text: "They are both foods", points: 0 },
+    ],
+    explanation: "A tax and a subscription are both payments made again and again in return for something you keep on receiving.",
+    distractorNote: "A walnut and a lantern are a nut and a light; neither is a payment, and they do not pair with each other.",
+  },
+  {
+    id: "wt-63", d: 13,
+    items: [{ text: "constitution" }, { text: "recipe" }, { text: "thunder" }, { text: "sandal" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both written sets of instructions saying exactly how something must be put together", points: 2 },
+      { text: "They are both written down", points: 1 },
+      { text: "They are both very loud", points: 0 },
+    ],
+    explanation: "A constitution and a recipe are both written sets of instructions saying exactly how something must be put together.",
+    distractorNote: "Thunder and a sandal are a sound and a shoe; neither is a set of instructions, and they share nothing with each other.",
+  },
+  {
+    id: "wt-64", d: 13,
+    items: [{ text: "census" }, { text: "inventory" }, { text: "comet" }, { text: "mitten" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both complete counts of everything in a group, taken at one single moment", points: 2 },
+      { text: "They both involve counting", points: 1 },
+      { text: "They are both warm", points: 0 },
+    ],
+    explanation: "A census and an inventory are both complete counts of everything in a group, taken at one single moment.",
+    distractorNote: "A comet and a mitten are a space object and clothing; neither counts anything, and they do not belong together.",
+  },
+  {
+    id: "wt-65", d: 13,
+    items: [{ text: "treaty" }, { text: "contract" }, { text: "pelican" }, { text: "drizzle" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both promises two sides are bound to keep, with agreed consequences if either breaks it", points: 2 },
+      { text: "They are both written on paper", points: 1 },
+      { text: "They are both kinds of bird", points: 0 },
+    ],
+    explanation: "A treaty and a contract are both promises two sides are bound to keep, with agreed consequences if either breaks it.",
+    distractorNote: "A pelican and drizzle are a bird and light rain; neither is an agreement, and they have no category in common.",
+  },
+
+  // ---------------------------------------------------------------------
+  // d14: change over time, joined by HOW they unfold
+  // ---------------------------------------------------------------------
+  {
+    id: "wt-66", d: 14,
+    items: [{ text: "evolution" }, { text: "tradition" }, { text: "saucepan" }, { text: "iceberg" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They both change very slowly by passing small differences from one generation on to the next", points: 2 },
+      { text: "They both take many years", points: 1 },
+      { text: "They are both always frozen", points: 0 },
+    ],
+    explanation: "Evolution and tradition both change very slowly by passing small differences from one generation on to the next.",
+    distractorNote: "A saucepan and an iceberg are a pot and floating ice; neither passes anything down through generations.",
+  },
+  {
+    id: "wt-67", d: 14,
+    items: [{ text: "momentum" }, { text: "habit" }, { text: "tulip" }, { text: "chimney" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "Once either one has started it carries on by itself, and stopping it takes more effort than starting it did", points: 2 },
+      { text: "They both keep going", points: 1 },
+      { text: "They are both made of brick", points: 0 },
+    ],
+    explanation: "Momentum and a habit both carry on by themselves once started, and stopping either takes more effort than starting it did.",
+    distractorNote: "A tulip and a chimney are a flower and part of a house; neither continues under its own steam, and they do not pair.",
+  },
+  {
+    id: "wt-68", d: 14,
+    items: [{ text: "echo" }, { text: "consequence" }, { text: "mango" }, { text: "harp" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They both come back to you later, and only because of something you did first", points: 2 },
+      { text: "They both happen after something else", points: 1 },
+      { text: "They are both sweet to taste", points: 0 },
+    ],
+    explanation: "An echo and a consequence both come back to you later, and only because of something you did first.",
+    distractorNote: "A mango and a harp are a fruit and an instrument; neither returns to anyone, and they share no category.",
+  },
+  {
+    id: "wt-69", d: 14,
+    items: [{ text: "drought" }, { text: "famine" }, { text: "pencil" }, { text: "seagull" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both long shortages where something people need runs out across a whole region at once", points: 2 },
+      { text: "They are both bad things that last a long time", points: 1 },
+      { text: "They are both grey", points: 0 },
+    ],
+    explanation: "A drought and a famine are both long shortages where something people need runs out across a whole region at once.",
+    distractorNote: "A pencil and a seagull are an object and a bird; neither is a shortage, and they do not belong with each other.",
+  },
+  {
+    id: "wt-70", d: 14,
+    items: [{ text: "threshold" }, { text: "deadline" }, { text: "walnut" }, { text: "fountain" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both invisible lines where everything changes the moment you cross over them", points: 2 },
+      { text: "They are both limits", points: 1 },
+      { text: "They are both made of stone", points: 0 },
+    ],
+    explanation: "A threshold and a deadline are both invisible lines where everything changes the moment you cross over them.",
+    distractorNote: "A walnut and a fountain are a nut and a water feature; neither is a limit you cross, and they share nothing.",
+  },
+
+  // ---------------------------------------------------------------------
+  // d15: ideas about ideas: representation, belief and meaning
+  // ---------------------------------------------------------------------
+  {
+    id: "wt-71", d: 15,
+    items: [{ text: "metaphor" }, { text: "model" }, { text: "anchor" }, { text: "plum" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They both explain something hard by standing in for it as something simpler you already understand", points: 2 },
+      { text: "They both help explain things", points: 1 },
+      { text: "They are both toys", points: 0 },
+    ],
+    explanation: "A metaphor and a model both explain something hard by standing in for it as something simpler you already understand.",
+    distractorNote: "An anchor and a plum are boat equipment and a fruit; neither stands in for anything else, and they do not pair.",
+  },
+  {
+    id: "wt-72", d: 15,
+    items: [{ text: "irony" }, { text: "illusion" }, { text: "kettle" }, { text: "badger" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "In both of them, what appears to be happening is the opposite of what is really happening", points: 2 },
+      { text: "They are both surprising", points: 1 },
+      { text: "They are both animals", points: 0 },
+    ],
+    explanation: "In both irony and an illusion, what appears to be happening is the opposite of what is really happening.",
+    distractorNote: "A kettle and a badger are an object and an animal; neither involves appearance differing from reality.",
+  },
+  {
+    id: "wt-73", d: 15,
+    items: [{ text: "prejudice" }, { text: "superstition" }, { text: "cactus" }, { text: "saucer" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both beliefs people hold firmly even though there is no evidence at all behind them", points: 2 },
+      { text: "They are both beliefs", points: 1 },
+      { text: "They are both plants", points: 0 },
+    ],
+    explanation: "Prejudice and superstition are both beliefs people hold firmly even though there is no evidence at all behind them.",
+    distractorNote: "A cactus and a saucer are a plant and a dish; neither is a belief, and they have no category in common.",
+  },
+  {
+    id: "wt-74", d: 15,
+    items: [{ text: "symbol" }, { text: "password" }, { text: "pelican" }, { text: "quilt" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They both stand for something else, and they only work while everybody agrees on what they mean", points: 2 },
+      { text: "They both mean something", points: 1 },
+      { text: "They are both soft", points: 0 },
+    ],
+    explanation: "A symbol and a password both stand for something else, and both only work while everybody agrees on what they mean.",
+    distractorNote: "A pelican and a quilt are a bird and a bedcover; neither depends on shared agreement about meaning.",
+  },
+  {
+    id: "wt-75", d: 15,
+    items: [{ text: "satire" }, { text: "exaggeration" }, { text: "otter" }, { text: "lantern" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They both stretch something past the truth deliberately, so that a point lands harder than plain facts would", points: 2 },
+      { text: "They both make things sound bigger than they are", points: 1 },
+      { text: "They are both bright", points: 0 },
+    ],
+    explanation: "Satire and exaggeration both stretch something past the truth deliberately, so a point lands harder than plain facts would.",
+    distractorNote: "An otter and a lantern are an animal and a light; neither overstates anything, and they do not belong together.",
   },
 ];

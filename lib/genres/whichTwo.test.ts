@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { DIFFICULTIES } from "../engine/types";
+import { DIFFICULTIES, type Difficulty } from "../engine/types";
 import { whichTwo } from "./whichTwo";
 import { WHICH_TWO_BANK } from "./banks/whichTwo";
+
+// Bank widened to d15 on 2026-08-29 (decision #26) — sweep the authored range,
+// not just the default 1-10, or the new bands ship untested.
+const ALL_D = [...DIFFICULTIES, 11, 12, 13, 14, 15] as Difficulty[];
 
 describe("whichTwo", () => {
   it("is an untimed staircase genre", () => {
@@ -9,9 +13,9 @@ describe("whichTwo", () => {
     expect(whichTwo.timing.kind).toBe("none");
   });
 
-  it("generate is deterministic and always resolves to a real bank item (500 seeds x 10 difficulties)", () => {
+  it("generate is deterministic and always resolves to a real bank item (500 seeds x 15 difficulties)", () => {
     for (let seed = 0; seed < 500; seed++) {
-      for (const d of DIFFICULTIES) {
+      for (const d of ALL_D) {
         const a = whichTwo.generate(seed, d);
         const b = whichTwo.generate(seed, d);
         expect(b).toEqual(a);
@@ -25,7 +29,7 @@ describe("whichTwo", () => {
 
   it("honors excludeBankIds by returning a different bank item", () => {
     for (let seed = 0; seed < 30; seed++) {
-      for (const d of DIFFICULTIES) {
+      for (const d of ALL_D) {
         const first = whichTwo.generate(seed, d);
         const second = whichTwo.generate(seed, d, { excludeBankIds: [first.bankId] });
         expect(second.bankId).not.toBe(first.bankId);
@@ -35,7 +39,7 @@ describe("whichTwo", () => {
 
   it("scores 2 for the correct pair + best reason, 1 for the correct pair + any other reason, 0 for a wrong pair or no response", () => {
     for (let seed = 0; seed < 50; seed++) {
-      for (const d of DIFFICULTIES) {
+      for (const d of ALL_D) {
         const item = whichTwo.generate(seed, d);
         const bestIdx = item.reasons.findIndex(r => r.points === 2);
         const otherIdx = item.reasons.findIndex(r => r.points !== 2);

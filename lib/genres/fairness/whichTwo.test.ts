@@ -5,7 +5,7 @@
 // registry this worktree does not touch. Each rule below is named with the
 // bug it prevents.
 import { describe, it, expect } from "vitest";
-import { DIFFICULTIES } from "../../engine/types";
+import { DIFFICULTIES, type Difficulty } from "../../engine/types";
 import { whichTwo } from "../whichTwo";
 import { WHICH_TWO_BANK } from "../banks/whichTwo";
 
@@ -17,18 +17,23 @@ function noDashes(s: string): boolean {
 
 const SEEDS = Array.from({ length: 500 }, (_, i) => i + 1);
 
+// The bank was widened to d15 on 2026-08-29 (decision #26). Sweeping only
+// DIFFICULTIES (1-10) would have left the new bands entirely unguarded, so
+// every rule below runs over the authored range instead.
+const ALL_D = [...DIFFICULTIES, 11, 12, 13, 14, 15] as Difficulty[];
+
 describe("whichTwo bank shape", () => {
   it("has unique ids", () => {
     const ids = WHICH_TWO_BANK.map(b => b.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("has every item's d within 1..10", () => {
-    for (const item of WHICH_TWO_BANK) expect(DIFFICULTIES).toContain(item.d);
+  it("has every item's d within 1..15", () => {
+    for (const item of WHICH_TWO_BANK) expect(ALL_D).toContain(item.d);
   });
 
   it("has at least 4 items at every difficulty", () => {
-    for (const d of DIFFICULTIES) {
+    for (const d of ALL_D) {
       const count = WHICH_TWO_BANK.filter(b => b.d === d).length;
       expect(count, `difficulty ${d}`).toBeGreaterThanOrEqual(4);
     }
@@ -93,7 +98,7 @@ describe("whichTwo bank shape", () => {
 
 describe("whichTwo generate fairness", () => {
   it("generate(seed, d) is deterministic across the full sweep", () => {
-    for (const d of DIFFICULTIES) {
+    for (const d of ALL_D) {
       for (const seed of SEEDS) {
         const a = whichTwo.generate(seed, d);
         const b = whichTwo.generate(seed, d);
@@ -103,7 +108,7 @@ describe("whichTwo generate fairness", () => {
   });
 
   it("the four displayed items are always exactly the bank item's own four options — shuffling position must never invent, drop, or duplicate an option", () => {
-    for (const d of DIFFICULTIES) {
+    for (const d of ALL_D) {
       for (const seed of SEEDS.slice(0, 50)) {
         const item = whichTwo.generate(seed, d);
         const bankItem = WHICH_TWO_BANK.find(b => b.id === item.bankId)!;
@@ -115,7 +120,7 @@ describe("whichTwo generate fairness", () => {
   });
 
   it("the shuffled pair always points at the same two option texts the bank marked as the pair", () => {
-    for (const d of DIFFICULTIES) {
+    for (const d of ALL_D) {
       for (const seed of SEEDS.slice(0, 50)) {
         const item = whichTwo.generate(seed, d);
         const bankItem = WHICH_TWO_BANK.find(b => b.id === item.bankId)!;
@@ -127,7 +132,7 @@ describe("whichTwo generate fairness", () => {
   });
 
   it("the three reasons shown are always exactly the bank item's own three reasons, just reordered", () => {
-    for (const d of DIFFICULTIES) {
+    for (const d of ALL_D) {
       for (const seed of SEEDS.slice(0, 50)) {
         const item = whichTwo.generate(seed, d);
         const bankItem = WHICH_TWO_BANK.find(b => b.id === item.bankId)!;
@@ -139,7 +144,7 @@ describe("whichTwo generate fairness", () => {
   });
 
   it("scoring never gives full credit unless both the pair and the best reason are correct, and a wrong pair always scores 0 regardless of reason", () => {
-    for (const d of DIFFICULTIES) {
+    for (const d of ALL_D) {
       for (const seed of SEEDS.slice(0, 50)) {
         const item = whichTwo.generate(seed, d);
         const bestIdx = item.reasons.findIndex(r => r.points === 2);
@@ -159,7 +164,7 @@ describe("whichTwo generate fairness", () => {
   });
 
   it("widens to a neighboring difficulty when every item at d is excluded", () => {
-    for (const d of DIFFICULTIES) {
+    for (const d of ALL_D) {
       const idsAtD = WHICH_TWO_BANK.filter(b => b.d === d).map(b => b.id);
       for (let seed = 0; seed < 5; seed++) {
         const item = whichTwo.generate(seed, d, { excludeBankIds: idsAtD });

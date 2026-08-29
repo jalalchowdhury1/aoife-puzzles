@@ -8,7 +8,25 @@ import type { ArithmeticBankItem } from "../bankGenre";
 // step (about age 7 to 8); d5-6 two-step within 100 including simple time
 // and money (about age 9 to 10); d7-8 multiplication/division facts in
 // stories, with remainders (about age 11 to 12); d9-10 multi-step problems
-// with fractions of groups and rates (about age 13).
+// with fractions of groups and rates (about age 13); d11-15 fractions of
+// totals, percents, unit rates, averages and ratio shares (about age 14).
+//
+// Widened to d20 on 2026-08-29 (decision #26). Her Level 8A probe climbed
+// d10 to d15 with 13 of 14 correct and NO miss above d10, so d15 was our
+// ceiling, not hers. The new bands add the algebraic moves, still told as
+// stories and still answered with one whole number:
+//   d16 chains of fractions, and sequences that grow by a fixed step.
+//   d17 combined rates and averages.
+//   d18 two unknowns from a total plus a relationship between them.
+//   d19 working backwards through a chain of operations.
+//   d20 capstone: several of the above in one problem.
+//
+// INTEGER SAFETY (the rule that matters here): `ok` is only a PREFERENCE.
+// After 50 rejected draws bankGenre.ts falls back to the first draw anyway,
+// so `answer` must still return a non-negative whole number for that draw.
+// Every template below is therefore built from +, -, * and floor, or uses an
+// `ok` whose hit rate is at worst 1 in 5 — never a long shot that would
+// eventually render a fraction as her "correct" answer.
 export const ARITHMETIC_BANK: ArithmeticBankItem[] = [
   // d1: counting/adding within 10, age 6
   {
@@ -535,5 +553,179 @@ export const ARITHMETIC_BANK: ArithmeticBankItem[] = [
     template: "Aoife saves {a} dollars in week one and doubles the amount she saves every week after that. How many dollars does she save in week three?",
     vars: { a: [2, 12] },
     answer: v => 4 * v.a,
+  },
+
+  // -------------------------------------------------------------------
+  // d16: chains of fractions, and sequences growing by a fixed step
+  // -------------------------------------------------------------------
+  {
+    id: "ar-81", d: 16,
+    template: "Aoife reads {a} pages on Monday. Every day after that she reads {b} more pages than she read the day before. How many pages does she read on Friday?",
+    vars: { a: [5, 30], b: [2, 9] },
+    answer: v => v.a + 4 * v.b,
+    explanation: "Friday is four days after Monday, so add {b} four times: {a} plus four lots of {b}.",
+  },
+  {
+    id: "ar-82", d: 16,
+    template: "A shirt costs {a} dollars. In a sale the price falls by one quarter. Then it falls again by one third of that new price. How many dollars does the shirt cost now?",
+    // Divisible by FOUR, not just two: a %2 price like 14 dollars gives a
+    // correct final answer of 7 but an intermediate of 10.50, and she works
+    // these in whole steps. Every stage has to land on a whole number.
+    vars: { a: [12, 80] },
+    ok: v => v.a % 4 === 0,
+    answer: v => v.a / 2,
+    explanation: "Taking away a quarter leaves three quarters, and taking away a third of that leaves two thirds of three quarters, which is exactly half of {a}.",
+  },
+  {
+    id: "ar-83", d: 16,
+    template: "A box holds {a} groups of ten pencils. In every group of ten, {b} of the pencils are red. How many pencils in the box are not red?",
+    vars: { a: [3, 9], b: [1, 8] },
+    answer: v => v.a * (10 - v.b),
+    explanation: "Each group of ten has ten take away {b} pencils that are not red, and there are {a} groups.",
+  },
+  {
+    id: "ar-84", d: 16,
+    template: "Aoife has {a} marbles. She gives away one fifth of them, and then she finds {b} more. How many marbles does she have now?",
+    vars: { a: [15, 90], b: [2, 20] },
+    ok: v => v.a % 5 === 0,
+    answer: v => (v.a * 4) / 5 + v.b,
+    explanation: "Giving away one fifth leaves four fifths of {a}, and then {b} more are added.",
+  },
+
+  // -------------------------------------------------------------------
+  // d17: combined rates and averages
+  // -------------------------------------------------------------------
+  {
+    id: "ar-85", d: 17,
+    template: "One printer prints {a} pages a minute and another prints {b} pages a minute. Running at the same time, how many pages do they print in {c} minutes?",
+    vars: { a: [2, 9], b: [2, 9], c: [3, 12] },
+    answer: v => (v.a + v.b) * v.c,
+    explanation: "Together they print {a} plus {b} pages every minute, for {c} minutes.",
+  },
+  {
+    id: "ar-86", d: 17,
+    template: "Aoife scores {a} points on each of her first three tests, and {b} points on her fourth test. What is her average score across the four tests?",
+    vars: { a: [60, 96], b: [40, 100] },
+    ok: v => (3 * v.a + v.b) % 4 === 0,
+    answer: v => (3 * v.a + v.b) / 4,
+    explanation: "Add all four scores, which is three lots of {a} plus {b}, then share that total between the four tests.",
+  },
+  {
+    id: "ar-87", d: 17,
+    template: "A car travels {a} miles in {b} hours. Going at that same steady speed, how many miles does it travel in {c} hours?",
+    vars: { a: [60, 240], b: [2, 5], c: [3, 10] },
+    ok: v => v.a % v.b === 0,
+    answer: v => (v.a / v.b) * v.c,
+    explanation: "First find the miles in one hour, which is {a} shared between {b} hours, then multiply by {c}.",
+  },
+  {
+    id: "ar-88", d: 17,
+    template: "Aoife walks for {a} minutes covering {b} meters each minute, then runs for {c} minutes covering {d} meters each minute. How many meters does she cover altogether?",
+    vars: { a: [5, 15], b: [40, 80], c: [3, 8], d: [90, 140] },
+    answer: v => v.a * v.b + v.c * v.d,
+    explanation: "Work out the walking distance and the running distance separately, then add them together.",
+  },
+
+  // -------------------------------------------------------------------
+  // d18: two unknowns, from a total plus a relationship
+  // -------------------------------------------------------------------
+  {
+    id: "ar-89", d: 18,
+    template: "Aoife and her brother have {a} stickers between them. Aoife has {b} more stickers than her brother. How many stickers does Aoife have?",
+    vars: { a: [20, 100], b: [2, 20] },
+    ok: v => (v.a + v.b) % 2 === 0 && v.a > v.b,
+    answer: v => Math.floor((v.a + v.b) / 2),
+    explanation: "If they had the same number they would have half of {a} each. Aoife has half of the extra {b} more than that, so take {a} plus {b} and halve it.",
+  },
+  {
+    id: "ar-90", d: 18,
+    template: "Two numbers add up to {a}. The bigger number is {b} times the smaller number. What is the smaller number?",
+    vars: { a: [12, 120], b: [2, 5] },
+    ok: v => v.a % (v.b + 1) === 0,
+    answer: v => Math.floor(v.a / (v.b + 1)),
+    explanation: "The total is made of one small part plus {b} more small parts, so {a} splits into {b} plus one equal parts.",
+  },
+  {
+    id: "ar-91", d: 18,
+    template: "A rope {a} meters long is cut into two pieces, and one piece is {b} meters longer than the other. How many meters long is the shorter piece?",
+    vars: { a: [20, 100], b: [2, 18] },
+    ok: v => (v.a - v.b) % 2 === 0 && v.a > v.b,
+    answer: v => Math.floor((v.a - v.b) / 2),
+    explanation: "Take the extra {b} meters off first, and what remains splits into two equal pieces.",
+  },
+  {
+    id: "ar-92", d: 18,
+    template: "A box of {a} fruits holds only apples and pears, and there are {b} times as many apples as pears. How many pears are in the box?",
+    vars: { a: [12, 96], b: [2, 5] },
+    ok: v => v.a % (v.b + 1) === 0,
+    answer: v => Math.floor(v.a / (v.b + 1)),
+    explanation: "For every one pear there are {b} apples, so the {a} fruits come in groups of {b} plus one, and each group holds a single pear.",
+  },
+
+  // -------------------------------------------------------------------
+  // d19: working backwards through a chain
+  // -------------------------------------------------------------------
+  {
+    id: "ar-93", d: 19,
+    template: "Aoife has some stickers. She gives {a} of them away, then shares everything left equally among {b} friends, and each friend gets {c} stickers. How many stickers did she start with?",
+    vars: { a: [3, 25], b: [2, 8], c: [3, 15] },
+    answer: v => v.b * v.c + v.a,
+    explanation: "Undo the sharing first, so {b} friends with {c} each is {b} times {c}, then put the {a} she gave away back on top.",
+  },
+  {
+    id: "ar-94", d: 19,
+    template: "Aoife thinks of a number. She doubles it and then adds {a}. Her answer is {b}. What number did she think of?",
+    vars: { a: [3, 20], b: [30, 120] },
+    ok: v => (v.b - v.a) % 2 === 0 && v.b > v.a,
+    answer: v => Math.floor((v.b - v.a) / 2),
+    explanation: "Undo the steps backwards: take the {a} back off {b}, then halve what is left.",
+  },
+  {
+    id: "ar-95", d: 19,
+    template: "A tank leaks {a} liters every hour. After {b} hours it holds {c} liters. How many liters did it hold at the start?",
+    vars: { a: [3, 15], b: [2, 9], c: [10, 80] },
+    answer: v => v.a * v.b + v.c,
+    explanation: "It lost {a} liters {b} times over, so add all of that back onto the {c} liters still there.",
+  },
+  {
+    id: "ar-96", d: 19,
+    template: "Aoife spends one third of her money on a book, and after that she has {a} dollars left. How many dollars did she have to begin with?",
+    vars: { a: [12, 90] },
+    ok: v => v.a % 2 === 0,
+    answer: v => Math.floor((v.a * 3) / 2),
+    explanation: "The {a} dollars left are two thirds of what she started with, so half of {a} is one third, and three of those thirds is the beginning amount.",
+  },
+
+  // -------------------------------------------------------------------
+  // d20: capstone, several stages in one problem
+  // -------------------------------------------------------------------
+  {
+    id: "ar-97", d: 20,
+    template: "A shop buys {a} boxes with {b} pens in each box. It sells {c} pens and packs all the rest into bags of {d}. How many full bags does it pack?",
+    vars: { a: [6, 12], b: [12, 20], c: [10, 60], d: [4, 10] },
+    answer: v => Math.floor((v.a * v.b - v.c) / v.d),
+    explanation: "Find the total pens, which is {a} boxes of {b}, take away the {c} sold, then see how many whole groups of {d} that leaves.",
+  },
+  {
+    id: "ar-98", d: 20,
+    template: "Aoife saves {a} dollars a week for {b} weeks. She then spends {c} dollars, and after that saves {d} dollars a week for {e} more weeks. How many dollars does she have at the end?",
+    vars: { a: [8, 20], b: [6, 12], c: [10, 45], d: [5, 15], e: [3, 10] },
+    answer: v => v.a * v.b - v.c + v.d * v.e,
+    explanation: "Work through it in order: {a} a week for {b} weeks, take away {c}, then add {d} a week for {e} weeks.",
+  },
+  {
+    id: "ar-99", d: 20,
+    template: "A hall has {a} rows of {b} seats. {c} of the seats are broken, and the working seats are shared equally between {d} classes. How many working seats does each class get?",
+    vars: { a: [8, 15], b: [10, 20], c: [5, 40], d: [2, 5] },
+    ok: v => (v.a * v.b - v.c) % v.d === 0,
+    answer: v => Math.floor((v.a * v.b - v.c) / v.d),
+    explanation: "Count all the seats as {a} rows of {b}, take off the {c} broken ones, then share what is left between {d} classes.",
+  },
+  {
+    id: "ar-100", d: 20,
+    template: "Aoife is {a} years old and her mother is {b} times as old as she is. How old will her mother be in {c} years?",
+    vars: { a: [7, 12], b: [3, 5], c: [2, 15] },
+    answer: v => v.a * v.b + v.c,
+    explanation: "Her mother is {b} lots of {a} years old right now, and {c} more years will pass.",
   },
 ];

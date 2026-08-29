@@ -56,6 +56,10 @@ export const whichTwo: Genre<WhichTwoItem, WhichTwoResponse> = {
   kidTitle: "Which Two Belong?",
   instructions:
     "Look at the four pictures. Tap the two that go together. Then tap the best reason why they go together.",
+  // Widened to 15 on 2026-08-29 (decision #17 earned, decision #26): her Level
+  // 8C probe scored 10/10 and topped d10 with no miss, so the old cap was
+  // measuring the bank rather than her. See banks/whichTwo.ts for the ramp.
+  maxDifficulty: 15,
 
   sample() {
     const found = WHICH_TWO_BANK.find(b => b.id === "wt-01")!;

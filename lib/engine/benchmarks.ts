@@ -168,6 +168,14 @@ export const BENCHMARKS: Partial<Record<GenreId, GenreBenchmark>> = {
       { dMin: 11, dMax: 12, skill: "Fractions of totals, simple percents, chains", typicalAge: { lo: 10, hi: 12 }, basis: CCSS },
       { dMin: 13, dMax: 13, skill: "Unit rates and averages", typicalAge: { lo: 11, hi: 13 }, basis: CCSS },
       { dMin: 14, dMax: 15, skill: "Working backwards; combined rates, ratio shares", typicalAge: { lo: 12, hi: 14 }, basis: CCSS },
+      // d16-20 widened 2026-08-29 (decision #26 — she topped d15 with 13/14
+      // and no miss above d10). These are the pre algebra moves, still told
+      // as stories: CCSS places them in grades 6-8.
+      { dMin: 16, dMax: 16, skill: "Chained fractions of a total; sequences with a fixed step", typicalAge: { lo: 12, hi: 14 }, basis: CCSS },
+      { dMin: 17, dMax: 17, skill: "Combined rates and weighted averages", typicalAge: { lo: 13, hi: 15 }, basis: CCSS },
+      { dMin: 18, dMax: 18, skill: "Two unknowns from a total plus a relationship", typicalAge: { lo: 13, hi: 15 }, basis: CCSS },
+      { dMin: 19, dMax: 19, skill: "Working backwards through a chain of operations", typicalAge: { lo: 13, hi: 15 }, basis: CCSS },
+      { dMin: 20, dMax: 20, skill: "Multi stage problems combining all of the above", typicalAge: { lo: 14, hi: null }, basis: CCSS },
     ],
   },
   // ---- VC cousins (banks authored to an age-6->13 ramp, decision #10) ------
@@ -179,6 +187,13 @@ export const BENCHMARKS: Partial<Record<GenreId, GenreBenchmark>> = {
       { dMin: 5, dMax: 6, skill: "Second-order categories (both measure things)", typicalAge: { lo: 8, hi: 10 }, basis: VERBAL },
       { dMin: 7, dMax: 8, skill: "Abstract shared-rule pairs", typicalAge: { lo: 10, hi: 12 }, basis: VERBAL },
       { dMin: 9, dMax: 10, skill: "Multiple-level abstract categories", typicalAge: { lo: 12, hi: 13 }, basis: VERBAL },
+      // d11-15 widened 2026-08-29 (decision #26 — her L8C probe scored 10/10
+      // and topped d10 without a miss). The ramp keeps climbing the same
+      // axis: how abstract is the rule that joins the pair?
+      { dMin: 11, dMax: 12, skill: "Pairs joined by a hidden shared process, not a category", typicalAge: { lo: 13, hi: 14 }, basis: VERBAL },
+      { dMin: 13, dMax: 13, skill: "Social systems joined by the role they play between people", typicalAge: { lo: 14, hi: 15 }, basis: VERBAL },
+      { dMin: 14, dMax: 14, skill: "Processes joined by how they unfold over time", typicalAge: { lo: 14, hi: 15 }, basis: VERBAL },
+      { dMin: 15, dMax: 15, skill: "Ideas about ideas: representation, belief and meaning", typicalAge: { lo: 15, hi: null }, basis: VERBAL },
     ],
   },
   fillTheGap: {

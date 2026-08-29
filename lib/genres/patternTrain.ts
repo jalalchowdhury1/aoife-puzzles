@@ -449,6 +449,10 @@ function buildSequence(rng: Rng, d: Difficulty): Built {
     case 13: return buildD13(rng);
     case 14: return buildD14(rng);
     case 15: return buildD15(rng);
+    // Difficulty runs to 20 app-wide (decision #26) but Pattern Train is
+    // authored to 15 (`maxDifficulty` below), so 16-20 can only arrive from a
+    // config bug — fail loudly rather than silently serve a d15 item.
+    default: throw new Error(`patternTrain: no build for difficulty ${d} (authored 1-15)`);
   }
 }
 

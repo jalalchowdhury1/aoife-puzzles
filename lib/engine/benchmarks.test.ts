@@ -143,9 +143,18 @@ describe("measureStatus", () => {
   });
 
   it("at-top when the ceiling equals the genre's own maxD — the game ran out of ladder, not her", () => {
-    // arithmetic's maxD is 15 since the 2026-08-28 widening (decision #17).
-    const ins = computeInsights([mkSession([mkBlock("arithmetic", { attempted: 6, correct: 6, ceiling: 15 })])]);
+    // Read the cap from the genre rather than hard-coding it: arithmetic has
+    // now been widened twice (d15 on 2026-08-28, d20 on 2026-08-29) and this
+    // rule is about "her ceiling === the top rung", whatever that rung is.
+    const top = genreMaxD(GENRES.arithmetic!);
+    const ins = computeInsights([mkSession([mkBlock("arithmetic", { attempted: 6, correct: 6, ceiling: top })])]);
     expect(measureStatus(ins, "arithmetic")).toBe("at-top");
+  });
+
+  it("still-winning, NOT at-top, one rung below the cap — the distinction the Ages tab depends on", () => {
+    const top = genreMaxD(GENRES.arithmetic!);
+    const ins = computeInsights([mkSession([mkBlock("arithmetic", { attempted: 6, correct: 6, ceiling: top - 1 })])]);
+    expect(measureStatus(ins, "arithmetic")).toBe("still-winning");
   });
 
   it("null with no data for the genre", () => {

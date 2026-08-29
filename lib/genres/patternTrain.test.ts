@@ -10,7 +10,12 @@ const ALL_D = [...DIFFICULTIES, 11, 12, 13, 14, 15] as const;
 // Total carriages (shown cars + 1 missing) per band — the exact contract each
 // buildDN in patternTrain.ts implements. Kept independent of the
 // implementation so this test actually pins the shape of the deliverable.
-const TOTAL_CARS: Record<Difficulty, number> = {
+// Keyed over exactly this genre's authored band (ALL_D = 1-15) rather than
+// over Difficulty, which runs to 20 app-wide since decision #26 while Pattern
+// Train deliberately stops at 15. Still TOTAL over the band the sweep covers,
+// so a missing entry is a compile error, not a runtime surprise.
+type AuthoredD = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15;
+const TOTAL_CARS: Record<AuthoredD, number> = {
   1: 5, 2: 5, 3: 6, 4: 6, 5: 5, 6: 5, 7: 7, 8: 6, 9: 7, 10: 7,
   11: 7, 12: 9, 13: 8, 14: 9, 15: 10,
 };
@@ -61,7 +66,7 @@ describe("patternTrain.generate", () => {
         const optCount = expectedOptionCount(d);
 
         // --- shape contract ---
-        expect(item.cars.length, `d${d}`).toBe(TOTAL_CARS[d] - 1);
+        expect(item.cars.length, `d${d}`).toBe(TOTAL_CARS[d as AuthoredD] - 1);
         expect(item.options.length, `d${d}`).toBe(optCount);
         expect(item.answer).toBeGreaterThanOrEqual(0);
         expect(item.answer).toBeLessThan(optCount);

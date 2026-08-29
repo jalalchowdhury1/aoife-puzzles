@@ -36,6 +36,10 @@ export interface ItemDetail {
   correct: boolean; points: number; max: number; seconds: number; timedOut: boolean;
   fast: boolean; teaching: boolean; bailed: boolean; excludedBlock: boolean;
   bankId?: string; seed: number;
+  // What she actually gave (an option index, a typed number, or Which Two's
+  // {pair, reason}). Carried so the parent dashboard can replay the whole
+  // question via lib/engine/itemView.ts — see decision #25.
+  response?: unknown;
 }
 
 export interface SkillDetail {
@@ -126,7 +130,7 @@ function toItemDetail(session: SessionRecord, block: BlockRecord, item: ItemReco
     d: item.d, correct: item.correct, points: item.points, max: item.max,
     seconds: item.ms / 1000, timedOut: item.timedOut,
     fast: item.fast === true, teaching: item.teaching === true, bailed: item.bailed === true,
-    excludedBlock, bankId: item.bankId, seed: item.seed,
+    excludedBlock, bankId: item.bankId, seed: item.seed, response: item.response,
   };
 }
 

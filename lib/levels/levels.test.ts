@@ -118,8 +118,8 @@ describe("Level 99 (hidden QA level)", () => {
 
 import { RELEASED_LEVELS } from "./index";
 describe("release gating", () => {
-  it("levels 1, 3, 4, 7 and 8 are released; Level 2 (replica formats) and levels 5/6 (superseded by doors-only #21 before she played them) are hidden", () => {
-    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3, 4, 7, 8]);
+  it("levels 1, 3, 4, 7, 8 and 9 are released; Level 2 (replica formats) and levels 5/6 (superseded by doors-only #21 before she played them) are hidden", () => {
+    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3, 4, 7, 8, 9]);
   });
   it("Level 3 uses every ACTIVE genre exactly once and only active genres", () => {
     const level3 = LEVELS.find((l) => l.id === 3)!;
@@ -398,5 +398,90 @@ describe("Level 8 (Pip's Sky Climb — the ceiling-probe level, decision #24)", 
       const last = part.blocks[part.blocks.length - 1];
       expect(["fromProfileTop"]).toContain(last.start);
     }
+  });
+});
+
+describe("Level 9 (Pip's Record Breakers — built from her completed Level 8)", () => {
+  const level9 = LEVELS.find((l) => l.id === 9)!;
+  const blocks = () => level9.parts.flatMap((p) => p.blocks);
+
+  it("exists, is released, and covers all six door genres exactly once", () => {
+    expect(level9).toBeDefined();
+    expect(level9.released).toBe(true);
+    const all = blocks().map((b) => b.genre);
+    expect(new Set(all)).toEqual(new Set(DOOR_GENRES));
+    expect(all.length).toBe(DOOR_GENRES.length);
+  });
+
+  // Bug this prevents: shipping the widened d16-20 / d11-15 banks but still
+  // starting her UNDER the cap she already cleared, which would spend the
+  // whole block re-proving old ground and re-censor the ceiling again — the
+  // exact failure Level 8 existed to stop.
+  it("probes every still-winning or capped genre AT her ceiling, never under it", () => {
+    const probes = blocks().filter((b) => b.start === "fromProfileTop");
+    expect(probes.map((b) => b.genre).sort())
+      .toEqual(["arithmetic", "fillTheGap", "whatWouldYouDo", "whichTwo"]);
+  });
+
+  it("gives the two topped-out ladders enough items to reach their NEW tops", () => {
+    const arith = blocks().find((b) => b.genre === "arithmetic")!;
+    const which = blocks().find((b) => b.genre === "whichTwo")!;
+    // She sits at d15/d10; stepUp 2 needs two items per rung.
+    expect(arith.maxItems!).toBeGreaterThanOrEqual((20 - 15) * 2);
+    expect(which.maxItems!).toBeGreaterThanOrEqual((15 - 10) * 2);
+  });
+
+  // Decision #18, reinforced by the owner watching her play: "step 12 was
+  // too hard". Bug this prevents: leaving Do You Know on the probe treatment
+  // it had in Level 8, which would walk her straight back into the item she
+  // bailed on.
+  it("winds Do You Know down to a win-heavy remedial block that cannot reach d12", () => {
+    const info = blocks().find((b) => b.genre === "information")!;
+    expect(typeof info.start).toBe("number");
+    const start = info.start as number;
+    // Roughly 30% below the d12 bail peak, per the decision #18 recipe.
+    expect(start).toBeLessThanOrEqual(9);
+    expect(start).toBeGreaterThanOrEqual(7);
+    // A flawless run at stepUp 2 must land ON her proven d11, not past it.
+    const stepUp = info.stepUp ?? level9.stepUp!;
+    const topReached = start + Math.floor(info.maxItems! / stepUp) - 1;
+    expect(topReached).toBeLessThanOrEqual(11);
+    // And the lane it carried in Level 8 is explicitly off here: a remedial
+    // block must never sprint her back to the wall she just hit.
+    expect(info.fastLane).toBe(false);
+  });
+
+  it("keeps the fast lane ON for fillTheGap only, still below her median pace", () => {
+    expect(level9.fastLane).toBe(false);
+    for (const b of blocks()) {
+      if (b.genre === "fillTheGap") {
+        expect(b.fastLane).toBe(true);
+        expect(b.fastMs).toBeLessThan(12_500); // her median
+      } else if (b.genre === "information") {
+        expect(b.fastLane).toBe(false); // deliberate, see above
+      } else {
+        expect(b.fastLane, b.genre).toBeUndefined();
+      }
+    }
+  });
+
+  it("leaves swapShop as a short warm block — it is the one genre with a real measured frontier", () => {
+    const swap = blocks().find((b) => b.genre === "swapShop")!;
+    expect(swap.start).toBe("fromProfile");
+    expect(swap.maxItems).toBe(6);
+    expect(swap.timeScale).toBe(1.5);
+  });
+
+  it("keeps the QRI clock on Story Sums", () => {
+    expect(blocks().find((b) => b.genre === "arithmetic")!.timeScale).toBe(1.5);
+  });
+
+  it("keeps the gentle template: stepUp 2, easeIn ON, reveal, no teaching items, fun on", () => {
+    expect(level9.stepUp).toBe(2);
+    expect(level9.easeIn).toBe(true);
+    expect(level9.feedback).toBe("reveal");
+    expect(level9.teachingItems).toBe(0);
+    expect(level9.weighting).toBe("none");
+    expect(level9.fun).toBe(true);
   });
 });

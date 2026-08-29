@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { DIFFICULTIES, type Difficulty } from "../../engine/types";
 import { makeRng } from "../../engine/rng";
-import { renderArithmetic, type ChoiceBankItem, type ArithmeticBankItem } from "../bankGenre";
+import { renderArithmetic, fallbackVars, type ChoiceBankItem, type ArithmeticBankItem } from "../bankGenre";
 import { SIMILARITIES_BANK } from "./similarities";
 import { VOCABULARY_BANK } from "./vocabulary";
 import { INFORMATION_BANK } from "./information";
@@ -102,6 +102,9 @@ checkPointsProfile(INFORMATION_BANK, "information", () => [1, 0, 0, 0]);
 checkChoiceBankShape(COMPREHENSION_BANK, "comprehension", 4);
 checkPointsProfile(COMPREHENSION_BANK, "comprehension", () => [2, 1, 0, 0]);
 
+// Arithmetic's authored range, base ramp plus both widenings.
+const WIDENED_DS = [...DIFFICULTIES, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20] as Difficulty[];
+
 describe("arithmetic bank shape", () => {
   it("has unique ids", () => {
     const ids = ARITHMETIC_BANK.map(b => b.id);
@@ -109,10 +112,10 @@ describe("arithmetic bank shape", () => {
   });
 
   // Arithmetic was widened to d15 on 2026-08-28 (decision #17 — she topped
-  // the d10 cap with clean wins on the 1.5x clock).
-  it("has every item's d within 1..15", () => {
-    const allDs = [...DIFFICULTIES, 11, 12, 13, 14, 15] as Difficulty[];
-    for (const item of ARITHMETIC_BANK) expect(allDs).toContain(item.d);
+  // the d10 cap with clean wins on the 1.5x clock), then to d20 on
+  // 2026-08-29 (decision #26 — she topped d15 the same way).
+  it("has every item's d within 1..20", () => {
+    for (const item of ARITHMETIC_BANK) expect(WIDENED_DS).toContain(item.d);
   });
 
   it("has at least 6 items at every base difficulty (1-10)", () => {
@@ -122,8 +125,8 @@ describe("arithmetic bank shape", () => {
     }
   });
 
-  it("has at least 4 items at every widened difficulty (11-15)", () => {
-    for (const d of [11, 12, 13, 14, 15] as Difficulty[]) {
+  it("has at least 4 items at every widened difficulty (11-20)", () => {
+    for (const d of WIDENED_DS.filter(d => d > 10)) {
       const count = ARITHMETIC_BANK.filter((b: ArithmeticBankItem) => b.d === d).length;
       expect(count, `difficulty ${d}`).toBeGreaterThanOrEqual(4);
     }
@@ -136,6 +139,53 @@ describe("arithmetic bank shape", () => {
   it("template text has no dashes", () => {
     for (const tmpl of ARITHMETIC_BANK) {
       expect(noDashes(tmpl.template), tmpl.id).toBe(true);
+    }
+  });
+
+  // Added 2026-08-29 after an audit found 19 templates that could render an
+  // UNANSWERABLE item (a fractional "correct" answer) whenever all 50 random
+  // draws missed their `ok` — rare, but a false weakness every time it fired.
+  // bankGenre.ts's fallback now returns a draw that satisfies `ok`; these two
+  // rules are what keep that guarantee true as the bank grows.
+  it("every template's ok predicate is satisfiable, so the fallback draw never throws", () => {
+    for (const tmpl of ARITHMETIC_BANK) {
+      expect(() => fallbackVars(tmpl), tmpl.id).not.toThrow();
+    }
+  });
+
+  it("every template's fallback draw satisfies its own ok and yields a non-negative whole answer", () => {
+    for (const tmpl of ARITHMETIC_BANK) {
+      const vars = fallbackVars(tmpl);
+      // Inside the declared ranges...
+      for (const [k, [lo, hi]] of Object.entries(tmpl.vars)) {
+        expect(vars[k], `${tmpl.id} var ${k}`).toBeGreaterThanOrEqual(lo);
+        expect(vars[k], `${tmpl.id} var ${k}`).toBeLessThanOrEqual(hi);
+      }
+      // ...satisfying ok, which is the whole point...
+      if (tmpl.ok) expect(tmpl.ok(vars), `${tmpl.id} fallback violates its own ok`).toBe(true);
+      // ...and therefore answerable by a child typing whole numbers.
+      const answer = tmpl.answer(vars);
+      expect(Number.isInteger(answer), `${tmpl.id} fallback answer ${answer}`).toBe(true);
+      expect(answer, tmpl.id).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it("no ok-satisfying draw anywhere in a template's range produces a fractional or negative answer", () => {
+    // 2000 accepted draws per template: the ok path is what she actually
+    // sees, so it has to be airtight, not merely usually right.
+    for (const tmpl of ARITHMETIC_BANK) {
+      let checked = 0;
+      for (let seed = 0; checked < 2000 && seed < 40000; seed++) {
+        const rng = makeRng(seed * 2654435761);
+        const vars: Record<string, number> = {};
+        for (const [k, [lo, hi]] of Object.entries(tmpl.vars)) vars[k] = rng.int(lo, hi);
+        if (tmpl.ok && !tmpl.ok(vars)) continue;
+        checked++;
+        const answer = tmpl.answer(vars);
+        expect(Number.isInteger(answer), `${tmpl.id} ${JSON.stringify(vars)} -> ${answer}`).toBe(true);
+        expect(answer, `${tmpl.id} ${JSON.stringify(vars)}`).toBeGreaterThanOrEqual(0);
+      }
+      expect(checked, `${tmpl.id}: ok predicate is too strict to sample`).toBeGreaterThan(0);
     }
   });
 

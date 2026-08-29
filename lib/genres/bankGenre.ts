@@ -97,19 +97,53 @@ function renderTemplate(template: string, vars: Record<string, number>): string 
   return template.replace(/\{(\w+)\}/g, (_m, k: string) => String(vars[k]));
 }
 
+/**
+ * The var draw a template falls back on when 50 random draws all fail its
+ * `ok`. Deterministic (its own fixed seed), and — unlike the draw this
+ * replaced — it NEVER returns a combination that violates `ok`.
+ *
+ * Why this matters (decision #14, validity is sacred): most `ok` predicates
+ * are divisibility guards, and `answer` divides. The old fallback returned
+ * the FIRST random draw regardless, so a template like "share {a} stickers
+ * two for one" could render with a = 7 and compute a correct answer of
+ * 4.666..., which she then cannot possibly type. That is a false weakness
+ * written straight into her profile. An audit on 2026-08-29 found 19 of the
+ * 100 templates able to do this — every one of them guarded only by
+ * probability (roughly 1e-6 to 1e-15 per item, never zero).
+ *
+ * Throws if no valid combination exists at all; `banks.test.ts` proves that
+ * never happens for any authored template, which is what makes the throw
+ * safe to leave in.
+ */
+export function fallbackVars(tmpl: ArithmeticBankItem): Record<string, number> {
+  const keys = Object.keys(tmpl.vars);
+  const rng = makeRng(0x5EED);
+  for (let attempt = 0; attempt < 100_000; attempt++) {
+    const vars: Record<string, number> = {};
+    for (const k of keys) {
+      const [min, max] = tmpl.vars[k];
+      vars[k] = rng.int(min, max);
+    }
+    if (!tmpl.ok || tmpl.ok(vars)) return vars;
+  }
+  throw new Error(`arithmetic template ${tmpl.id}: no var draw satisfies its ok predicate`);
+}
+
 function drawVars(tmpl: ArithmeticBankItem, rng: Rng): Record<string, number> {
   const keys = Object.keys(tmpl.vars);
-  let first: Record<string, number> | null = null;
+  // The 50 random attempts and their rng consumption are UNCHANGED: every
+  // item she has already played must keep regenerating identically (her
+  // history, the Practice tab, and the parent page's question replay all
+  // depend on it). Only the give up path below is different.
   for (let attempt = 0; attempt < 50; attempt++) {
     const vars: Record<string, number> = {};
     for (const k of keys) {
       const [min, max] = tmpl.vars[k];
       vars[k] = rng.int(min, max);
     }
-    if (first === null) first = vars;
     if (!tmpl.ok || tmpl.ok(vars)) return vars;
   }
-  return first as Record<string, number>;
+  return fallbackVars(tmpl);
 }
 
 /** Draws vars for `tmpl` with `rng` and renders the text + computed answer + explanation. Exported for bank tests. */

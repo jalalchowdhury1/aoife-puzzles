@@ -13,7 +13,7 @@ export const fillTheGap = makeChoiceGenre(
     kidTitle: "Fill the Gap",
     instructions: "Read the sentence. One word is missing. Tap the word that fits best, then press Done.",
     sampleId: "fg-01",
-    sampleExplanation: "Cats often sleep on a mat, so sleeping fits best.",
+    sampleExplanation: "Her eyes have stayed shut since lunch, so sleeping fits better than resting.",
   },
   FILL_THE_GAP_BANK,
 );

@@ -1,5 +1,6 @@
 import type { Genre, GenreId, Domain, Difficulty, GenerateOpts, ScoreResult } from "../engine/types";
 import { makeRng, type Rng } from "../engine/rng";
+import { bankAsOf } from "./banks/legacy";
 
 // ---------------------------------------------------------------------------
 // Choice genres (Similarities, Vocabulary, Information, Comprehension)
@@ -9,6 +10,14 @@ export interface ChoiceOption { text: string; points: 0 | 1 | 2 }
 export interface ChoiceBankItem {
   id: string; d: Difficulty; prompt: string; emoji?: string;
   options: ChoiceOption[]; explanation: string;
+  /**
+   * Reviewer note (decision #29, required on every active verbal bank item):
+   * why each 0 point option is plausible but wrong, why the 1 point option is
+   * only partly right, what makes the best option uniquely best, and which
+   * giveaway cues (length, register, stem echo, moral adverb, silliness) were
+   * checked. Never shown to her.
+   */
+  reviewNote?: string;
 }
 export interface ChoiceItem {
   bankId: string; d: Difficulty; prompt: string; emoji?: string;
@@ -36,6 +45,15 @@ function pickWidening<T extends { id: string; d: Difficulty }>(
 }
 
 export function makeChoiceGenre(meta: ChoiceGenreMeta, bank: readonly ChoiceBankItem[]): Genre<ChoiceItem, number> {
+  const generate = (seed: number, d: Difficulty, opts?: GenerateOpts): ChoiceItem => {
+    const rng = makeRng(seed);
+    const exclude = new Set(opts?.excludeBankIds ?? []);
+    // A history replay (opts.asOf = session date) draws from the bank that
+    // was live then (banks/legacy), so it shows the words she actually saw.
+    const picked = pickWidening(bankAsOf(meta.id, bank, opts?.asOf), d, exclude, rng);
+    const options = rng.shuffle(picked.options).map(o => ({ text: o.text, points: o.points }));
+    return { bankId: picked.id, d: picked.d, prompt: picked.prompt, emoji: picked.emoji, options, explanation: picked.explanation };
+  };
   return {
     id: meta.id, subtest: meta.subtest, domain: meta.domain, kidTitle: meta.kidTitle, instructions: meta.instructions,
     ...(meta.maxDifficulty !== undefined ? { maxDifficulty: meta.maxDifficulty } : {}),
@@ -44,20 +62,14 @@ export function makeChoiceGenre(meta: ChoiceGenreMeta, bank: readonly ChoiceBank
     sample() {
       const found = bank.find(b => b.id === meta.sampleId);
       if (!found) throw new Error(`sampleId ${meta.sampleId} not found in bank for ${meta.id}`);
-      const item: ChoiceItem = {
-        bankId: found.id, d: found.d, prompt: found.prompt, emoji: found.emoji,
-        options: found.options.map(o => ({ text: o.text, points: o.points })),
-        explanation: found.explanation,
-      };
+      // Fixed seed: banks store the best option first, and an unshuffled
+      // sample taught "the top one is right" right before the scored items
+      // (found in the 2026-08-30 audit). Shuffle exactly like play, but the
+      // same way every time so the spoken walkthrough stays in step.
+      const item = generate(20260830, found.d, { excludeBankIds: bank.filter(b => b.id !== found.id).map(b => b.id) });
       return { item, explanation: meta.sampleExplanation };
     },
-    generate(seed: number, d: Difficulty, opts?: GenerateOpts): ChoiceItem {
-      const rng = makeRng(seed);
-      const exclude = new Set(opts?.excludeBankIds ?? []);
-      const picked = pickWidening(bank, d, exclude, rng);
-      const options = rng.shuffle(picked.options).map(o => ({ text: o.text, points: o.points }));
-      return { bankId: picked.id, d: picked.d, prompt: picked.prompt, emoji: picked.emoji, options, explanation: picked.explanation };
-    },
+    generate,
     score(item: ChoiceItem, response: number | null): ScoreResult {
       const max = item.options.reduce((m, o) => Math.max(m, o.points), 0);
       if (response === null || response === undefined || response < 0 || response >= item.options.length) {

@@ -12,11 +12,17 @@ import type { SwapShopItem } from "../genres/swapShop";
 
 // Every session below is dated after the last scale cutover (2026-08-26),
 // so guard 1 passes and the other guards are what is actually exercised.
+// AFTER the 2026-08-26 Swap Shop re-band but BEFORE the 2026-08-30 verbal
+// re-author, so choice/whichTwo fixtures below regenerate against the frozen
+// legacy banks (decision #29) exactly as resolveItemView does for that date.
 const AFTER = "2026-08-28T13:00:00Z";
 const BEFORE = "2026-08-25T13:00:00Z";
 
-function gen<T>(genre: keyof typeof GENRES, seed: number, d: Difficulty): T {
-  return GENRES[genre]!.generate(seed, d) as T;
+// `asOf` mirrors what resolveItemView passes (the session date): banks that
+// were re-authored keep frozen copies (banks/legacy, decision #29), so a
+// replay dated before a cutover must be compared against the bank of THAT day.
+function gen<T>(genre: keyof typeof GENRES, seed: number, d: Difficulty, asOf?: string): T {
+  return GENRES[genre]!.generate(seed, d, { asOf }) as T;
 }
 
 describe("guard 1 — re-banded ramps", () => {
@@ -48,7 +54,7 @@ describe("choice genres (Fill the Gap / Do You Know / What Would You Do?)", () =
 
   for (const g of CHOICE) {
     it(`${g}: renders the prompt, every option, her pick and the best answer`, () => {
-      const item = gen<{ bankId: string; prompt: string; options: { text: string; points: number }[]; explanation: string }>(g, 777, 5);
+      const item = gen<{ bankId: string; prompt: string; options: { text: string; points: number }[]; explanation: string }>(g, 777, 5, AFTER);
       const pick = item.options.findIndex((o) => o.points === 0);
       expect(pick).toBeGreaterThanOrEqual(0);
 
@@ -69,14 +75,14 @@ describe("choice genres (Fill the Gap / Do You Know / What Would You Do?)", () =
     });
 
     it(`${g}: guard 2 — a different bankId resolves to null`, () => {
-      const item = gen<{ bankId: string; options: unknown[] }>(g, 777, 5);
+      const item = gen<{ bankId: string; options: unknown[] }>(g, 777, 5, AFTER);
       expect(resolveItemView(g, {
         seed: 777, d: 5, response: 0, bankId: `${item.bankId}-not-this-one`, points: 0, date: AFTER,
       })).toBeNull();
     });
 
     it(`${g}: guard 3 — points that disagree with the picked option resolve to null`, () => {
-      const item = gen<{ bankId: string; options: { points: number }[] }>(g, 777, 5);
+      const item = gen<{ bankId: string; options: { points: number }[] }>(g, 777, 5, AFTER);
       const pick = item.options.findIndex((o) => o.points === 0);
       expect(resolveItemView(g, {
         seed: 777, d: 5, response: pick, bankId: item.bankId, points: 2, date: AFTER,
@@ -84,7 +90,7 @@ describe("choice genres (Fill the Gap / Do You Know / What Would You Do?)", () =
     });
 
     it(`${g}: a timeout still shows the question, with no claim about her answer`, () => {
-      const item = gen<{ bankId: string; prompt: string }>(g, 777, 5);
+      const item = gen<{ bankId: string; prompt: string }>(g, 777, 5, AFTER);
       const view = resolveItemView(g, {
         seed: 777, d: 5, response: null, bankId: item.bankId, points: 0, date: AFTER,
       });
@@ -95,7 +101,7 @@ describe("choice genres (Fill the Gap / Do You Know / What Would You Do?)", () =
     });
 
     it(`${g}: an out-of-range response index resolves to null`, () => {
-      const item = gen<{ bankId: string; options: unknown[] }>(g, 777, 5);
+      const item = gen<{ bankId: string; options: unknown[] }>(g, 777, 5, AFTER);
       expect(resolveItemView(g, {
         seed: 777, d: 5, response: item.options.length, bankId: item.bankId, points: 0, date: AFTER,
       })).toBeNull();
@@ -104,8 +110,30 @@ describe("choice genres (Fill the Gap / Do You Know / What Would You Do?)", () =
 });
 
 describe("Which Two Belong — a pair AND a reason", () => {
+  it("a record dated before the 2026-08-30 re-author replays the wording she actually saw, not today's (decision #29)", () => {
+    // wt-50 was "empathy, compassion, ladder, peach" on 2026-08-29; find a
+    // seed that draws it at d10 and check the replay shows the old fillers.
+    let hit: { seed: number; item: WhichTwoItem } | null = null;
+    for (let seed = 1; seed < 500 && !hit; seed++) {
+      const item = gen<WhichTwoItem>("whichTwo", seed, 10, "2026-08-29T12:00:00Z");
+      if (item.bankId === "wt-50") hit = { seed, item };
+    }
+    expect(hit).not.toBeNull();
+    const best = hit!.item.reasons.findIndex((r) => r.points === 2);
+    const view = resolveItemView("whichTwo", {
+      seed: hit!.seed, d: 10, response: { pair: [...hit!.item.pair], reason: best },
+      bankId: "wt-50", points: 2, date: "2026-08-29T12:00:00Z",
+    });
+    expect(view).not.toBeNull();
+    expect(view!.prompt).toContain("ladder");
+    expect(view!.prompt).toContain("peach");
+    // The same seed on a session dated after the cutover shows the new bank.
+    const now = gen<WhichTwoItem>("whichTwo", hit!.seed, 10, "2026-09-01T12:00:00Z");
+    expect(now.items.map((o) => o.text)).not.toContain("ladder");
+  });
+
   it("renders both halves of her answer and both halves of the right one", () => {
-    const item = gen<WhichTwoItem>("whichTwo", 9001, 6);
+    const item = gen<WhichTwoItem>("whichTwo", 9001, 6, AFTER);
     const best = item.reasons.findIndex((r) => r.points === 2);
     const view = resolveItemView("whichTwo", {
       seed: 9001, d: 6, response: { pair: [...item.pair], reason: best },
@@ -123,7 +151,7 @@ describe("Which Two Belong — a pair AND a reason", () => {
   });
 
   it("reports a partial-credit reason as hers but NOT as best", () => {
-    const item = gen<WhichTwoItem>("whichTwo", 9001, 6);
+    const item = gen<WhichTwoItem>("whichTwo", 9001, 6, AFTER);
     const partial = item.reasons.findIndex((r) => r.points === 1);
     const view = resolveItemView("whichTwo", {
       seed: 9001, d: 6, response: { pair: [...item.pair], reason: partial },
@@ -135,7 +163,7 @@ describe("Which Two Belong — a pair AND a reason", () => {
   });
 
   it("guard 3 — a reason whose score disagrees with the record resolves to null", () => {
-    const item = gen<WhichTwoItem>("whichTwo", 9001, 6);
+    const item = gen<WhichTwoItem>("whichTwo", 9001, 6, AFTER);
     const zero = item.reasons.findIndex((r) => r.points === 0);
     expect(resolveItemView("whichTwo", {
       seed: 9001, d: 6, response: { pair: [...item.pair], reason: zero },
@@ -144,7 +172,7 @@ describe("Which Two Belong — a pair AND a reason", () => {
   });
 
   it("a malformed pair resolves to null rather than half an answer", () => {
-    const item = gen<WhichTwoItem>("whichTwo", 9001, 6);
+    const item = gen<WhichTwoItem>("whichTwo", 9001, 6, AFTER);
     for (const bad of [{ pair: [0], reason: 0 }, { pair: [1, 1], reason: 0 }, { pair: [0, 99], reason: 0 }]) {
       expect(resolveItemView("whichTwo", {
         seed: 9001, d: 6, response: bad, bankId: item.bankId, points: 0, date: AFTER,
@@ -153,7 +181,7 @@ describe("Which Two Belong — a pair AND a reason", () => {
   });
 
   it("a timeout shows the four things and the right pair, with no pick", () => {
-    const item = gen<WhichTwoItem>("whichTwo", 9001, 6);
+    const item = gen<WhichTwoItem>("whichTwo", 9001, 6, AFTER);
     const view = resolveItemView("whichTwo", {
       seed: 9001, d: 6, response: null, bankId: item.bankId, points: 0, date: AFTER,
     });
@@ -263,8 +291,8 @@ describe("priorBankIds — replaying an item from the middle of a block", () => 
   // Replaying without the list is the difference between 119 and 99 of her
   // real recorded items resolving (measured 2026-08-29).
   it("lands on the same entry play did when the list is supplied", () => {
-    const first = gen<{ bankId: string }>("information", 2468, 7);
-    const second = GENRES.information!.generate(2468, 7 as Difficulty, { excludeBankIds: [first.bankId] }) as {
+    const first = gen<{ bankId: string }>("information", 2468, 7, AFTER);
+    const second = GENRES.information!.generate(2468, 7 as Difficulty, { excludeBankIds: [first.bankId], asOf: AFTER }) as {
       bankId: string; options: { text: string; points: number }[];
     };
     // The exclusion genuinely changes which entry (0,d) yields — otherwise
@@ -282,8 +310,8 @@ describe("priorBankIds — replaying an item from the middle of a block", () => 
   });
 
   it("resolves to null (never to the wrong question) when the list is omitted", () => {
-    const first = gen<{ bankId: string }>("information", 2468, 7);
-    const second = GENRES.information!.generate(2468, 7 as Difficulty, { excludeBankIds: [first.bankId] }) as {
+    const first = gen<{ bankId: string }>("information", 2468, 7, AFTER);
+    const second = GENRES.information!.generate(2468, 7 as Difficulty, { excludeBankIds: [first.bankId], asOf: AFTER }) as {
       bankId: string; options: { points: number }[];
     };
     const top = Math.max(...second.options.map((o) => o.points));

@@ -154,7 +154,7 @@ describe("whatWouldYouDo: score", () => {
 describe("whatWouldYouDo: sample", () => {
   it("returns the fixed d1 ice cream item with a non-empty explanation", () => {
     const { item, explanation } = whatWouldYouDo.sample();
-    expect(item.prompt).toBe("Mia's friend drops her ice cream and starts to cry. What would you do?");
+    expect(item.prompt).toBe("Your friend drops her ice cream and starts to cry. What would you do?");
     expect(item.d).toBe(1);
     expect(explanation.length).toBeGreaterThan(0);
   });

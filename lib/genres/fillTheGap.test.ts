@@ -148,7 +148,7 @@ describe("fillTheGap: score", () => {
 describe("fillTheGap: sample", () => {
   it("returns the fixed d1 cat item with a non-empty explanation", () => {
     const { item, explanation } = fillTheGap.sample();
-    expect(item.prompt).toBe("The cat is ___ on the mat.");
+    expect(item.prompt).toBe("The cat is ___ on the mat and has not opened her eyes since lunch.");
     expect(item.d).toBe(1);
     expect(explanation.length).toBeGreaterThan(0);
   });

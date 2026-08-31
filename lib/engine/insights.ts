@@ -157,7 +157,7 @@ function toItemDetail(session: SessionRecord, block: BlockRecord, item: ItemReco
  */
 function resolveHerPick(
   genreId: GenreId, seed: number, d: Difficulty, response: unknown,
-  recorded: { bankId?: string; points: number },
+  recorded: { bankId?: string; points: number; date?: string },
 ): string | null {
   const genreDef = GENRES[genreId];
   if (!genreDef) return null;
@@ -167,12 +167,12 @@ function resolveHerPick(
       if (!r || !Array.isArray(r.pair) || r.pair.length !== 2) return null;
       const [a, b] = [...r.pair].sort((x: number, y: number) => x - y) as [number, number];
       if (typeof a !== "number" || typeof b !== "number" || a === b) return null;
-      const item = genreDef.generate(seed, d) as { items: { text: string }[] };
+      const item = genreDef.generate(seed, d, { asOf: recorded.date }) as { items: { text: string }[] };
       if (a < 0 || b >= item.items.length) return null;
       return `picked ${item.items[a].text} + ${item.items[b].text}`;
     }
     if (typeof response !== "number") return null;
-    const item = genreDef.generate(seed, d) as { bankId?: string; options: { text: string; points?: number }[] };
+    const item = genreDef.generate(seed, d, { asOf: recorded.date }) as { bankId?: string; options: { text: string; points?: number }[] };
     if (response < 0 || response >= item.options.length) return null;
     // Consistency guards (see doc comment): same bank entry, same score.
     if (recorded.bankId && item.bankId !== recorded.bankId) return null;
@@ -262,7 +262,7 @@ function buildSkill(g: GenreId, internalItems: InternalItem[], blockEntries: Gen
   if (BANK_CHOICE_GENRES.has(g)) {
     for (const { detail, response } of internalItems) {
       if (detail.correct || detail.teaching || detail.bailed || detail.excludedBlock || !detail.bankId) continue;
-      const herPick = resolveHerPick(g, detail.seed, detail.d as Difficulty, response, { bankId: detail.bankId, points: detail.points });
+      const herPick = resolveHerPick(g, detail.seed, detail.d as Difficulty, response, { bankId: detail.bankId, points: detail.points, date: detail.date });
       missedBankItems.push({ date: detail.date, bankId: detail.bankId, herPick, d: detail.d });
     }
   }

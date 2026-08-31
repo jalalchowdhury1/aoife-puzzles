@@ -181,6 +181,17 @@ export function DavidsonTab({
           WISC-V verbal subtests ask a child to answer out loud in her own words, which is harder. That spoken skill is
           exactly what the <span className="text-white/60">Talk with Pip</span> tab practices.
         </p>
+        {/* Decision #29 (2026-08-30): every verbal bank was re-authored after
+            audits found answer cues (register, length, silly distractors).
+            Her earlier verbal ceilings stand as recorded, but they were
+            measured on cued items and are upper bounds until re-measured. */}
+        <p className="mt-2 text-xs leading-relaxed text-white/40">
+          And one more: the four word games were rebuilt on 30 Aug 2026 after we found their questions gave away part
+          of the answer (the two odd words out were always the pair, the longest choice was usually right). Her word game
+          steps from before that day are kept as recorded, but read them as an{" "}
+          <span className="text-white/60">upper bound</span> until Level 9 Part C and the next sittings measure her again
+          on the fixed questions.
+        </p>
       </section>
 
       <section>

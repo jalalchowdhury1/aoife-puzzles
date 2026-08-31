@@ -146,7 +146,7 @@ export function resolveItemView(genreId: GenreId, rec: RecordedItem): ItemView |
   if (!Number.isInteger(d) || d < 1) return null;
 
   // Replay exactly what play did, exclusion list included (see header note).
-  const opts = { excludeBankIds: rec.priorBankIds ?? [] };
+  const opts = { excludeBankIds: rec.priorBankIds ?? [], asOf: rec.date };
   try {
     if (genreId === "whichTwo") return viewWhichTwo(genreDef.generate(rec.seed, d, opts) as WhichTwoItem, rec);
     if (genreId === "arithmetic") return viewArithmetic(genreDef.generate(rec.seed, d, opts) as ArithmeticItem, rec);

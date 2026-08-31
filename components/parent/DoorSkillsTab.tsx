@@ -103,7 +103,7 @@ export function DoorSkillsTab({ insights }: { insights: Insights }) {
         <CollapsibleSection title="Missed questions" subtitle={`${skill.missedBankItems.length}`} storageKey="skills-missed" defaultOpen>
           <div className="flex flex-col gap-3">
             {skill.missedBankItems.map((m, i) => {
-              const bank = lookupBankItem(m.bankId);
+              const bank = lookupBankItem(m.bankId, m.date);
               if (!bank) {
                 return (
                   <div key={i} className="pd-row p-3 text-sm text-white/55">

@@ -17,6 +17,7 @@ import { SIMILARITIES_BANK } from "../genres/banks/similarities";
 import { VOCABULARY_BANK } from "../genres/banks/vocabulary";
 import { COMPREHENSION_BANK } from "../genres/banks/comprehension";
 import { WHICH_TWO_BANK, type WhichTwoBankItem } from "../genres/banks/whichTwo";
+import { bankAsOf } from "../genres/banks/legacy";
 
 export interface BankEntry {
   genre: GenreId;
@@ -63,13 +64,18 @@ function fromWhichTwo(item: WhichTwoBankItem): BankEntry {
   };
 }
 
-/** Finds a bank-authored item's fixed text by its `bankId`, across every fixed-text bank. Unknown ids (including any arithmetic template id) return null. */
-export function lookupBankItem(bankId: string): BankEntry | null {
+/**
+ * Finds a bank-authored item's fixed text by its `bankId`, across every
+ * fixed-text bank. Unknown ids (including any arithmetic template id) return
+ * null. `asOf` (the session's date) selects the wording that was live when
+ * she played, for banks that keep revision history (decision #29).
+ */
+export function lookupBankItem(bankId: string, asOf?: string): BankEntry | null {
   for (const { genre, bank } of CHOICE_BANKS) {
-    const found = bank.find((b) => b.id === bankId);
+    const found = bankAsOf(genre, bank, asOf).find((b) => b.id === bankId);
     if (found) return fromChoiceItem(genre, found);
   }
-  const wt = WHICH_TWO_BANK.find((b) => b.id === bankId);
+  const wt = bankAsOf("whichTwo", WHICH_TWO_BANK, asOf).find((b) => b.id === bankId);
   if (wt) return fromWhichTwo(wt);
   return null;
 }

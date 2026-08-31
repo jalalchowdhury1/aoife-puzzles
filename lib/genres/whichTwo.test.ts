@@ -63,11 +63,13 @@ describe("whichTwo", () => {
     expect(whichTwo.score(item, { pair: [b, a], reason: bestIdx })).toEqual({ points: 2, max: 2, correct: true });
   });
 
-  it("sample() is the apple and banana d1 item", () => {
+  it("sample() is the apple and banana d1 item, shuffled like play (the pair must not always be tiles 1 and 2) and stable", () => {
     const { item, explanation } = whichTwo.sample();
     expect(item.bankId).toBe("wt-01");
-    expect(item.items.map(o => o.text)).toEqual(["apple", "banana", "car", "dog"]);
-    expect(item.pair).toEqual([0, 1]);
+    expect([...item.items.map(o => o.text)].sort()).toEqual(["apple", "banana", "car", "dog"]);
+    expect(item.pair.map(i => item.items[i].text).sort()).toEqual(["apple", "banana"]);
+    expect(item.pair).not.toEqual([0, 1]);
+    expect(whichTwo.sample().item).toEqual(item);
     expect(explanation.length).toBeGreaterThan(0);
   });
 

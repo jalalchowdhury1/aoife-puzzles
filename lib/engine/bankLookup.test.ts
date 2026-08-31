@@ -14,7 +14,7 @@ describe("lookupBankItem", () => {
   it("resolves a known fillTheGap bank id", () => {
     const entry = lookupBankItem("fg-01");
     expect(entry?.genre).toBe("fillTheGap");
-    expect(entry?.prompt).toBe("The cat is ___ on the mat.");
+    expect(entry?.prompt).toBe("The cat is ___ on the mat and has not opened her eyes since lunch.");
     expect(entry?.emoji).toBe("🐱");
     expect(entry?.options.find((o) => o.text === "sleeping")?.points).toBe(2);
   });
@@ -49,7 +49,7 @@ describe("lookupBankItem", () => {
     expect(entry?.genre).toBe("whichTwo");
     expect(entry?.prompt).toBe("Which two belong? apple, banana, car, dog");
     expect(entry?.options.map((o) => o.text)).toEqual(
-      expect.arrayContaining(["They are both fruit", "They are both food", "They are both round"]),
+      expect.arrayContaining(["They are both fruit", "They are both food", "They both grow under the ground"]),
     );
     expect(entry?.options.find((o) => o.text === "They are both fruit")?.points).toBe(2);
     expect(entry?.explanation).toBe("An apple and a banana are both fruit.");

@@ -15,7 +15,7 @@ export const whatWouldYouDo = makeChoiceGenre(
     kidTitle: "What Would You Do?",
     instructions: "Pip will tell you a little story. Think about what you would do, then tap the best choice and press Done.",
     sampleId: "wd-01",
-    sampleExplanation: "Sharing a hug and your own ice cream comforts Mia and fixes the problem too.",
+    sampleExplanation: "A hug helps her feel better, and sharing your ice cream gives back the thing she lost.",
   },
   WHAT_WOULD_YOU_DO_BANK,
 );

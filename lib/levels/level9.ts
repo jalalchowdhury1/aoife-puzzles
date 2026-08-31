@@ -75,12 +75,21 @@ export const level9: LevelConfig = {
       { genre: "information", start: 8, maxItems: 8, fastLane: false },
       { genre: "fillTheGap", start: "fromProfileTop", maxItems: 12, fastLane: true, fastMs: 7_000 },
     ] },
+    // Part C was re-pointed on 2026-08-30 (decision #29) BEFORE she played
+    // it. Both banks had answer cues (the pair was the only two abstract
+    // words; the best "what would you do" was usually the longest option),
+    // so her recorded d10 / d7 ceilings are upper bounds, not measurements.
+    // Probing "at her ceiling" on the fixed items would start her on a wall
+    // and end the block in two misses. Instead: a re-measure from a low,
+    // hard-pinned start with stepUp 1, long enough to climb past the old
+    // ceiling on a clean run (5+11 = d16 > 15; 4+9 = d13 > 10). Her record
+    // is untouched; this block simply establishes the real number.
     { id: "C", title: "Big Ideas", sticker: "💡", blocks: [
-      { genre: "whatWouldYouDo", start: "fromProfileTop", maxItems: 10 },
+      { genre: "whatWouldYouDo", start: 4, stepUp: 1, maxItems: 10 },
       // Her slowest genre by far (median ~28s, some items past 80s) and
       // untimed by design, so 12 items is the practical ceiling for one
-      // sitting — enough for d10 -> d15 on a clean run.
-      { genre: "whichTwo", start: "fromProfileTop", maxItems: 12 },
+      // sitting.
+      { genre: "whichTwo", start: 5, stepUp: 1, maxItems: 12 },
     ] },
   ],
 };

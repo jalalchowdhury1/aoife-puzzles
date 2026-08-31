@@ -10,6 +10,7 @@
 import type { Difficulty, Genre, GenerateOpts, ScoreResult } from "../engine/types";
 import { makeRng, type Rng } from "../engine/rng";
 import { WHICH_TWO_BANK, type WhichTwoBankItem, type WhichTwoOption, type WhichTwoReason } from "./banks/whichTwo";
+import { bankAsOf } from "./banks/legacy";
 
 export type { WhichTwoOption, WhichTwoReason, WhichTwoBankItem } from "./banks/whichTwo";
 
@@ -32,14 +33,14 @@ export interface WhichTwoResponse { pair: number[]; reason: number }
  * to this genre's worktree, and this genre's bank item shape does not fit
  * makeChoiceGenre's ChoiceBankItem contract anyway.
  */
-function pickWidening(d: Difficulty, exclude: Set<string>, rng: Rng): WhichTwoBankItem {
+function pickWidening(bank: readonly WhichTwoBankItem[], d: Difficulty, exclude: Set<string>, rng: Rng): WhichTwoBankItem {
   for (let widen = 0; widen <= 9; widen++) {
-    const candidates = WHICH_TWO_BANK.filter(b => Math.abs(b.d - d) === widen && !exclude.has(b.id));
+    const candidates = bank.filter(b => Math.abs(b.d - d) === widen && !exclude.has(b.id));
     if (candidates.length > 0) return rng.pick(candidates);
   }
-  const fallback = WHICH_TWO_BANK.filter(b => !exclude.has(b.id));
+  const fallback = bank.filter(b => !exclude.has(b.id));
   if (fallback.length > 0) return rng.pick(fallback);
-  return rng.pick(WHICH_TWO_BANK);
+  return rng.pick(bank);
 }
 
 function isSamePair(a: readonly number[], b: readonly [number, number]): boolean {
@@ -62,15 +63,10 @@ export const whichTwo: Genre<WhichTwoItem, WhichTwoResponse> = {
   maxDifficulty: 15,
 
   sample() {
-    const found = WHICH_TWO_BANK.find(b => b.id === "wt-01")!;
-    const item: WhichTwoItem = {
-      bankId: found.id,
-      d: found.d,
-      items: found.items,
-      pair: found.pair,
-      reasons: found.reasons,
-      explanation: found.explanation,
-    };
+    // Fixed seed: the sample must shuffle like a real item (the bank stores
+    // the pair first, and an unshuffled sample taught "the first two tiles")
+    // yet stay identical every time so the spoken walkthrough matches.
+    const item = whichTwo.generate(20260830, 1, { excludeBankIds: WHICH_TWO_BANK.filter(b => b.id !== "wt-01").map(b => b.id) });
     return {
       item,
       explanation: "The apple and the banana are both fruit. That is the best reason, so it gets picked.",
@@ -80,7 +76,10 @@ export const whichTwo: Genre<WhichTwoItem, WhichTwoResponse> = {
   generate(seed: number, d: Difficulty, opts?: GenerateOpts): WhichTwoItem {
     const rng = makeRng(seed);
     const exclude = new Set(opts?.excludeBankIds ?? []);
-    const picked = pickWidening(d, exclude, rng);
+    // A history replay (opts.asOf = the session's date) draws from the bank
+    // that was live then (banks/legacy), so it lands on the same entry, the
+    // same on-screen order, and the words she actually saw (decision #29).
+    const picked = pickWidening(bankAsOf("whichTwo", WHICH_TWO_BANK, opts?.asOf), d, exclude, rng);
 
     // Shuffle the four options' on-screen order (and recompute `pair`
     // against the new positions) so the pair is never predictably at the

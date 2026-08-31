@@ -564,7 +564,7 @@ function DetailTab({
           <h3 className="mb-1 text-sm font-semibold text-ink/70">Missed questions</h3>
           <div className="flex flex-col gap-3">
             {skill.missedBankItems.map((m, i) => {
-              const bank = lookupBankItem(m.bankId);
+              const bank = lookupBankItem(m.bankId, m.date);
               if (!bank) {
                 return (
                   <div key={i} className="rounded-2xl bg-white/50 p-3 text-sm text-ink/60">

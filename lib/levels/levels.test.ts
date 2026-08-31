@@ -417,18 +417,35 @@ describe("Level 9 (Pip's Record Breakers — built from her completed Level 8)",
   // starting her UNDER the cap she already cleared, which would spend the
   // whole block re-proving old ground and re-censor the ceiling again — the
   // exact failure Level 8 existed to stop.
-  it("probes every still-winning or capped genre AT her ceiling, never under it", () => {
+  // Part C was re-pointed on 2026-08-30 (decision #29): whichTwo and
+  // whatWouldYouDo were re-authored after audits found answer cues, so their
+  // recorded ceilings are upper bounds and are re-measured from a low start
+  // instead of probed at the top. Arithmetic and fillTheGap keep the probe.
+  it("probes the two genres whose ceilings are real AT her ceiling, never under it", () => {
     const probes = blocks().filter((b) => b.start === "fromProfileTop");
-    expect(probes.map((b) => b.genre).sort())
-      .toEqual(["arithmetic", "fillTheGap", "whatWouldYouDo", "whichTwo"]);
+    expect(probes.map((b) => b.genre).sort()).toEqual(["arithmetic", "fillTheGap"]);
   });
 
-  it("gives the two topped-out ladders enough items to reach their NEW tops", () => {
+  it("gives the topped-out arithmetic ladder enough items to reach its NEW top", () => {
     const arith = blocks().find((b) => b.genre === "arithmetic")!;
-    const which = blocks().find((b) => b.genre === "whichTwo")!;
-    // She sits at d15/d10; stepUp 2 needs two items per rung.
+    // She sits at d15; stepUp 2 needs two items per rung.
     expect(arith.maxItems!).toBeGreaterThanOrEqual((20 - 15) * 2);
-    expect(which.maxItems!).toBeGreaterThanOrEqual((15 - 10) * 2);
+  });
+
+  // Bug this prevents: starting a re-authored verbal genre AT a ceiling that
+  // was measured on cued items — a wall on item one, block over in two misses,
+  // and a false "measured" ceiling written from a bank she never really met.
+  it("re-measures whichTwo and whatWouldYouDo from a low hard-pinned start, one rung per win, with room to pass the old ceiling", () => {
+    const which = blocks().find((b) => b.genre === "whichTwo")!;
+    const wwyd = blocks().find((b) => b.genre === "whatWouldYouDo")!;
+    for (const [b, oldCeiling, cap] of [[which, 10, 15], [wwyd, 7, 10]] as const) {
+      expect(typeof b.start, b.genre).toBe("number");
+      expect(b.start as number, b.genre).toBeLessThanOrEqual(oldCeiling - 3);
+      expect(b.stepUp, b.genre).toBe(1);
+      // A clean run must be able to climb past the old (cued) ceiling.
+      expect((b.start as number) + b.maxItems! - 1, b.genre).toBeGreaterThan(oldCeiling);
+      expect(cap).toBeGreaterThanOrEqual(oldCeiling);
+    }
   });
 
   // Decision #18, reinforced by the owner watching her play: "step 12 was

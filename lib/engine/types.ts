@@ -38,7 +38,16 @@ export type Timing =
   | { kind: "block"; ms: number }
   | { kind: "none" };
 
-export interface GenerateOpts { excludeBankIds?: string[] }
+export interface GenerateOpts {
+  excludeBankIds?: string[];
+  /**
+   * Regenerate the item as the bank stood at this ISO time (a session's
+   * startedAt). Banks whose option TEXT was revised after she played keep the
+   * earlier wording under `before` (see banks/whichTwo.ts, decision #29), so
+   * a history replay shows the words she actually saw. Omit for live play.
+   */
+  asOf?: string;
+}
 
 export interface Genre<I = unknown, R = unknown> {
   id: GenreId; subtest: string; domain: Domain; kidTitle: string;

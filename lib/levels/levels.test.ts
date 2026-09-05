@@ -118,8 +118,8 @@ describe("Level 99 (hidden QA level)", () => {
 
 import { RELEASED_LEVELS } from "./index";
 describe("release gating", () => {
-  it("levels 1, 3, 4, 7, 8 and 9 are released; Level 2 (replica formats) and levels 5/6 (superseded by doors-only #21 before she played them) are hidden", () => {
-    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3, 4, 7, 8, 9]);
+  it("levels 1, 3, 4, 7, 8, 9 and 10 are released; Level 2 (replica formats) and levels 5/6 (superseded by doors-only #21 before she played them) are hidden", () => {
+    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3, 4, 7, 8, 9, 10]);
   });
   it("Level 3 uses every ACTIVE genre exactly once and only active genres", () => {
     const level3 = LEVELS.find((l) => l.id === 3)!;
@@ -500,5 +500,85 @@ describe("Level 9 (Pip's Record Breakers — built from her completed Level 8)",
     expect(level9.teachingItems).toBe(0);
     expect(level9.weighting).toBe("none");
     expect(level9.fun).toBe(true);
+  });
+});
+
+describe("Level 10 (Pip's Big Party — win-heavy after three Level 9 Not-fun bails)", () => {
+  const level10 = LEVELS.find((l) => l.id === 10)!;
+  const blocks = () => level10.parts.flatMap((p) => p.blocks);
+
+  // The step that beat her, per genre, with the session it came from. A
+  // bail or a timeout at this step is on record; this level must never be
+  // able to serve it. Update ONLY from her real data, never to make a
+  // level fit.
+  const WALL: Record<string, number> = {
+    arithmetic: 15,     // L9A 2026-08-30: miss in 5s, Not fun on item 2
+    information: 12,    // L8B 2026-08-28: Not fun at d12 (Jalal: "step 12 was too hard")
+    whichTwo: 5,        // L9C 2026-09-02: one item, 76s, Not fun (re-authored bank)
+    fillTheGap: 10,     // L9B 2026-08-30: Not fun at d10
+    whatWouldYouDo: 10, // L9C 2026-09-02: won d10 but 23-45s per item (its cap)
+    swapShop: 10,       // L9A 2026-08-30: 67s timeout at d10
+  };
+
+  it("exists, is released, and covers all six door genres exactly once", () => {
+    expect(level10).toBeDefined();
+    expect(level10.released).toBe(true);
+    const all = blocks().map((b) => b.genre);
+    expect(new Set(all)).toEqual(new Set(DOOR_GENRES));
+    expect(all.length).toBe(DOOR_GENRES.length);
+  });
+
+  // Bug this prevents: a block that can climb to the step she bailed at
+  // — the exact shape of Level 9, where 5 of 6 blocks ended on a loss.
+  // With stepUp s and no fast lane, a flawless N-item block answers its
+  // last item at start + floor((N - 1) / s).
+  it("no block can reach the step that beat her (the load-bearing rule)", () => {
+    for (const b of blocks()) {
+      expect(typeof b.start, `${b.genre} start must be hand-pinned`).toBe("number");
+      expect(b.maxItems, `${b.genre} maxItems`).toBeDefined();
+      const stepUp = b.stepUp ?? level10.stepUp ?? 1;
+      const reach = (b.start as number) + Math.floor((b.maxItems! - 1) / stepUp);
+      expect(reach, `${b.genre}: start ${b.start} + ${b.maxItems} items reaches d${reach}, wall d${WALL[b.genre]}`).toBeLessThan(WALL[b.genre]);
+    }
+  });
+
+  // Decision #18 verbatim: "the fast lane is what rushes her to the wall".
+  it("fast lane is OFF level-wide and no block turns it on", () => {
+    expect(level10.fastLane).toBe(false);
+    for (const b of blocks()) {
+      expect(b.fastLane, b.genre).not.toBe(true);
+      expect(b.fastMs, b.genre).toBeUndefined();
+    }
+  });
+
+  it("keeps the gentle template: stepUp 2, easeIn ON, reveal, hand-pinned, fun on", () => {
+    expect(level10.stepUp).toBe(2);
+    expect(level10.easeIn).toBe(true);
+    expect(level10.feedback).toBe("reveal");
+    expect(level10.teachingItems).toBe(0);
+    expect(level10.weighting).toBe("none");
+    expect(level10.fun).toBe(true);
+    for (const b of blocks()) expect(b.stepUp, b.genre).toBeUndefined();
+  });
+
+  it("both timed door genres run the 1.5x clock (her losses there were time, not ability)", () => {
+    for (const b of blocks()) {
+      if (b.genre === "arithmetic" || b.genre === "swapShop") expect(b.timeScale, b.genre).toBe(1.5);
+      else expect(b.timeScale, b.genre).toBeUndefined();
+    }
+  });
+
+  it("only whichTwo gets teaching items (the bank changed under her, decision #29)", () => {
+    for (const b of blocks()) {
+      if (b.genre === "whichTwo") expect(b.teachingItems).toBe(2);
+      else expect(b.teachingItems, b.genre).toBeUndefined();
+    }
+  });
+
+  it("each part opens on a genre she bailed on and closes on a confident one", () => {
+    const openers = level10.parts.map((p) => p.blocks[0].genre).sort();
+    const closers = level10.parts.map((p) => p.blocks[p.blocks.length - 1].genre).sort();
+    expect(openers).toEqual(["arithmetic", "swapShop", "whichTwo"]);
+    expect(closers).toEqual(["fillTheGap", "information", "whatWouldYouDo"]);
   });
 });

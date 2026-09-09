@@ -118,8 +118,8 @@ describe("Level 99 (hidden QA level)", () => {
 
 import { RELEASED_LEVELS } from "./index";
 describe("release gating", () => {
-  it("levels 1, 3, 4, 7, 8, 9 and 10 are released; Level 2 (replica formats) and levels 5/6 (superseded by doors-only #21 before she played them) are hidden", () => {
-    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3, 4, 7, 8, 9, 10]);
+  it("levels 1, 3, 4, 7, 8, 9, 10 and 11 are released; Level 2 (replica formats) and levels 5/6 (superseded by doors-only #21 before she played them) are hidden", () => {
+    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3, 4, 7, 8, 9, 10, 11]);
   });
   it("Level 3 uses every ACTIVE genre exactly once and only active genres", () => {
     const level3 = LEVELS.find((l) => l.id === 3)!;
@@ -580,5 +580,63 @@ describe("Level 10 (Pip's Big Party — win-heavy after three Level 9 Not-fun ba
     const closers = level10.parts.map((p) => p.blocks[p.blocks.length - 1].genre).sort();
     expect(openers).toEqual(["arithmetic", "swapShop", "whichTwo"]);
     expect(closers).toEqual(["fillTheGap", "information", "whatWouldYouDo"]);
+  });
+});
+
+describe("Level 11 (Pip's Next Step — climb where flawless, hold where missed; Story Sums probes)", () => {
+  const level11 = LEVELS.find((l) => l.id === 11)!;
+  const blocks = () => level11.parts.flatMap((p) => p.blocks);
+
+  // Same wall table as Level 10 — Level 10 (2026-09-09, 33/36, zero bails)
+  // never reached any wall, so no wall moved. Update ONLY from her data.
+  const WALL: Record<string, number> = {
+    arithmetic: 15, information: 12, whichTwo: 5, fillTheGap: 10, whatWouldYouDo: 10, swapShop: 10,
+  };
+
+  it("exists, is released, and covers all six door genres exactly once", () => {
+    expect(level11).toBeDefined();
+    expect(level11.released).toBe(true);
+    const all = blocks().map((b) => b.genre);
+    expect(new Set(all)).toEqual(new Set(DOOR_GENRES));
+    expect(all.length).toBe(DOOR_GENRES.length);
+  });
+
+  // Decision #31: only Story Sums may pass its wall (owner: "test her
+  // limits"), and by exactly one step; every other block stays under.
+  it("only the Story Sums probe can pass the step that beat her, and only by one step", () => {
+    for (const b of blocks()) {
+      expect(typeof b.start, `${b.genre} start must be hand-pinned`).toBe("number");
+      const stepUp = b.stepUp ?? level11.stepUp ?? 1;
+      const reach = (b.start as number) + Math.floor((b.maxItems! - 1) / stepUp);
+      if (b.genre === "arithmetic") expect(reach).toBe(WALL.arithmetic + 1);
+      else expect(reach, `${b.genre}: reaches d${reach}, wall d${WALL[b.genre]}`).toBeLessThan(WALL[b.genre]);
+    }
+  });
+
+  it("climbs only where Level 10 was flawless (arithmetic, whichTwo); every other start equals Level 10's", () => {
+    const l10 = LEVELS.find((l) => l.id === 10)!;
+    const startOf = (lvl: typeof l10, g: string) => lvl.parts.flatMap((p) => p.blocks).find((b) => b.genre === g)!.start;
+    expect(startOf(level11, "arithmetic")).toBe(13);
+    expect(startOf(level11, "whichTwo")).toBe(3);
+    for (const g of ["information", "fillTheGap", "whatWouldYouDo", "swapShop"]) expect(startOf(level11, g), g).toBe(startOf(l10, g));
+  });
+
+  it("keeps the Level 10 machinery: stepUp 2, no fast lane, easeIn, reveal, fun, 1.5x on the timed genres", () => {
+    expect(level11.stepUp).toBe(2);
+    expect(level11.fastLane).toBe(false);
+    expect(level11.easeIn).toBe(true);
+    expect(level11.feedback).toBe("reveal");
+    expect(level11.fun).toBe(true);
+    for (const b of blocks()) {
+      if (b.genre === "arithmetic" || b.genre === "swapShop") expect(b.timeScale, b.genre).toBe(1.5);
+      else expect(b.timeScale, b.genre).toBeUndefined();
+    }
+  });
+
+  it("only whichTwo gets a teaching item (one cushion on its first climb)", () => {
+    for (const b of blocks()) {
+      if (b.genre === "whichTwo") expect(b.teachingItems).toBe(1);
+      else expect(b.teachingItems, b.genre).toBeUndefined();
+    }
   });
 });

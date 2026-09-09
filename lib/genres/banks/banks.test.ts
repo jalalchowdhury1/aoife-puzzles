@@ -187,7 +187,7 @@ describe("arithmetic bank shape", () => {
       }
       expect(checked, `${tmpl.id}: ok predicate is too strict to sample`).toBeGreaterThan(0);
     }
-  });
+  }, 30_000); // exhaustive range sweep; ~6s when the machine is busy (2026-09-09)
 
   for (const tmpl of ARITHMETIC_BANK) {
     it(`template ${tmpl.id} always renders a fully substituted, non-negative integer answer`, () => {

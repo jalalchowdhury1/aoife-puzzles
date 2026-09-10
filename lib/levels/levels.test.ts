@@ -118,8 +118,8 @@ describe("Level 99 (hidden QA level)", () => {
 
 import { RELEASED_LEVELS } from "./index";
 describe("release gating", () => {
-  it("levels 1, 3, 4, 7, 8, 9, 10 and 11 are released; Level 2 (replica formats) and levels 5/6 (superseded by doors-only #21 before she played them) are hidden", () => {
-    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3, 4, 7, 8, 9, 10, 11]);
+  it("levels 1, 3, 4, 7, 8, 9, 10, 11 and 12 are released; Level 2 (replica formats) and levels 5/6 (superseded by doors-only #21 before she played them) are hidden", () => {
+    expect(RELEASED_LEVELS.map((l) => l.id)).toEqual([1, 3, 4, 7, 8, 9, 10, 11, 12]);
   });
   it("Level 3 uses every ACTIVE genre exactly once and only active genres", () => {
     const level3 = LEVELS.find((l) => l.id === 3)!;
@@ -634,6 +634,59 @@ describe("Level 11 (Pip's Next Step — climb where flawless, hold where missed;
   });
 
   it("only whichTwo gets a teaching item (one cushion on its first climb)", () => {
+    for (const b of blocks()) {
+      if (b.genre === "whichTwo") expect(b.teachingItems).toBe(1);
+      else expect(b.teachingItems, b.genre).toBeUndefined();
+    }
+  });
+});
+
+describe("Level 12 (Pip's Sky Picnic — stepped back where beaten; climb where flawless; every block under wall)", () => {
+  const level12 = LEVELS.find((l) => l.id === 12)!;
+  const blocks = () => level12.parts.flatMap((p) => p.blocks);
+
+  const WALL: Record<string, number> = {
+    arithmetic: 15, information: 12, whichTwo: 5, fillTheGap: 10, whatWouldYouDo: 10, swapShop: 10,
+  };
+
+  it("exists, is released, and covers all six door genres exactly once", () => {
+    expect(level12).toBeDefined();
+    expect(level12.released).toBe(true);
+    const all = blocks().map((b) => b.genre);
+    expect(new Set(all)).toEqual(new Set(DOOR_GENRES));
+    expect(all.length).toBe(DOOR_GENRES.length);
+  });
+
+  it("every block's reach is strictly less than its wall (no probes pass)", () => {
+    for (const b of blocks()) {
+      expect(typeof b.start, `${b.genre} start must be hand-pinned`).toBe("number");
+      const stepUp = b.stepUp ?? level12.stepUp ?? 1;
+      const reach = (b.start as number) + Math.floor((b.maxItems! - 1) / stepUp);
+      expect(reach, `${b.genre}: reaches d${reach}, wall d${WALL[b.genre]}`).toBeLessThan(WALL[b.genre]);
+    }
+  });
+
+  it("arithmetic start 11 (stepped back from Level 11's 13); whatWouldYouDo start 8 (climb from Level 11's 7); every other start equals Level 11's", () => {
+    const l11 = LEVELS.find((l) => l.id === 11)!;
+    const startOf = (lvl: typeof l11, g: string) => lvl.parts.flatMap((p) => p.blocks).find((b) => b.genre === g)!.start;
+    expect(startOf(level12, "arithmetic")).toBe(11);
+    expect(startOf(level12, "whatWouldYouDo")).toBe(8);
+    for (const g of ["information", "whichTwo", "fillTheGap", "swapShop"]) expect(startOf(level12, g), g).toBe(startOf(l11, g));
+  });
+
+  it("keeps the Level 11 machinery: stepUp 2, no fast lane, easeIn, reveal, fun, 1.5x on the timed genres", () => {
+    expect(level12.stepUp).toBe(2);
+    expect(level12.fastLane).toBe(false);
+    expect(level12.easeIn).toBe(true);
+    expect(level12.feedback).toBe("reveal");
+    expect(level12.fun).toBe(true);
+    for (const b of blocks()) {
+      if (b.genre === "arithmetic" || b.genre === "swapShop") expect(b.timeScale, b.genre).toBe(1.5);
+      else expect(b.timeScale, b.genre).toBeUndefined();
+    }
+  });
+
+  it("only whichTwo gets a teaching item (one cushion on its hold)", () => {
     for (const b of blocks()) {
       if (b.genre === "whichTwo") expect(b.teachingItems).toBe(1);
       else expect(b.teachingItems, b.genre).toBeUndefined();

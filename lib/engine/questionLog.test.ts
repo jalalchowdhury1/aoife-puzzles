@@ -278,6 +278,18 @@ describe("corrupt item times (a clock that never started)", () => {
     for (const row of buildQuestionLog(ins)) expect(row.medianSecondsAtD).toBe(12);
   });
 
+  it("does not let a corrupt record claim a `fast` answer it cannot support", () => {
+    // `fast` is decided at write time from the same raw ms, so the ms = 0 race
+    // stamped fast: true on answers nobody timed. That inflates the fast rate
+    // a parent reads as a skill signal.
+    const ins = computeInsights([
+      mkSession([mkBlock("information", [mkItem({ ms: 0, fast: true }), mkItem({ ms: 12_000, fast: true })])]),
+    ]);
+    const rows = buildQuestionLog(ins);
+    expect(rows.find((r) => r.seconds === null)!.fast).toBe(false);
+    expect(rows.find((r) => r.seconds === 12)!.fast).toBe(true);
+  });
+
   it("reports no median at all when every time in the set is unknown", () => {
     const ins = computeInsights([mkSession([mkBlock("information", [mkItem({ ms: 0 }), mkItem({ ms: EPOCH_MS })])])]);
     const stats = summarize(buildQuestionLog(ins));

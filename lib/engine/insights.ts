@@ -30,7 +30,7 @@ import { remapSession } from "./scale";
 import { EXCLUDING_CODES, type QualityFlagCode } from "./quality";
 import { computeProfile } from "./profile";
 import { starsForItem, totalStars, dayStreak } from "./rewards";
-import { sanitizeSeconds } from "./itemMs";
+import { sanitizeMs, sanitizeSeconds } from "./itemMs";
 
 export interface ItemDetail {
   date: string; level: number; part: string; genre: GenreId; d: number;
@@ -138,7 +138,14 @@ function toItemDetail(session: SessionRecord, block: BlockRecord, item: ItemReco
     date: block.startedAt, level: session.level, part: session.part, genre: block.genre,
     d: item.d, correct: item.correct, points: item.points, max: item.max,
     seconds: sanitizeSeconds(item.ms), timedOut: item.timedOut,
-    fast: item.fast === true, teaching: item.teaching === true, bailed: item.bailed === true,
+    // `fast` was decided at write time from the same raw `ms`, so a record
+    // whose clock never started carries fast: true for free — an unearned
+    // entry in the "fast rate" a parent reads as a real skill signal. An
+    // unbelievable time cannot support the claim, so drop it. Stars keep the
+    // stored flag (lib/engine/rewards.ts reads ItemRecord): she already saw
+    // them, and clawing them back is worse than an old bonus.
+    fast: item.fast === true && sanitizeMs(item.ms) !== null,
+    teaching: item.teaching === true, bailed: item.bailed === true,
     excludedBlock, bankId: item.bankId, seed: item.seed, response: item.response,
   };
 }

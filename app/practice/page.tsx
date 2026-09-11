@@ -76,6 +76,16 @@ export default function PracticePage() {
   const genre = ref ? GENRES[ref.genre] : null;
   const item = ref && genre ? genre.generate(ref.seed, ref.d) : null;
 
+  // The clock starts when the item is on screen, NOT when the view reports
+  // ready: ArithmeticView calls onReady() only after its speech promise
+  // resolves, and she can answer while it is still talking. itemStart then
+  // stayed 0 and the record got `Date.now() - 0` (~1.789e12 ms), which the
+  // parent dashboard rendered as 1789129072.9s. handleReady still re-bases it
+  // so the spoken prompt is not counted against her.
+  useEffect(() => {
+    if (phase === "item") itemStart.current = Date.now();
+  }, [phase, idx]);
+
   const handleReady = useCallback(() => { itemStart.current = Date.now(); }, []);
 
   const advance = useCallback(() => {

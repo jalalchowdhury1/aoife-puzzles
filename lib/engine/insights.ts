@@ -30,10 +30,14 @@ import { remapSession } from "./scale";
 import { EXCLUDING_CODES, type QualityFlagCode } from "./quality";
 import { computeProfile } from "./profile";
 import { starsForItem, totalStars, dayStreak } from "./rewards";
+import { sanitizeSeconds } from "./itemMs";
 
 export interface ItemDetail {
   date: string; level: number; part: string; genre: GenreId; d: number;
-  correct: boolean; points: number; max: number; seconds: number; timedOut: boolean;
+  correct: boolean; points: number; max: number; timedOut: boolean;
+  /** Elapsed time, or null when the record's `ms` is not believable — see
+   *  lib/engine/itemMs.ts. Null means "unknown", never "zero". */
+  seconds: number | null;
   fast: boolean; teaching: boolean; bailed: boolean; excludedBlock: boolean;
   bankId?: string; seed: number;
   // What she actually gave (an option index, a typed number, or Which Two's
@@ -133,7 +137,7 @@ function toItemDetail(session: SessionRecord, block: BlockRecord, item: ItemReco
   return {
     date: block.startedAt, level: session.level, part: session.part, genre: block.genre,
     d: item.d, correct: item.correct, points: item.points, max: item.max,
-    seconds: item.ms / 1000, timedOut: item.timedOut,
+    seconds: sanitizeSeconds(item.ms), timedOut: item.timedOut,
     fast: item.fast === true, teaching: item.teaching === true, bailed: item.bailed === true,
     excludedBlock, bankId: item.bankId, seed: item.seed, response: item.response,
   };
@@ -228,7 +232,10 @@ function buildSkill(g: GenreId, internalItems: InternalItem[], blockEntries: Gen
     const attempts = atD.length;
     const correct = atD.filter((i) => i.correct).length;
     const timeouts = atD.filter((i) => i.timedOut).length;
-    const seconds = atD.map((i) => i.seconds).sort((a, b) => a - b);
+    const seconds = atD
+      .map((i) => i.seconds)
+      .filter((s): s is number => s !== null)
+      .sort((a, b) => a - b);
     const medianSeconds = seconds.length ? seconds[Math.floor(seconds.length / 2)] : null;
     const masteredCount = atD.filter((i) => i.correct && !i.teaching).length;
     perDifficulty.push({ d, attempts, correct, timeouts, medianSeconds, mastered: masteredCount >= 2 });

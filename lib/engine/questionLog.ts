@@ -76,6 +76,11 @@ export function countsTowardBaseline(q: { practice: boolean; teaching: boolean; 
   return !q.practice && !q.teaching && !q.bailed && !q.excludedBlock;
 }
 
+/** The believable times among these rows; unknown (null) ones are dropped. */
+function knownSeconds(rows: { seconds: number | null }[]): number[] {
+  return rows.map((r) => r.seconds).filter((s): s is number => s !== null);
+}
+
 function median(values: number[]): number | null {
   if (values.length === 0) return null;
   const v = [...values].sort((a, b) => a - b);
@@ -120,6 +125,10 @@ export function buildQuestionLog(insights: Insights): LoggedQuestion[] {
   const byGenreD = new Map<string, number[]>();
   for (const r of rows) {
     if (!countsTowardBaseline(r)) continue;
+    // A row whose time is unknown (a corrupt `ms` — see lib/engine/itemMs.ts)
+    // still counts for accuracy; it just cannot shape a median it has no
+    // number for.
+    if (r.seconds === null) continue;
     if (!byGenre.has(r.genre)) byGenre.set(r.genre, []);
     byGenre.get(r.genre)!.push(r.seconds);
     const k = `${r.genre}:${r.d}`;
@@ -164,8 +173,10 @@ export function summarize(rows: LoggedQuestion[]): QuestionLogStats {
     correctCounted,
     genres: new Set(rows.map((r) => r.genre)).size,
     accuracyPct: counted.length ? (correctCounted / counted.length) * 100 : null,
-    medianSeconds: median(counted.map((r) => r.seconds)),
-    totalMinutes: rows.reduce((sum, r) => sum + r.seconds, 0) / 60,
+    medianSeconds: median(knownSeconds(counted)),
+    // Unknown times add nothing rather than a fabricated number: two corrupt
+    // rows once turned this headline into 59,637,731 minutes.
+    totalMinutes: knownSeconds(rows).reduce((sum, s) => sum + s, 0) / 60,
     sessions: sessions.size,
     days: days.size,
     topDifficulty: tops.length ? Math.max(...tops) : null,

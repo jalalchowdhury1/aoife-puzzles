@@ -15,6 +15,7 @@
 import { digitSpan } from "../genres/digitSpan";
 import { animalParade } from "../genres/animalParade";
 import type { BlockRecord, ItemRecord, SessionRecord } from "./types";
+import { sanitizeMs, sanitizeSeconds } from "./itemMs";
 
 export type QualityFlagCode =
   | "format-not-understood"
@@ -37,7 +38,8 @@ const SPEED_ACCURACY_FLOOR_ATTEMPTED = 10;
 const SPEED_ACCURACY_RATE = 0.7;
 
 function itemLabel(i: ItemRecord): string {
-  return `d${i.d} in ${(i.ms / 1000).toFixed(1)}s`;
+  const s = sanitizeSeconds(i.ms);
+  return `d${i.d} in ${s === null ? "?" : s.toFixed(1)}s`;
 }
 
 /** Detects measurement-quality problems in a single block. Order of checks
@@ -102,7 +104,12 @@ export function flagBlock(block: BlockRecord): QualityFlag[] {
 
   // rapid-wrong: two or more wrong (not timed-out) answers under 2s each —
   // looks like tapping without registering the question, not a real miss.
-  const rapid = items.filter((i) => !i.correct && !i.timedOut && i.ms < RAPID_WRONG_MS);
+  // sanitizeMs first: a never-started clock recorded ms = 0, which would
+  // otherwise read as the fastest possible guess and flag a good block.
+  const rapid = items.filter((i) => {
+    const ms = sanitizeMs(i.ms);
+    return !i.correct && !i.timedOut && ms !== null && ms < RAPID_WRONG_MS;
+  });
   if (rapid.length >= 2) {
     flags.push({
       code: "rapid-wrong",

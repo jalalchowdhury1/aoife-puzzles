@@ -234,3 +234,54 @@ describe("correctCounted vs correct — two different populations", () => {
     expect(summarize(buildQuestionLog(ins)).genres).toBe(3);
   });
 });
+
+// 2026-09-11: two rows with an epoch-sized `ms` turned TIME PLAYED into
+// "59637731 min" and showed "1789129072.9s" next to a question. The archive is
+// never rewritten, so the guarantee lives at read time: an impossible time is
+// unknown, and unknown shapes nothing.
+describe("corrupt item times (a clock that never started)", () => {
+  const EPOCH_MS = 1_789_129_072_900;
+
+  it("reads an epoch-sized ms as an unknown time, not a number", () => {
+    const ins = computeInsights([mkSession([mkBlock("information", [mkItem({ ms: EPOCH_MS })])])]);
+    expect(buildQuestionLog(ins)[0].seconds).toBeNull();
+  });
+
+  it("reads the play page's ms = 0 as unknown too, not as a 0.0s answer", () => {
+    const ins = computeInsights([mkSession([mkBlock("information", [mkItem({ ms: 0 })])])]);
+    expect(buildQuestionLog(ins)[0].seconds).toBeNull();
+  });
+
+  it("leaves an unknown time out of the median and out of the total", () => {
+    const ins = computeInsights([
+      mkSession([mkBlock("information", [mkItem({ ms: 12_000 }), mkItem({ ms: EPOCH_MS })])]),
+    ]);
+    const stats = summarize(buildQuestionLog(ins));
+    expect(stats.medianSeconds).toBe(12);
+    expect(stats.totalMinutes).toBeCloseTo(0.2, 10);
+  });
+
+  it("still counts the corrupt row for accuracy — it is a real answer, only the clock failed", () => {
+    const ins = computeInsights([
+      mkSession([mkBlock("information", [mkItem({ ms: 12_000 }), mkItem({ ms: EPOCH_MS })])]),
+    ]);
+    const stats = summarize(buildQuestionLog(ins));
+    expect(stats.total).toBe(2);
+    expect(stats.countedTotal).toBe(2);
+    expect(stats.accuracyPct).toBe(100);
+  });
+
+  it("does not let a corrupt row define the per-difficulty median other rows are compared against", () => {
+    const ins = computeInsights([
+      mkSession([mkBlock("information", [mkItem({ ms: 12_000 }), mkItem({ ms: EPOCH_MS })])]),
+    ]);
+    for (const row of buildQuestionLog(ins)) expect(row.medianSecondsAtD).toBe(12);
+  });
+
+  it("reports no median at all when every time in the set is unknown", () => {
+    const ins = computeInsights([mkSession([mkBlock("information", [mkItem({ ms: 0 }), mkItem({ ms: EPOCH_MS })])])]);
+    const stats = summarize(buildQuestionLog(ins));
+    expect(stats.medianSeconds).toBeNull();
+    expect(stats.totalMinutes).toBe(0);
+  });
+});

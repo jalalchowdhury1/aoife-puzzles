@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import type { Insights } from "@/lib/engine/insights";
 import { isDoorGenre } from "@/lib/levels/doors";
 import { QuestionDetail, resultLabel } from "./QuestionDetail";
-import { fmtDate, fmtDateTime, fmtNum, plural } from "./format";
+import { fmtDate, fmtDateTime, fmtNum, fmtSeconds, plural } from "./format";
 
 // New tab (2026-08-28 revamp, spec docs/superpowers/specs/2026-08-28-dashboard-revamp-design.md):
 // Jalal asked for "her questions from the last time she did the app, with
@@ -115,7 +115,7 @@ export function LastSessionTab({ insights }: { insights: Insights }) {
                     <span className="w-20 shrink-0 text-xs text-white/55">step {it.d}</span>
                     <span className={`pd-chip ${r.cls} shrink-0`}>{r.text}</span>
                     <span className="flex-1" />
-                    <span className="shrink-0 tabular-nums text-white/60">{it.seconds.toFixed(1)}s</span>
+                    <span className="shrink-0 tabular-nums text-white/60">{fmtSeconds(it.seconds)}</span>
                     <span className={`shrink-0 text-white/35 transition-transform ${isOpen ? "rotate-90" : ""}`}>›</span>
                   </button>
                   {isOpen && (

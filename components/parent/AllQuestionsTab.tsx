@@ -8,7 +8,7 @@ import {
 } from "@/lib/engine/questionLog";
 import { DOOR_GENRES, isDoorGenre } from "@/lib/levels/doors";
 import { QuestionDetail, resultLabel } from "./QuestionDetail";
-import { fmtDate, fmtNum } from "./format";
+import { fmtDate, fmtNum, fmtSeconds } from "./format";
 
 // The archive (2026-08-29). Jalal: "i want a place where i can see ALL the
 // questions she answered. with all the details. right / wrong / time taken /
@@ -57,7 +57,8 @@ function matchesResult(q: LoggedQuestion, f: ResultFilter): boolean {
 /** Her time vs her own median for this game at this difficulty. */
 function Pace({ q }: { q: LoggedQuestion }) {
   const med = q.medianSecondsAtD ?? q.medianSecondsGenre;
-  if (med === null || med <= 0) return <span className="text-white/25">—</span>;
+  // No comparison without both halves: an unknown time has nothing to compare.
+  if (q.seconds === null || med === null || med <= 0) return <span className="text-white/25">—</span>;
   const ratio = q.seconds / med;
   // Within ±25% of her own median is just "typical" — labelling normal
   // variation as fast or slow would invent a signal that is not there.
@@ -229,7 +230,7 @@ export function AllQuestionsTab({ insights }: { insights: Insights }) {
                     </span>
                   )}
                   <span className="flex-1" />
-                  <span className="w-16 shrink-0 text-right tabular-nums text-white/70">{q.seconds.toFixed(1)}s</span>
+                  <span className="w-16 shrink-0 text-right tabular-nums text-white/70">{fmtSeconds(q.seconds)}</span>
                   <span className="w-[168px] shrink-0 text-right text-xs"><Pace q={q} /></span>
                   <span className={`shrink-0 text-white/35 transition-transform ${isOpen ? "rotate-90" : ""}`}>›</span>
                 </button>

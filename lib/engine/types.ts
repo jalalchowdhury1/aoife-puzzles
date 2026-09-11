@@ -1,4 +1,5 @@
 import type { QualityFlag } from "./quality";
+import { sanitizeMs } from "./itemMs";
 
 export type GenreId =
   | "blockDesign" | "visualPuzzles" | "matrix" | "figureWeights" | "arithmetic"
@@ -191,7 +192,12 @@ export function summarize(items: ItemRecord[], mode: "staircase" | "speedBlock")
   const points = items.reduce((s, i) => s + i.points, 0);
   const max = items.reduce((s, i) => s + i.max, 0);
   const ceiling = mode === "staircase" ? items.filter(i => i.points > 0).reduce<number | null>((m, i) => (m === null || i.d > m ? i.d : m), null) : null;
-  const sorted = items.map(i => i.ms).sort((a, b) => a - b);
+  // Only believable times shape the median (lib/engine/itemMs.ts): a record
+  // whose clock never started must not define the block's typical pace.
+  const sorted = items
+    .map(i => sanitizeMs(i.ms))
+    .filter((ms): ms is number => ms !== null)
+    .sort((a, b) => a - b);
   const medianMs = sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0;
   const timeouts = items.filter(i => i.timedOut).length;
   const s: BlockSummary = { attempted, correct, points, max, ceiling, medianMs, timeouts };

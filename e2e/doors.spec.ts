@@ -10,8 +10,14 @@ const PRACTICE_PENDING = [
   { genre: "swapShop", seed: 9, d: 4 },
 ];
 
-async function stubBrowser(page: Page): Promise<void> {
-  await page.addInitScript((pending) => {
+type StubOpts = { speechNeverEnds?: boolean };
+
+async function stubBrowser(
+  page: Page,
+  pending: { genre: string; seed: number; d: number }[] = PRACTICE_PENDING,
+  opts: StubOpts = {},
+): Promise<void> {
+  await page.addInitScript(({ pending, speechNeverEnds }) => {
     if (typeof window.SpeechSynthesisUtterance === "undefined") {
       class FallbackUtterance {
         text: string;
@@ -24,6 +30,10 @@ async function stubBrowser(page: Page): Promise<void> {
       (window as unknown as { speechSynthesis: unknown }).speechSynthesis = {};
     }
     window.speechSynthesis.speak = (utterance) => {
+      // speechNeverEnds reproduces the real hazard: a view that waits on the
+      // speech promise never signals ready, so anything that only starts the
+      // item clock in onReady leaves it unstarted.
+      if (speechNeverEnds) return;
       setTimeout(() => { utterance.onend?.(new Event("end") as unknown as SpeechSynthesisEvent); }, 30);
     };
     window.speechSynthesis.cancel = () => {};
@@ -39,7 +49,7 @@ async function stubBrowser(page: Page): Promise<void> {
       if (url.includes("/api/sessions")) return json({ ok: true });
       return originalFetch(input, init);
     }) as typeof window.fetch;
-  }, PRACTICE_PENDING);
+  }, { pending, speechNeverEnds: opts.speechNeverEnds === true });
 }
 
 test.describe("Talk with Pip (decision #22)", () => {
@@ -87,5 +97,46 @@ test.describe("Practice tab (decision #23)", () => {
     }
 
     await expect(page.getByRole("heading", { name: "Rematch done!" })).toBeVisible({ timeout: 15_000 });
+  });
+});
+
+// 2026-09-11 regression: the rematch page kept its item clock in a ref that
+// started at 0 and was only set from a view's onReady. ArithmeticView (Story
+// Sums) calls onReady only after its speech promise resolves, so answering
+// while Pip was still talking recorded `Date.now() - 0` — an epoch-sized ms
+// that the parent dashboard rendered as "1789129072.9s" and a 59,637,731
+// minute lifetime total. This drives the exact race: speech that NEVER ends.
+test.describe("item clock (2026-09-11 regression)", () => {
+  test("a Story Sums answer given while Pip is still talking records a real elapsed time", async ({ page }) => {
+    test.setTimeout(60_000);
+    await stubBrowser(page, [{ genre: "arithmetic", seed: 11, d: 3 }], { speechNeverEnds: true });
+    await page.goto("/practice");
+    await expect(page.getByRole("heading", { name: "Rematch Time!" })).toBeVisible({ timeout: 10_000 });
+    await page.getByRole("button", { name: "Start", exact: true }).click();
+
+    // Answer immediately — onReady has not fired and never will.
+    const done = page.getByRole("button", { name: "Done", exact: true });
+    await page.getByRole("button", { name: "7", exact: true }).click();
+    await expect(done).toBeEnabled({ timeout: 10_000 });
+    await done.click();
+
+    // A miss shows the reveal screen; a win auto-advances after the praise beat.
+    const gotIt = page.getByRole("button", { name: "Got it!" });
+    if (await gotIt.isVisible({ timeout: 5_000 }).catch(() => false)) await gotIt.click();
+
+    await expect(page.getByRole("heading", { name: "Rematch done!" })).toBeVisible({ timeout: 15_000 });
+
+    const times = await page.evaluate(() => {
+      const raw = localStorage.getItem("aoife-puzzles:sessions");
+      const sessions = raw ? (JSON.parse(raw) as { blocks: { items: { ms: number }[] }[] }[]) : [];
+      return sessions.flatMap((s) => s.blocks.flatMap((b) => b.items.map((i) => i.ms)));
+    });
+
+    expect(times.length).toBeGreaterThan(0);
+    for (const ms of times) {
+      // > 0 (the clock started) and nowhere near an epoch timestamp.
+      expect(ms).toBeGreaterThan(0);
+      expect(ms).toBeLessThan(30 * 60_000);
+    }
   });
 });

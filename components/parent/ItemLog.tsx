@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { ItemDetail } from "@/lib/engine/insights";
-import { fmtDate } from "./format";
+import { fmtDate, fmtNum } from "./format";
 
 const SHOW_COUNT = 100;
 
@@ -60,7 +60,7 @@ export function ItemLog({ items }: { items: ItemDetail[] }) {
                 <td className="px-3 py-1.5 text-white/85" title={glyphTitle(it)}>
                   {glyph(it)}
                 </td>
-                <td className="rounded-r-xl px-3 py-1.5 tabular-nums text-white/70">{it.seconds.toFixed(1)}</td>
+                <td className="rounded-r-xl px-3 py-1.5 tabular-nums text-white/70">{it.seconds === null ? "—" : fmtNum(it.seconds, 1)}</td>
               </tr>
             ))}
           </tbody>

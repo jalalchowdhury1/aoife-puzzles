@@ -3,6 +3,7 @@ import { genreMaxD } from "./types";
 import { GENRES } from "../genres";
 import { remapSession } from "./scale";
 import { EXCLUDING_CODES, type QualityFlagCode } from "./quality";
+import { sanitizeMs } from "./itemMs";
 
 export interface GenreStats { attempted: number; correct: number; points: number; max: number; ceiling: number | null; medianMs: number; timeouts: number; perMinute?: number; trend: { date: string; ceiling: number | null; points: number; max: number; flagged?: boolean }[] }
 export interface DomainStat { value: number | null; z: number | null; flag: "strength" | "typical" | "weakness" | "n/a"; genres: GenreId[] }
@@ -97,7 +98,11 @@ export function computeProfile(sessions: SessionRecord[]): Profile {
         if (block.summary.ceiling !== null) {
           gs.ceiling = gs.ceiling === null ? block.summary.ceiling : Math.max(gs.ceiling, block.summary.ceiling);
         }
-        (msByGenre[g] ??= []).push(...block.items.map(i => i.ms));
+        // Believable times only — these medians pick her next difficulty,
+        // so one corrupt record must not move the whole genre.
+        (msByGenre[g] ??= []).push(
+          ...block.items.map(i => sanitizeMs(i.ms)).filter((ms): ms is number => ms !== null),
+        );
 
         if (SPEED_CEILING_PER_MIN[g] !== undefined) {
           const rawMs = new Date(block.endedAt).getTime() - new Date(block.startedAt).getTime();

@@ -23,7 +23,7 @@ import { LastSessionTab } from "@/components/parent/LastSessionTab";
 import { AllQuestionsTab } from "@/components/parent/AllQuestionsTab";
 import { ItemLog } from "@/components/parent/ItemLog";
 import { LineChart } from "@/components/parent/LineChart";
-import {fmtDate, fmtPct, fmtNum, plural } from "@/components/parent/format";
+import {fmtDate, fmtPct, fmtNum, fmtSeconds, plural } from "@/components/parent/format";
 import { FLAG_CODE_LABEL } from "@/components/parent/stats";
 import {
   BENCHMARKS, cumulativeBenchmark, benchmarkAt, ageYearsAt, measureStatus, ageVerdict,
@@ -670,7 +670,7 @@ function TimelineTab({ insights }: { insights: Insights }) {
                   {b.items.map((it, ii) => (
                     <span
                       key={ii}
-                      title={`d${it.d} · ${it.seconds.toFixed(1)}s`}
+                      title={`d${it.d} · ${fmtSeconds(it.seconds)}`}
                       className="rounded bg-white/70 px-1.5 py-0.5 text-xs tabular-nums text-ink/70"
                     >
                       d{it.d} {it.bailed ? "😕" : it.timedOut ? "⏱" : it.correct ? "✓" : "✗"}

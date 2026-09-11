@@ -16,8 +16,11 @@ export function fmtPct(v: number | null): string {
   return v === null ? "—" : `${Math.round(v * 100)}%`;
 }
 
-export function fmtSeconds(s: number): string {
-  return `${fmtNum(s, 1)}s`;
+/** An em dash for an unknown time (a corrupt `ms` — see lib/engine/itemMs.ts).
+ *  Never "0.0s": we do not know how long she took, and saying zero would be a
+ *  made-up number, not a missing one. */
+export function fmtSeconds(s: number | null): string {
+  return s === null ? "—" : `${fmtNum(s, 1)}s`;
 }
 
 /** "1 flag" / "3 flags" — count + unit with a plain-s plural. */

@@ -531,7 +531,15 @@ function PlayRunner() {
       setItem(genre.generate(newSeed, 1));
       setBlockStartMs(Date.now());
     }
-    setStartedAtMs(null);
+    // Pre-seeded, not null: a view that fires onReady late (ArithmeticView
+    // waits on its speech promise) used to leave this null, and an answer
+    // given before then fell through to `ms = 0` below — which reads as a
+    // super-fast answer, trips the rapid-wrong quality flag, and drags the
+    // per-genre medians that drive her next difficulty. handleReady still
+    // re-bases it so the spoken prompt is not counted against her.
+    // startedAtEpoch stays null on purpose: it is Countdown's base (see the
+    // note at its declaration) and must not start ticking during the speech.
+    setStartedAtMs(performance.now());
     setStartedAtEpoch(null);
     setItemIdx((i) => i + 1);
     setPhase("item");
@@ -546,7 +554,15 @@ function PlayRunner() {
     setSeed(newSeed);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     setItem(genre.generate(newSeed, d as any, { excludeBankIds: usedBankIdsRef.current }));
-    setStartedAtMs(null);
+    // Pre-seeded, not null: a view that fires onReady late (ArithmeticView
+    // waits on its speech promise) used to leave this null, and an answer
+    // given before then fell through to `ms = 0` below — which reads as a
+    // super-fast answer, trips the rapid-wrong quality flag, and drags the
+    // per-genre medians that drive her next difficulty. handleReady still
+    // re-bases it so the spoken prompt is not counted against her.
+    // startedAtEpoch stays null on purpose: it is Countdown's base (see the
+    // note at its declaration) and must not start ticking during the speech.
+    setStartedAtMs(performance.now());
     setStartedAtEpoch(null);
     setItemIdx((i) => i + 1);
     setPhase("item");

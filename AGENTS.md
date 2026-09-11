@@ -171,6 +171,40 @@ No secrets in the repo. Never print them to a transcript.
 
 ## 5. Gotchas / hard rules
 
+**An item clock only counts if it actually started (2026-09-11).** Every view
+gets an `onReady` prop, and some fire it LATE: `ArithmeticView` (Story Sums)
+waits on its speech promise, so she can answer while Pip is still talking. Any
+code that starts the item clock only in `onReady` therefore has a window where
+no clock is running. The rematch page kept its clock in `useRef(0)` and hit it:
+records went out with `ms = Date.now() - 0`, and the parent dashboard showed
+"1789129072.9s" next to a question and "59637731 min" as her lifetime total.
+The play page hit the same race more quietly, falling through to `ms = 0` —
+which reads as the fastest possible answer, so it set `fast`, tripped the
+`rapid-wrong` quality flag, and dragged the per-genre medians that pick her next
+difficulty. **Rule: start the clock when the item mounts; let `onReady` re-base
+it** (that is what keeps the spoken prompt out of her time). Measure with
+`performance.now()`, never `Date.now()` — a wall-clock correction mid-question
+would otherwise invent a wrong-but-believable duration. On the play page,
+pre-seed `startedAtMs` ONLY: `startedAtEpoch` is `Countdown`'s base and starting
+it early would run her clock during the speech.
+
+Raw sessions are never rewritten (they are a record of what happened), so the
+guarantee lives at read time in **`lib/engine/itemMs.ts`**. `sanitizeMs` /
+`sanitizeSeconds` return `null` — UNKNOWN, never a fabricated `0` — for any
+`ms` that is not finite, is `<= 0`, or exceeds `SANE_MAX_MS` (30 min). Every
+reader goes through it: `insights.ts` (`ItemDetail.seconds`, and `ItemDetail.fast`,
+which was decided from the same bad `ms` and must not hand out a free entry in
+the fast rate), `questionLog.ts` (medians, `totalMinutes`), `types.ts`
+(`summarize`'s `medianMs`), `quality.ts` (rapid-wrong, `itemLabel`), and
+`profile.ts` (`msByGenre`). The UI renders an em dash via `fmtSeconds(null)` and
+shows no faster/slower badge. **Stars are the deliberate exception**:
+`rewards.ts` reads `ItemRecord.fast`, so bonus stars she already saw are not
+clawed back. Covered by `lib/engine/itemMs.test.ts`, the corrupt-time block in
+`questionLog.test.ts`, and an e2e in `doors.spec.ts` that answers a Story Sums
+item under speech that never ends — revert the practice-page fix and it fails
+with an epoch-sized number.
+
+
 **A verbal item can be right and still be worthless (decision #29).** An option
 set that lets her score without the skill (the two "big words", the longest
 answer, the only kind-sounding one, the one with a grown up in it, the one

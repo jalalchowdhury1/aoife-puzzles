@@ -82,11 +82,14 @@ export default function PracticePage() {
   // stayed 0 and the record got `Date.now() - 0` (~1.789e12 ms), which the
   // parent dashboard rendered as 1789129072.9s. handleReady still re-bases it
   // so the spoken prompt is not counted against her.
+  // performance.now(), not Date.now(): monotonic, so an NTP correction
+  // mid-question cannot move the baseline and invent a time that still looks
+  // believable. The play page measures the same way.
   useEffect(() => {
-    if (phase === "item") itemStart.current = Date.now();
+    if (phase === "item") itemStart.current = performance.now();
   }, [phase, idx]);
 
-  const handleReady = useCallback(() => { itemStart.current = Date.now(); }, []);
+  const handleReady = useCallback(() => { itemStart.current = performance.now(); }, []);
 
   const advance = useCallback(() => {
     if (idx + 1 < queue.length) {
@@ -126,7 +129,7 @@ export default function PracticePage() {
     const rec: ItemRecord = {
       idx: (records.current.get(ref.genre)?.length ?? 0),
       seed: ref.seed, d: ref.d, points: result.points, max: result.max,
-      correct: result.correct, ms: Date.now() - itemStart.current,
+      correct: result.correct, ms: performance.now() - itemStart.current,
       timedOut: false, response: r,
     };
     const list = records.current.get(ref.genre) ?? [];

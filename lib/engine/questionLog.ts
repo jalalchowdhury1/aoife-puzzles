@@ -126,8 +126,8 @@ export function buildQuestionLog(insights: Insights): LoggedQuestion[] {
   for (const r of rows) {
     if (!countsTowardBaseline(r)) continue;
     // A row whose time is unknown (a corrupt `ms` — see lib/engine/itemMs.ts)
-    // still counts for accuracy; it just cannot shape a median it has no
-    // number for.
+    // cannot shape a median it has no number for. It is still a real answer
+    // and still counts everywhere that reads `correct` rather than a clock.
     if (r.seconds === null) continue;
     if (!byGenre.has(r.genre)) byGenre.set(r.genre, []);
     byGenre.get(r.genre)!.push(r.seconds);

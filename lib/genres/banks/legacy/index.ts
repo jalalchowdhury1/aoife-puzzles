@@ -28,7 +28,7 @@ export const REVISION_2026_08_30 = "2026-08-31T07:00:00.000Z";
 /** Cutover of the Fill the Gap variety pass (fg-51..fg-80 added, 2026-09-12). Sessions started before this replay on the 50-item bank; set to the release moment. */
 export const REVISION_2026_09_12 = "2026-09-12T19:07:00.000Z";
 // Red-team text pass (fg-15 option, fg-37 example, fg-78 definition): the 80-item bank as released at 19:07Z.
-export const REVISION_2026_09_12B = "2026-09-12T23:59:00.000Z"; // SET TO THE RELEASE MOMENT BEFORE npm run release
+export const REVISION_2026_09_12B = "2026-09-12T20:36:00.000Z"; // release moment of the red-team text pass
 
 interface Revision { genre: GenreId; until: string; bank: readonly unknown[] }
 

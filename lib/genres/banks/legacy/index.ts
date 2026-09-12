@@ -25,7 +25,7 @@ import { INFORMATION_BANK as INFORMATION_2026_08_30 } from "./2026-08-30/informa
 export const REVISION_2026_08_30 = "2026-08-31T07:00:00.000Z";
 
 /** Cutover of the Fill the Gap variety pass (fg-51..fg-80 added, 2026-09-12). Sessions started before this replay on the 50-item bank; set to the release moment. */
-export const REVISION_2026_09_12 = "2026-09-12T23:00:00.000Z";
+export const REVISION_2026_09_12 = "2026-09-12T19:07:00.000Z";
 
 interface Revision { genre: GenreId; until: string; bank: readonly unknown[] }
 

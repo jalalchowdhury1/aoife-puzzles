@@ -104,6 +104,7 @@ export interface ItemRecord {
   teaching?: boolean;                  // a teaching-item that revealed the answer (see BlockConfig.teachingItems)
   stars?: number;                      // stars earned on this item (0 when none); see lib/engine/rewards.ts
   avoidBankIds?: string[];             // the soft avoid list play passed to generate (history replay needs it); see GenerateOpts
+  drawOpts?: GenerateOpts;              // practice rematch (2026-09-12): the ORIGINAL item's draw (asOf, exclude, avoid) so replay shows the word she saw
 }
 export interface BlockSummary {
   attempted: number; correct: number; points: number; max: number;

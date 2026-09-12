@@ -134,6 +134,9 @@ export default function PracticePage() {
       seed: ref.seed, d: ref.d, points: result.points, max: result.max,
       correct: result.correct, ms: performance.now() - itemStart.current,
       timedOut: false, response: r,
+      // bankId arms the replay guard; drawOpts makes the parent history view replay THIS word (2026-09-12).
+      ...(genre.bankId?.(item) ? { bankId: genre.bankId(item) } : {}),
+      ...(ref.opts ? { drawOpts: ref.opts } : {}),
     };
     const list = records.current.get(ref.genre) ?? [];
     list.push(rec);

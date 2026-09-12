@@ -321,3 +321,21 @@ describe("priorBankIds — replaying an item from the middle of a block", () => 
     })).toBeNull();
   });
 });
+
+describe("drawOpts — replaying a practice rematch (2026-09-12)", () => {
+  const avoid = ["fg-66", "fg-67", "fg-68", "fg-69"];
+  const asOf = "2026-09-20T13:00:00Z";   // the original session
+  const played = "2026-09-21T13:00:00Z"; // the rematch session
+  it("replays the word she actually saw, and without the opts the guard refuses instead of showing another word", () => {
+    let refused = 0;
+    for (let seed = 0; seed < 80; seed++) {
+      const original = GENRES.fillTheGap.generate(seed, 8 as Difficulty, { avoidBankIds: avoid, asOf }) as { bankId: string; prompt: string };
+      const base = { seed, d: 8, response: null, bankId: original.bankId, points: 0, date: played };
+      expect(resolveItemView("fillTheGap", { ...base, drawOpts: { avoidBankIds: avoid, asOf } })?.prompt, `seed ${seed}`).toBe(original.prompt);
+      const bare = resolveItemView("fillTheGap", base);
+      if (bare === null) refused++;
+      else expect(bare.prompt, `seed ${seed}`).toBe(original.prompt);
+    }
+    expect(refused).toBeGreaterThan(0);
+  });
+});

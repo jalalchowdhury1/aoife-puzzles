@@ -49,7 +49,7 @@
 // this code disagree about what an answer even looks like — which is exactly
 // the situation where "she gave no answer" would be a lie. `noAnswer()` draws
 // that line, and every resolver below returns null on the second case.
-import type { Difficulty, GenreId } from "./types";
+import type { Difficulty, GenerateOpts, GenreId } from "./types";
 import { GENRES } from "../genres";
 import { SCALE_CHANGES } from "./scale";
 import type { Token, SwapShopItem } from "../genres/swapShop";
@@ -99,6 +99,8 @@ export interface RecordedItem {
   priorBankIds?: string[];
   /** The soft avoid list play passed to generate (2026-09-12); absent on older records. */
   avoidBankIds?: string[];
+  /** Practice rematch (2026-09-12): the original item's draw opts. When present they replace the three fields above. */
+  drawOpts?: GenerateOpts;
 }
 
 /**
@@ -148,7 +150,7 @@ export function resolveItemView(genreId: GenreId, rec: RecordedItem): ItemView |
   if (!Number.isInteger(d) || d < 1) return null;
 
   // Replay exactly what play did, exclusion list included (see header note).
-  const opts = { excludeBankIds: rec.priorBankIds ?? [], avoidBankIds: rec.avoidBankIds ?? [], asOf: rec.date };
+  const opts = rec.drawOpts ?? { excludeBankIds: rec.priorBankIds ?? [], avoidBankIds: rec.avoidBankIds ?? [], asOf: rec.date };
   try {
     if (genreId === "whichTwo") return viewWhichTwo(genreDef.generate(rec.seed, d, opts) as WhichTwoItem, rec);
     if (genreId === "arithmetic") return viewArithmetic(genreDef.generate(rec.seed, d, opts) as ArithmeticItem, rec);

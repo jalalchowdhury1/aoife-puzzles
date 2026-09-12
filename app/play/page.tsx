@@ -35,6 +35,7 @@ import { BigButton } from "@/components/BigButton";
 import { Pip, type PipMood } from "@/components/Pip";
 import { PraiseScreen } from "@/components/PraiseScreen";
 import { StarJar } from "@/components/StarJar";
+import { WordCard, wordCardOf } from "@/components/WordCard";
 
 type Phase = "loading" | "welcome" | "sample" | "item" | "between" | "blockDone" | "done";
 
@@ -524,7 +525,7 @@ function PlayRunner() {
     if (genre.mode === "staircase") {
       const st = startStair(cfg.start, cfg.maxItems, cfg.teachingItems, cfg.stepUp, genreMaxD(genre), levelCfg?.easeIn ? { knownCeiling: cfg.knownCeiling ?? null } : null);
       setStair(st);
-      setItem(genre.generate(newSeed, st.d, { excludeBankIds: [] }));
+      setItem(genre.generate(newSeed, st.d, { excludeBankIds: [], avoidBankIds: cfg.avoidBankIds ?? [] }));
       setBlockStartMs(null);
     } else {
       setStair(null);
@@ -553,7 +554,7 @@ function PlayRunner() {
     respondedRef.current = false;
     setSeed(newSeed);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setItem(genre.generate(newSeed, d as any, { excludeBankIds: usedBankIdsRef.current }));
+    setItem(genre.generate(newSeed, d as any, { excludeBankIds: usedBankIdsRef.current, avoidBankIds: cfg.avoidBankIds ?? [] }));
     // Pre-seeded, not null: a view that fires onReady late (ArithmeticView
     // waits on its speech promise) used to leave this null, and an answer
     // given before then fell through to `ms = 0` below — which reads as a
@@ -707,6 +708,8 @@ function PlayRunner() {
       response: timedOut ? null : response ?? null,
     };
     if (bankId !== undefined) record.bankId = bankId;
+    // Soft cross-session avoid list this item was drawn with: replay needs it to regenerate the same item.
+    if (cfg.avoidBankIds?.length) record.avoidBankIds = cfg.avoidBankIds;
     if (fast !== undefined) record.fast = fast;
     if (meta?.replayed !== undefined) record.replayed = meta.replayed;
     if (meta?.audioFallback !== undefined) record.audioFallback = meta.audioFallback;
@@ -788,7 +791,8 @@ function PlayRunner() {
     scheduleAdvance(() => {
       if (newStair!.done) endBlock(newRecords);
       else generateNextItem(newStair!.d);
-    }, holdForTap ? 600_000 : delay);
+    // Fill the Gap word card (owner, 2026-09-12): parked too, only its "Got it!" moves on.
+    }, holdForTap || (cfg.genre === "fillTheGap" && wordCardOf(item)) ? 600_000 : delay);
   }
 
   // Not memoized: none of the views read `onRespond` inside an effect
@@ -842,6 +846,7 @@ function PlayRunner() {
       } else {
         const genre = GENRES[cfg.genre];
         const View = VIEWS[cfg.genre];
+        const wordCard = cfg.genre === "fillTheGap" && phase === "between" ? wordCardOf(item) : null;
 
         if (phase === "sample") {
           // A remedial level's repeat block (see RepeatScreen above) skips
@@ -925,15 +930,16 @@ function PlayRunner() {
                       <FullScoreScreen />
                     )
                   ) : (
-                    <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} captionPip={funOn ? missPip : null} gotIt={revealHold} />
+                    <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} captionPip={funOn ? missPip : null} gotIt={revealHold && !wordCard} />
                   )
                 ) : teachingReveal ? (
                   // A missed teaching item on a level whose own feedback is "none"
                   // (Level 1): still show the answer, just this once.
-                  <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} captionPip={funOn ? missPip : null} gotIt={revealHold} />
+                  <RevealAnswerScreen View={View} item={item} lastResponse={lastResponse} captionPip={funOn ? missPip : null} gotIt={revealHold && !wordCard} />
                 ) : (
                   <BetweenScreen feedback={levelCfg.feedback} lastCorrect={lastCorrect} />
                 )}
+                {wordCard && <WordCard card={wordCard} onDone={runPendingAdvance} />}
               </div>
             </div>
           );

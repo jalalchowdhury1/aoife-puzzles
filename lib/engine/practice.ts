@@ -16,10 +16,20 @@
 // An item leaves the queue once she answers it correctly anywhere later —
 // in the Practice tab or in a real session. Newest misses come first, so
 // practice always feels connected to what she just played.
-import type { Difficulty, GenreId, SessionRecord } from "./types";
+import type { Difficulty, GenerateOpts, GenreId, SessionRecord } from "./types";
 import { GENRES } from "../genres";
 
-export interface PracticeRef { genre: GenreId; seed: number; d: Difficulty }
+export interface PracticeRef {
+  genre: GenreId; seed: number; d: Difficulty;
+  /**
+   * How the original item was drawn (2026-09-12), so the rematch is the SAME
+   * question: the bank revision in force that day (asOf), the words already
+   * used earlier in that block (excludeBankIds) and the soft cross-session
+   * avoid list. Without it a bank that grew, or an avoid list, silently turns
+   * the rematch into a different word. Absent on refs from older clients.
+   */
+  opts?: GenerateOpts;
+}
 
 const keyOf = (genre: GenreId, seed: number, d: number) => `${genre}:${seed}:${d}`;
 
@@ -45,12 +55,17 @@ export function practiceQueue(sessions: SessionRecord[], cap = PRACTICE_CAP): Pr
     for (const b of s.blocks) {
       const genre = GENRES[b.genre];
       if (!genre || genre.retired || genre.mode !== "staircase") continue;
-      for (const i of b.items) {
+      for (let ii = 0; ii < b.items.length; ii++) {
+        const i = b.items[ii];
         if (i.correct || i.bailed || i.teaching) continue;
         const key = keyOf(b.genre, i.seed, i.d);
         if (clearedKeys.has(key) || seen.has(key)) continue;
         seen.add(key);
-        pending.push({ ref: { genre: b.genre, seed: i.seed, d: i.d }, at: s.startedAt });
+        const opts: GenerateOpts = { asOf: s.startedAt };
+        const prior = b.items.slice(0, ii).map((x) => x.bankId).filter((x): x is string => !!x);
+        if (prior.length) opts.excludeBankIds = prior;
+        if (i.avoidBankIds?.length) opts.avoidBankIds = i.avoidBankIds;
+        pending.push({ ref: { genre: b.genre, seed: i.seed, d: i.d, opts }, at: s.startedAt });
       }
     }
   }

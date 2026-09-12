@@ -22,6 +22,7 @@ import { warmUpSpeech } from "@/lib/engine/speech";
 import { BigButton } from "@/components/BigButton";
 import { PraiseScreen } from "@/components/PraiseScreen";
 import { Pip } from "@/components/Pip";
+import { WordCard, wordCardOf } from "@/components/WordCard";
 
 const APP_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "dev";
 
@@ -74,7 +75,9 @@ export default function PracticePage() {
 
   const ref = queue[idx];
   const genre = ref ? GENRES[ref.genre] : null;
-  const item = ref && genre ? genre.generate(ref.seed, ref.d) : null;
+  const item = ref && genre ? genre.generate(ref.seed, ref.d, ref.opts) : null;
+  // Fill the Gap word card (owner, 2026-09-12): after every answer, right or not.
+  const wordCard = ref?.genre === "fillTheGap" ? wordCardOf(item) : null;
 
   // The clock starts when the item is on screen, NOT when the view reports
   // ready: ArithmeticView calls onReady() only after its speech promise
@@ -190,7 +193,7 @@ export default function PracticePage() {
     return (
       <main className="flex flex-1 flex-col bg-cream p-4">
         <PraiseScreen mood="excited" line={praiseLine} celebrate={false} />
-        <AutoAdvance ms={1800} onDone={advance} />
+        {wordCard ? <WordCard card={wordCard} onDone={advance} /> : <AutoAdvance ms={1800} onDone={advance} />}
       </main>
     );
   }
@@ -202,7 +205,7 @@ export default function PracticePage() {
         <div className="w-full flex-1">
           <View item={item} disabled reveal lastResponse={lastResponse} onReady={() => {}} onRespond={() => {}} />
         </div>
-        <BigButton onClick={advance} tone="teal">Got it!</BigButton>
+        {wordCard ? <WordCard card={wordCard} onDone={advance} /> : <BigButton onClick={advance} tone="teal">Got it!</BigButton>}
       </main>
     );
   }

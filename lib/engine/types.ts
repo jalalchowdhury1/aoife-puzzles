@@ -42,6 +42,13 @@ export type Timing =
 export interface GenerateOpts {
   excludeBankIds?: string[];
   /**
+   * SOFT avoid list (2026-09-12, Fill the Gap repeats): bank ids served in
+   * EARLIER sessions, least-recently-served first. An unserved item at the
+   * same difficulty wins; if every one was served, the least recently served
+   * is reused. Never widens difficulty. Empty/absent = the old behaviour exactly.
+   */
+  avoidBankIds?: string[];
+  /**
    * Regenerate the item as the bank stood at this ISO time (a session's
    * startedAt). Banks whose option TEXT was revised after she played keep the
    * earlier wording under `before` (see banks/whichTwo.ts, decision #29), so
@@ -96,6 +103,7 @@ export interface ItemRecord {
   frontier?: boolean;                  // the free first miss at a personal-record difficulty (decision #19); always paired with teaching: true
   teaching?: boolean;                  // a teaching-item that revealed the answer (see BlockConfig.teachingItems)
   stars?: number;                      // stars earned on this item (0 when none); see lib/engine/rewards.ts
+  avoidBankIds?: string[];             // the soft avoid list play passed to generate (history replay needs it); see GenerateOpts
 }
 export interface BlockSummary {
   attempted: number; correct: number; points: number; max: number;

@@ -17,11 +17,15 @@
 import type { GenreId } from "../../../engine/types";
 import { WHICH_TWO_BANK as WHICH_TWO_2026_08_30 } from "./2026-08-30/whichTwo";
 import { FILL_THE_GAP_BANK as FILL_THE_GAP_2026_08_30 } from "./2026-08-30/fillTheGap";
+import { FILL_THE_GAP_BANK as FILL_THE_GAP_2026_09_12 } from "./2026-09-12/fillTheGap";
 import { WHAT_WOULD_YOU_DO_BANK as WHAT_WOULD_YOU_DO_2026_08_30 } from "./2026-08-30/whatWouldYouDo";
 import { INFORMATION_BANK as INFORMATION_2026_08_30 } from "./2026-08-30/information";
 
 /** Cutover of the 2026-08-30 verbal re-author (decision #29). Sessions started before this replay on the frozen banks. */
 export const REVISION_2026_08_30 = "2026-08-31T07:00:00.000Z";
+
+/** Cutover of the Fill the Gap variety pass (fg-51..fg-80 added, 2026-09-12). Sessions started before this replay on the 50-item bank; set to the release moment. */
+export const REVISION_2026_09_12 = "2026-09-12T23:00:00.000Z";
 
 interface Revision { genre: GenreId; until: string; bank: readonly unknown[] }
 
@@ -30,6 +34,7 @@ interface Revision { genre: GenreId; until: string; bank: readonly unknown[] }
 const REVISIONS: Revision[] = [
   { genre: "whichTwo", until: REVISION_2026_08_30, bank: WHICH_TWO_2026_08_30 },
   { genre: "fillTheGap", until: REVISION_2026_08_30, bank: FILL_THE_GAP_2026_08_30 },
+  { genre: "fillTheGap", until: REVISION_2026_09_12, bank: FILL_THE_GAP_2026_09_12 },
   { genre: "whatWouldYouDo", until: REVISION_2026_08_30, bank: WHAT_WOULD_YOU_DO_2026_08_30 },
   { genre: "information", until: REVISION_2026_08_30, bank: INFORMATION_2026_08_30 },
 ];

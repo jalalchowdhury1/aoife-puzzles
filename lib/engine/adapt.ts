@@ -21,6 +21,8 @@ export interface ResolvedBlock extends BlockConfig {
   stepUp: number;
   /** Her measured ceiling for this genre on the CURRENT ramp (null = never measured). The runner's ease-in frontier (decision #19) sits above max(knownCeiling, start). */
   knownCeiling: number | null;
+  /** Fill the Gap only: bank ids served in earlier sessions, least-recently-served first (set by GET /api/state). */
+  avoidBankIds?: string[];
 }
 
 // Genres scored by throughput (perMinute), not a staircase ceiling. Their

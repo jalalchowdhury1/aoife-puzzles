@@ -97,6 +97,8 @@ export interface RecordedItem {
    * first item of a block and for practice replays (which exclude nothing).
    */
   priorBankIds?: string[];
+  /** The soft avoid list play passed to generate (2026-09-12); absent on older records. */
+  avoidBankIds?: string[];
 }
 
 /**
@@ -146,7 +148,7 @@ export function resolveItemView(genreId: GenreId, rec: RecordedItem): ItemView |
   if (!Number.isInteger(d) || d < 1) return null;
 
   // Replay exactly what play did, exclusion list included (see header note).
-  const opts = { excludeBankIds: rec.priorBankIds ?? [], asOf: rec.date };
+  const opts = { excludeBankIds: rec.priorBankIds ?? [], avoidBankIds: rec.avoidBankIds ?? [], asOf: rec.date };
   try {
     if (genreId === "whichTwo") return viewWhichTwo(genreDef.generate(rec.seed, d, opts) as WhichTwoItem, rec);
     if (genreId === "arithmetic") return viewArithmetic(genreDef.generate(rec.seed, d, opts) as ArithmeticItem, rec);

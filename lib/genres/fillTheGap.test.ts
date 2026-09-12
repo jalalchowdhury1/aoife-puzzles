@@ -173,3 +173,96 @@ describe("fillTheGap: audit", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// Word card (owner, 2026-09-12): after every answer she sees the word's kid
+// definition and a short example. Every bank item must carry both.
+// ---------------------------------------------------------------------------
+describe("fillTheGap word card data", () => {
+  const keyOf = (b: (typeof FILL_THE_GAP_BANK)[number]) => b.options.find(o => o.points === 2)!.text;
+  const words = (s: string) => s.trim().split(/\s+/).length;
+
+  it("every item has a definition of at most 15 words that never gives the word away", () => {
+    for (const b of FILL_THE_GAP_BANK) {
+      const def = b.definition ?? "";
+      expect(def.length > 0, `${b.id} definition`).toBe(true);
+      expect(words(def) <= 15, `${b.id} definition too long: ${def}`).toBe(true);
+      const key = keyOf(b).toLowerCase();
+      const root = key.slice(0, Math.max(4, key.length - 3));
+      expect(def.toLowerCase().includes(root), `${b.id} definition contains "${root}": ${def}`).toBe(false);
+      expect(noDashes(def) && noBannedWords(def), `${b.id} definition: ${def}`).toBe(true);
+    }
+  });
+
+  it("every item has an example of at most 12 words that uses the exact word", () => {
+    for (const b of FILL_THE_GAP_BANK) {
+      const ex = b.example ?? "";
+      expect(ex.length > 0, `${b.id} example`).toBe(true);
+      expect(words(ex) <= 12, `${b.id} example too long: ${ex}`).toBe(true);
+      expect(new RegExp(`\\b${keyOf(b)}\\b`, "i").test(ex), `${b.id} example lacks "${keyOf(b)}": ${ex}`).toBe(true);
+      expect(noDashes(ex) && noBannedWords(ex), `${b.id} example: ${ex}`).toBe(true);
+    }
+  });
+
+  it("generate copies definition and example onto the served item", () => {
+    for (let seed = 0; seed < 200; seed++) {
+      for (const d of DIFFICULTIES) {
+        const item = fillTheGap.generate(seed, d) as ChoiceItem;
+        const src = FILL_THE_GAP_BANK.find(b => b.id === item.bankId)!;
+        expect(item.definition, `seed ${seed} d ${d}`).toBe(src.definition);
+        expect(item.example, `seed ${seed} d ${d}`).toBe(src.example);
+      }
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Cross-session soft avoid list (2026-09-12): fresh words first, then the
+// least recently served, never a hard block.
+// ---------------------------------------------------------------------------
+describe("fillTheGap avoidBankIds", () => {
+  const idsAt = (d: number) => FILL_THE_GAP_BANK.filter(b => b.d === d).map(b => b.id);
+
+  it("an empty avoid list changes nothing (500 seeds x 10 difficulties)", () => {
+    for (let seed = 0; seed < 500; seed++) {
+      for (const d of DIFFICULTIES) {
+        expect(fillTheGap.generate(seed, d, { avoidBankIds: [] }), `seed ${seed} d ${d}`).toEqual(fillTheGap.generate(seed, d));
+      }
+    }
+  });
+
+  it("prefers items she has not been served yet", () => {
+    for (const d of DIFFICULTIES) {
+      const ids = idsAt(d);
+      if (ids.length < 2) continue;
+      const avoid = ids.slice(0, Math.floor(ids.length / 2));
+      for (let seed = 0; seed < 100; seed++) {
+        const item = fillTheGap.generate(seed, d, { avoidBankIds: avoid }) as ChoiceItem;
+        expect(avoid.includes(item.bankId), `d ${d} seed ${seed} served ${item.bankId}`).toBe(false);
+      }
+    }
+  });
+
+  it("when every same-tier item was served, picks the least recently served one at that tier", () => {
+    for (const d of DIFFICULTIES) {
+      const avoid = [...FILL_THE_GAP_BANK.filter(b => b.d !== d).map(b => b.id).slice(0, 3), ...idsAt(d).reverse()];
+      const oldestAtD = idsAt(d).reverse()[0];
+      for (let seed = 0; seed < 50; seed++) {
+        const item = fillTheGap.generate(seed, d, { avoidBankIds: avoid }) as ChoiceItem;
+        expect(item.bankId, `d ${d} seed ${seed}`).toBe(oldestAtD);
+        expect(item.d, `d ${d} seed ${seed}`).toBe(d);
+      }
+    }
+  });
+
+  it("the in-block exclude list still wins over the avoid list", () => {
+    for (const d of DIFFICULTIES) {
+      const ids = idsAt(d);
+      if (ids.length < 2) continue;
+      for (let seed = 0; seed < 50; seed++) {
+        const item = fillTheGap.generate(seed, d, { excludeBankIds: [ids[0]], avoidBankIds: ids }) as ChoiceItem;
+        expect(item.bankId, `d ${d} seed ${seed}`).toBe(ids[1]);
+      }
+    }
+  });
+});

@@ -11,6 +11,14 @@ export interface ChoiceBankItem {
   id: string; d: Difficulty; prompt: string; emoji?: string;
   options: ChoiceOption[]; explanation: string;
   /**
+   * Word card (2026-09-12, required on every current fillTheGap item): shown to
+   * her after EVERY answer, right or wrong. `definition` is written for a
+   * 6-year-old (<= 15 words, never the word or its root); `example` is a short
+   * sentence (<= 12 words) using the 2-point word exactly as spelled.
+   */
+  definition?: string;
+  example?: string;
+  /**
    * Reviewer note (decision #29, required on every active verbal bank item):
    * why each 0 point option is plausible but wrong, why the 1 point option is
    * only partly right, what makes the best option uniquely best, and which
@@ -23,6 +31,8 @@ export interface ChoiceItem {
   bankId: string; d: Difficulty; prompt: string; emoji?: string;
   options: { text: string; points: number }[];
   explanation: string;
+  definition?: string;
+  example?: string;
 }
 
 export interface ChoiceGenreMeta {
@@ -31,13 +41,22 @@ export interface ChoiceGenreMeta {
   maxDifficulty?: number;   // widened past 10 only when her data earned it (decision #17)
 }
 
-/** Picks a bank item at difficulty `d`, excluding `exclude`; widens |d' - d| outward if the exact tier is empty. */
+/**
+ * Picks a bank item at difficulty `d`, excluding `exclude`; widens |d' - d| outward if the exact tier is empty.
+ * `avoid` is SOFT (ids served in earlier sessions, least-recently-served first): within the tier an unserved
+ * item wins; if every tier item was served, the least recently served one is reused WITHOUT consuming rng.
+ * An empty `avoid` is the original behaviour exactly (same rng calls, same pick) — history replays rely on it.
+ */
 function pickWidening<T extends { id: string; d: Difficulty }>(
-  bank: readonly T[], d: Difficulty, exclude: Set<string>, rng: Rng,
+  bank: readonly T[], d: Difficulty, exclude: Set<string>, rng: Rng, avoid: readonly string[] = [],
 ): T {
   for (let widen = 0; widen <= 9; widen++) {
     const candidates = bank.filter(b => Math.abs(b.d - d) === widen && !exclude.has(b.id));
-    if (candidates.length > 0) return rng.pick(candidates);
+    if (candidates.length === 0) continue;
+    if (avoid.length === 0) return rng.pick(candidates);
+    const fresh = candidates.filter(b => !avoid.includes(b.id));
+    if (fresh.length > 0) return rng.pick(fresh);
+    return candidates.reduce((best, b) => (avoid.indexOf(b.id) < avoid.indexOf(best.id) ? b : best));
   }
   const fallback = bank.filter(b => !exclude.has(b.id));
   if (fallback.length > 0) return rng.pick(fallback);
@@ -50,9 +69,13 @@ export function makeChoiceGenre(meta: ChoiceGenreMeta, bank: readonly ChoiceBank
     const exclude = new Set(opts?.excludeBankIds ?? []);
     // A history replay (opts.asOf = session date) draws from the bank that
     // was live then (banks/legacy), so it shows the words she actually saw.
-    const picked = pickWidening(bankAsOf(meta.id, bank, opts?.asOf), d, exclude, rng);
+    const picked = pickWidening(bankAsOf(meta.id, bank, opts?.asOf), d, exclude, rng, opts?.avoidBankIds ?? []);
     const options = rng.shuffle(picked.options).map(o => ({ text: o.text, points: o.points }));
-    return { bankId: picked.id, d: picked.d, prompt: picked.prompt, emoji: picked.emoji, options, explanation: picked.explanation };
+    return {
+      bankId: picked.id, d: picked.d, prompt: picked.prompt, emoji: picked.emoji, options, explanation: picked.explanation,
+      ...(picked.definition ? { definition: picked.definition } : {}),
+      ...(picked.example ? { example: picked.example } : {}),
+    };
   };
   return {
     id: meta.id, subtest: meta.subtest, domain: meta.domain, kidTitle: meta.kidTitle, instructions: meta.instructions,

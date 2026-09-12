@@ -200,6 +200,11 @@ test.describe("play-through", () => {
           // (level 99 defaults to fun: true — see AGENTS.md's fun-layer
           // brief), so this doesn't depend on exact text like "Yes!".
           await expect(page.getByTestId("between-feedback")).toBeVisible({ timeout: 6_000 });
+          // Fill the Gap: the word card parks the advance timer until "Got it!".
+          if (id === "fillTheGap") {
+            await expect(page.getByTestId("word-card")).toBeVisible();
+            await page.getByTestId("word-card-continue").click();
+          }
         }
       }
 

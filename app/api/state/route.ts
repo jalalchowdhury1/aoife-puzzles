@@ -6,10 +6,13 @@ import { computeProfile } from "@/lib/engine/profile";
 import { adaptPart, type ResolvedBlock } from "@/lib/engine/adapt";
 import { ensureFlags } from "@/lib/engine/quality";
 import { LEVELS, RELEASED_LEVELS } from "@/lib/levels";
+import { servedBankIds } from "@/lib/engine/servedBankIds";
 
 // Public (no PARENT_KEY): this is what the child's own device calls to learn
 // where she is and what a part should look like, WITHOUT ever exposing her
-// items, points, ceilings, or the raw profile itself — only the resolved
+// answers, points, ceilings, or the raw profile itself (Fill the Gap blocks also
+// carry `avoidBankIds`: the ids of words already served, so play stops repeating
+// them — ids only, no scores) — only the resolved
 // plan (start/maxItems/teachingItems/timeScale/strength/repeat) for the one
 // part asked about. See AGENTS.md §2/§5: the server is the source of truth
 // for position and adaptation; local storage is a mirror/offline fallback.
@@ -41,6 +44,10 @@ export async function GET(req: Request) {
     const partCfg = levelCfg?.parts.find((p) => p.id === partParam);
     if (levelCfg && partCfg) {
       blocks = adaptPart(partCfg, levelCfg, computeProfile(sessions));
+      const served = servedBankIds(sessions, "fillTheGap");
+      if (served.length > 0) {
+        blocks = blocks.map((b) => (b.genre === "fillTheGap" ? { ...b, avoidBankIds: served } : b));
+      }
     }
   }
 

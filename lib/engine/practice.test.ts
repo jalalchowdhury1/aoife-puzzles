@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { practiceQueue } from "./practice";
 import type { BlockRecord, ItemRecord, SessionRecord } from "./types";
+import type { PracticeRef } from "./practice";
+import { fillTheGap } from "../genres/fillTheGap";
+import type { ChoiceItem } from "../genres/bankGenre";
+
+/** The (genre, seed, d) identity of each ref, without its draw opts. */
+const bare = (q: PracticeRef[]) => q.map(({ genre, seed, d }) => ({ genre, seed, d }));
 
 function item(over: Partial<ItemRecord>): ItemRecord {
   return {
@@ -31,7 +37,7 @@ describe("practiceQueue (decision #23)", () => {
       item({ idx: 2, seed: 13, d: 4, correct: true, points: 1, max: 1 }),
     ])] });
     const q = practiceQueue([s]);
-    expect(q).toEqual([
+    expect(bare(q)).toEqual([
       { genre: "swapShop", seed: 11, d: 4 },
       { genre: "swapShop", seed: 12, d: 5 },
     ]);
@@ -44,7 +50,7 @@ describe("practiceQueue (decision #23)", () => {
       item({ idx: 2, seed: 3, teaching: true, frontier: true }),
       item({ idx: 3, seed: 4 }),
     ])] });
-    expect(practiceQueue([s])).toEqual([{ genre: "arithmetic", seed: 4, d: 3 }]);
+    expect(bare(practiceQueue([s]))).toEqual([{ genre: "arithmetic", seed: 4, d: 3 }]);
   });
 
   it("excludes speed-block genres and retired replica genres", () => {
@@ -53,7 +59,7 @@ describe("practiceQueue (decision #23)", () => {
       block("figureWeights", [item({ seed: 2 })]), // retired replica
       block("whichTwo", [item({ seed: 3 })]),
     ] });
-    expect(practiceQueue([s])).toEqual([{ genre: "whichTwo", seed: 3, d: 3 }]);
+    expect(bare(practiceQueue([s]))).toEqual([{ genre: "whichTwo", seed: 3, d: 3 }]);
   });
 
   it("clears an item once she answers it correctly in a later practice session", () => {
@@ -81,7 +87,7 @@ describe("practiceQueue (decision #23)", () => {
       block("swapShop", [item({ seed: 6, d: 4 })]),
     ] });
     const q = practiceQueue([older, newer]);
-    expect(q).toEqual([
+    expect(bare(q)).toEqual([
       { genre: "whichTwo", seed: 5, d: 2 },
       { genre: "swapShop", seed: 6, d: 4 },
     ]);
@@ -92,5 +98,38 @@ describe("practiceQueue (decision #23)", () => {
     const s = session({ blocks: [block("arithmetic", items)] });
     expect(practiceQueue([s])).toHaveLength(30);
     expect(practiceQueue([s], 5)).toHaveLength(5);
+  });
+});
+
+describe("practiceQueue draw opts (2026-09-12)", () => {
+  it("carries the day's bank revision, the block's earlier words and the avoid list", () => {
+    const s = session({ startedAt: "2026-09-01T15:00:00Z", blocks: [block("fillTheGap", [
+      item({ seed: 5, d: 6, correct: true, points: 2, max: 2, bankId: "fg-26" }),
+      item({ idx: 1, seed: 6, d: 6, correct: false, bankId: "fg-27", avoidBankIds: ["fg-30", "fg-28"] }),
+    ])] });
+    expect(practiceQueue([s])).toEqual([
+      { genre: "fillTheGap", seed: 6, d: 6, opts: { asOf: "2026-09-01T15:00:00Z", excludeBankIds: ["fg-26"], avoidBankIds: ["fg-30", "fg-28"] } },
+    ]);
+  });
+
+  it("a rematch of a miss from before the bank grew is the exact same word", () => {
+    const asOf = "2026-09-01T15:00:00Z";
+    for (let seed = 0; seed < 200; seed++) {
+      const original = fillTheGap.generate(seed, 8, { asOf }) as ChoiceItem;
+      const s = session({ startedAt: asOf, blocks: [block("fillTheGap", [item({ seed, d: 8, bankId: original.bankId })])] });
+      const [ref] = practiceQueue([s]);
+      expect((fillTheGap.generate(ref.seed, ref.d, ref.opts) as ChoiceItem).bankId, `seed ${seed}`).toBe(original.bankId);
+    }
+  });
+
+  it("a rematch of a miss drawn with an avoid list is the exact same word", () => {
+    const startedAt = "2026-09-20T15:00:00Z";
+    const avoid = ["fg-66", "fg-67", "fg-68"];
+    for (let seed = 0; seed < 200; seed++) {
+      const original = fillTheGap.generate(seed, 8, { avoidBankIds: avoid, asOf: startedAt }) as ChoiceItem;
+      const s = session({ startedAt, blocks: [block("fillTheGap", [item({ seed, d: 8, bankId: original.bankId, avoidBankIds: avoid })])] });
+      const [ref] = practiceQueue([s]);
+      expect((fillTheGap.generate(ref.seed, ref.d, ref.opts) as ChoiceItem).bankId, `seed ${seed}`).toBe(original.bankId);
+    }
   });
 });

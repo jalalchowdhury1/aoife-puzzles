@@ -1,4 +1,4 @@
-import type { ChoiceBankItem } from "../bankGenre";
+import type { ChoiceBankItem } from "../../../bankGenre";
 
 // "Fill the Gap" (cousin of word knowledge, VC domain), reauthored
 // 2026-08-30 under decision #29 after an audit found the whole bank was
@@ -221,7 +221,7 @@ export const FILL_THE_GAP_BANK: ChoiceBankItem[] = [
     options: [
       { text: "bitter", points: 2 },
       { text: "strong", points: 1 },
-      { text: "yummy", points: 0 },
+      { text: "chalky", points: 0 },
       { text: "sugary", points: 0 },
     ],
     explanation: "A sharp taste that sweetness has to cover up is bitter.",
@@ -522,7 +522,7 @@ export const FILL_THE_GAP_BANK: ChoiceBankItem[] = [
     ],
     explanation: "Choosing to do something while watching the other person makes the act deliberate.",
     definition: "Done on purpose, not by accident.",
-    example: "He made a deliberate choice to share his last cookie.",
+    example: "Her careful, deliberate steps crossed the icy path.",
     reviewNote: "Sudden and mysterious are ordinary words for an act with a broken vase and each fits a close sentence, but he looked first and pushed with one finger, so nothing was hurried and nothing was hidden. Planned scores one because it also rules out accident, yet planning means working it out beforehand and the sentence shows only the moment. Looked straight at her then pushed is the evidence for on purpose, so deliberate is uniquely right.",
   },
   {
@@ -1061,7 +1061,7 @@ export const FILL_THE_GAP_BANK: ChoiceBankItem[] = [
       { text: "resource", points: 0 },
     ],
     explanation: "A remarkable thing in nature that scientists come to study is a phenomenon, more exact than an event.",
-    definition: "Something that happens in nature or the world that people can see and study.",
+    definition: "Something amazing in nature or the world that people notice and study.",
     example: "A rainbow is a phenomenon made by sunlight and rain.",
     reviewNote: "Habitat and resource are real science words about nature, but the blinking itself is not a place to live or something to use. Event scores one because it is something that happens, yet it misses how remarkable and study worthy it is. Scientists travelling to study it is the evidence. All four are nouns.",
   },

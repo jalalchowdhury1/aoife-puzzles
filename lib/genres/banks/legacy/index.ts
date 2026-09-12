@@ -18,6 +18,7 @@ import type { GenreId } from "../../../engine/types";
 import { WHICH_TWO_BANK as WHICH_TWO_2026_08_30 } from "./2026-08-30/whichTwo";
 import { FILL_THE_GAP_BANK as FILL_THE_GAP_2026_08_30 } from "./2026-08-30/fillTheGap";
 import { FILL_THE_GAP_BANK as FILL_THE_GAP_2026_09_12 } from "./2026-09-12/fillTheGap";
+import { FILL_THE_GAP_BANK as FILL_THE_GAP_2026_09_12B } from "./2026-09-12b/fillTheGap";
 import { WHAT_WOULD_YOU_DO_BANK as WHAT_WOULD_YOU_DO_2026_08_30 } from "./2026-08-30/whatWouldYouDo";
 import { INFORMATION_BANK as INFORMATION_2026_08_30 } from "./2026-08-30/information";
 
@@ -26,6 +27,8 @@ export const REVISION_2026_08_30 = "2026-08-31T07:00:00.000Z";
 
 /** Cutover of the Fill the Gap variety pass (fg-51..fg-80 added, 2026-09-12). Sessions started before this replay on the 50-item bank; set to the release moment. */
 export const REVISION_2026_09_12 = "2026-09-12T19:07:00.000Z";
+// Red-team text pass (fg-15 option, fg-37 example, fg-78 definition): the 80-item bank as released at 19:07Z.
+export const REVISION_2026_09_12B = "2026-09-12T23:59:00.000Z"; // SET TO THE RELEASE MOMENT BEFORE npm run release
 
 interface Revision { genre: GenreId; until: string; bank: readonly unknown[] }
 
@@ -35,6 +38,7 @@ const REVISIONS: Revision[] = [
   { genre: "whichTwo", until: REVISION_2026_08_30, bank: WHICH_TWO_2026_08_30 },
   { genre: "fillTheGap", until: REVISION_2026_08_30, bank: FILL_THE_GAP_2026_08_30 },
   { genre: "fillTheGap", until: REVISION_2026_09_12, bank: FILL_THE_GAP_2026_09_12 },
+  { genre: "fillTheGap", until: REVISION_2026_09_12B, bank: FILL_THE_GAP_2026_09_12B },
   { genre: "whatWouldYouDo", until: REVISION_2026_08_30, bank: WHAT_WOULD_YOU_DO_2026_08_30 },
   { genre: "information", until: REVISION_2026_08_30, bank: INFORMATION_2026_08_30 },
 ];

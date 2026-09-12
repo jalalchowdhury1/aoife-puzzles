@@ -17,7 +17,8 @@ import { FILL_THE_GAP_BANK } from "../banks/fillTheGap";
 import { WHAT_WOULD_YOU_DO_BANK } from "../banks/whatWouldYouDo";
 import { INFORMATION_BANK } from "../banks/information";
 import { WHICH_TWO_BANK } from "../banks/whichTwo";
-import { bankAsOf, REVISION_2026_08_30 } from "../banks/legacy";
+import { bankAsOf, REVISION_2026_08_30, REVISION_2026_09_12B } from "../banks/legacy";
+import { FILL_THE_GAP_BANK as FILL_THE_GAP_2026_09_12B } from "../banks/legacy/2026-09-12b/fillTheGap";
 import { WHICH_TWO_BANK as WHICH_TWO_LEGACY } from "../banks/legacy/2026-08-30/whichTwo";
 import { whichTwo } from "../whichTwo";
 import { fillTheGap } from "../fillTheGap";
@@ -309,5 +310,15 @@ describe("legacy replay (decision #29)", () => {
     expect(old.items.map(o => o.text)).toEqual(["empathy", "compassion", "ladder", "peach"]);
     const now = WHICH_TWO_BANK.find(b => b.id === "wt-50")!;
     expect(now.items.map(o => o.text)).not.toContain("ladder");
+  });
+});
+
+describe("fillTheGap revision 2026-09-12b (red-team text pass)", () => {
+  it("a replay between the two cutovers uses the released bank (fg-15 had chalky); from the cutover on, the fixed one (yummy)", () => {
+    expect(bankAsOf("fillTheGap", FILL_THE_GAP_BANK, "2026-09-12T19:30:00.000Z")).toBe(FILL_THE_GAP_2026_09_12B);
+    expect(bankAsOf("fillTheGap", FILL_THE_GAP_BANK, "2026-09-12T19:00:00.000Z")).not.toBe(FILL_THE_GAP_2026_09_12B);
+    expect(bankAsOf("fillTheGap", FILL_THE_GAP_BANK, REVISION_2026_09_12B)).toBe(FILL_THE_GAP_BANK);
+    expect(FILL_THE_GAP_2026_09_12B.find(b => b.id === "fg-15")!.options.map(o => o.text)).toContain("chalky");
+    expect(FILL_THE_GAP_BANK.find(b => b.id === "fg-15")!.options.map(o => o.text)).toContain("yummy");
   });
 });

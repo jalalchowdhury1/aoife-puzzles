@@ -78,7 +78,7 @@ export const FILL_THE_GAP_BANK: ChoiceBankItem[] = [
       { text: "turning", points: 0 },
     ],
     explanation: "Children can only climb on once the bus has come to a full halt, so it is stopping.",
-    definition: "Coming to a still place and not moving anymore.",
+    definition: "Going from moving to staying still in one spot.",
     example: "The train is stopping at the station.",
     reviewNote: "Swerving and turning are true bus verbs at a corner and are plausible in a similar sentence, but neither lets anyone climb aboard. Slowing points the right way and takes one, yet a bus that is only slowing is still moving. So the children can climb on is the evidence that demands a full halt. Four ing verbs of seven and eight letters, same register, bus emoji shows the vehicle rather than the action, key absent from the stem, no silliness.",
   },

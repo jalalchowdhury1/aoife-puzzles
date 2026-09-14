@@ -35,7 +35,7 @@ export const REVISION_2026_09_12 = "2026-09-12T19:07:00.000Z";
 export const REVISION_2026_09_12B = "2026-09-12T20:36:00.000Z"; // release moment of the red-team text pass
 
 /** Cutover of the fresh-questions pass (2026-09-14: new items in arithmetic, information, whichTwo, whatWouldYouDo so Level 13 serves unseen questions). SET TO THE RELEASE MOMENT. */
-export const REVISION_2026_09_14 = "2026-09-14T18:00:00.000Z"; // placeholder: reset to the release moment at deploy
+export const REVISION_2026_09_14 = "2026-09-14T13:41:00.000Z"; // release moment
 
 interface Revision { genre: GenreId; until: string; bank: readonly unknown[] }
 

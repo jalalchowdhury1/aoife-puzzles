@@ -404,6 +404,28 @@ export const INFORMATION_BANK: ChoiceBankItem[] = [
     explanation: "Evaporation is when a liquid slowly turns into a gas and goes into the air.",
     reviewNote: "All four are water cycle words, and condensation is the true near miss because it is the same change running backward, while absorption is what a child picks who thinks the ground drank the puddle. Only evaporation sends the water up as gas. Checked length (Precipitation is longest), register (four process nouns) and stem echo (puddle and water appear in no option).",
   },
+  {
+    id: "in-61", d: 8, prompt: "Which layer of the Earth is the one we live on?",
+    options: [
+      { text: "The crust", points: 1 },
+      { text: "The mantle", points: 0 },
+      { text: "The outer core", points: 0 },
+      { text: "The inner core", points: 0 },
+    ],
+    explanation: "We live on the crust, the thin rocky outer layer of the Earth.",
+    reviewNote: "Every zero is a real layer of the Earth from the same diagram, so none can be thrown out as coming from another subject: the mantle is the thick layer right under the crust and the two cores sit at the center. Only the crust is the surface we live on. Checked length (the key is the shortest option), register (four the plus layer names) and stem echo (layer and Earth appear in no option).",
+  },
+  {
+    id: "in-62", d: 8, prompt: "What do we call the big change when a caterpillar turns into a butterfly?",
+    options: [
+      { text: "Metamorphosis", points: 1 },
+      { text: "Hibernation", points: 0 },
+      { text: "Migration", points: 0 },
+      { text: "Decomposition", points: 0 },
+    ],
+    explanation: "Metamorphosis is the big change when a caterpillar turns into a butterfly.",
+    reviewNote: "All four are named changes or habits in the lives of living things, so the key is not the only science word on the screen: hibernation is the trap for a child who thinks the chrysalis is a long sleep, migration is what monarch butterflies are famous for and decomposition is the other long process word she has met. Only metamorphosis names the change of body. Checked length (Decomposition ties the key), register (four process nouns) and stem echo (caterpillar and butterfly appear in no option).",
+  },
   // ------------------------------------------------------------------
   // d9: about age 10 to 11. Named processes, chemical notation, and
   // geography that has to be read off a map rather than recalled.
@@ -452,6 +474,50 @@ export const INFORMATION_BANK: ChoiceBankItem[] = [
     explanation: "The chemical formula for water is H2O, which is two hydrogen atoms and one oxygen atom.",
     reviewNote: "All four are real formulas of everyday substances and all four read aloud cleanly letter by letter: CO2 is the gas we breathe out, O2 is the gas we breathe in and CH4 is the methane that burns in a gas stove. Only H2O is water itself. Checked length (all four options are two or three characters), register (four chemical formulas) and stem echo (water and formula appear in no option).",
   },
+  {
+    id: "in-63", d: 9, prompt: "Which is the longest river in South America?",
+    options: [
+      { text: "The Amazon", points: 1 },
+      { text: "The Nile", points: 0 },
+      { text: "The Mississippi", points: 0 },
+      { text: "The Danube", points: 0 },
+    ],
+    explanation: "The Amazon is the longest river in South America.",
+    reviewNote: "Every zero is a famous long river a child has heard of: the Nile is the sharpest near miss because it is the river most often named as the longest in the world, and the Mississippi is the long river of the other American continent. Only the Amazon flows across South America. Checked length (The Mississippi is longer than the key and The Danube ties it), register (four the plus river names) and stem echo (longest and America appear in no option).",
+  },
+  {
+    id: "in-64", d: 9, prompt: "At what temperature does water freeze on the Celsius scale?",
+    options: [
+      { text: "Zero degrees", points: 1 },
+      { text: "Thirty two degrees", points: 0 },
+      { text: "One hundred degrees", points: 0 },
+      { text: "Four degrees", points: 0 },
+    ],
+    explanation: "On the Celsius scale, water freezes at zero degrees.",
+    reviewNote: "Every zero is a temperature with a real tie to water: thirty two degrees is the freezing point on the Fahrenheit scale American children see every day, one hundred degrees is where water boils on the Celsius scale and four degrees is where water is heaviest. Only zero is freezing on the Celsius scale. Checked length (two zeros are much longer than the key and Four degrees ties it), register (four degree readings) and stem echo (water, freeze and Celsius appear in no option).",
+  },
+  {
+    id: "in-65", d: 9, prompt: "Which ocean lies between the Americas on one side and Europe and Africa on the other?",
+    options: [
+      { text: "The Atlantic Ocean", points: 1 },
+      { text: "The Pacific Ocean", points: 0 },
+      { text: "The Arctic Ocean", points: 0 },
+      { text: "The Southern Ocean", points: 0 },
+    ],
+    explanation: "The Atlantic Ocean lies between the Americas on one side and Europe and Africa on the other.",
+    reviewNote: "All four are oceans, so category is no help, and each zero touches part of the picture: the Pacific borders the Americas on their other side, the Arctic reaches North America and Europe across the top of the world, and the Southern Ocean lies below South America and Africa. Only the Atlantic has the Americas on one shore and Europe and Africa on the other. Checked length (The Southern Ocean ties the key), register (four the plus ocean names) and stem echo (ocean sits in every option, and Americas, Europe and Africa appear in none).",
+  },
+  {
+    id: "in-71", d: 9, prompt: "Which huge desert covers much of northern Africa?",
+    options: [
+      { text: "The Sahara", points: 1 },
+      { text: "The Gobi", points: 0 },
+      { text: "The Kalahari", points: 0 },
+      { text: "The Mojave", points: 0 },
+    ],
+    explanation: "The Sahara is the huge desert that covers much of northern Africa.",
+    reviewNote: "Every zero is a famous desert, and the Kalahari is the sharpest near miss because it is in Africa too, but in the south, so the map direction is what decides the item; the Gobi is the great desert of Asia and the Mojave the famous desert of the United States. Only the Sahara covers northern Africa. Checked length (The Kalahari is longer than the key and The Mojave ties it), register (four the plus desert names) and stem echo (desert, northern and Africa appear in no option).",
+  },
   // ------------------------------------------------------------------
   // d10: about age 11. Naming the unit, the center and the exception.
   // ------------------------------------------------------------------
@@ -498,6 +564,50 @@ export const INFORMATION_BANK: ChoiceBankItem[] = [
     ],
     explanation: "Two is the smallest prime number. One is not counted as a prime.",
     reviewNote: "One is the answer of every child who thinks smallest means first, zero is the answer of a child who thinks smallest means lowest, and three is the smallest odd prime, which is the trap for a child who believes primes must be odd. Only two fits the definition. Checked length (Three is longest), register (four number words) and stem echo (prime and smallest appear in no option).",
+  },
+  {
+    id: "in-66", d: 10, prompt: "Which unit is used to measure the power of a light bulb?",
+    options: [
+      { text: "The watt", points: 1 },
+      { text: "The volt", points: 0 },
+      { text: "The amp", points: 0 },
+      { text: "The ohm", points: 0 },
+    ],
+    explanation: "The power of a light bulb is measured in watts.",
+    reviewNote: "All four are units of electricity printed on batteries, chargers and bulbs, so none can be dropped as coming from another subject: the volt is the push a battery gives, the amp is how much current flows and the ohm measures resistance. Only the watt measures power. Checked length (The volt ties the key), register (four the plus unit names) and stem echo (power, light and measure appear in no option).",
+  },
+  {
+    id: "in-67", d: 10, prompt: "Which is the only mammal that can fly by flapping its own wings?",
+    options: [
+      { text: "A bat", points: 1 },
+      { text: "A flying squirrel", points: 0 },
+      { text: "A sugar glider", points: 0 },
+      { text: "A flying lemur", points: 0 },
+    ],
+    explanation: "The bat is the only mammal that can fly by flapping its own wings. The others only glide.",
+    reviewNote: "Every zero is a real mammal that travels through the air, and two carry the word flying in their names, so a child who does not know the exception is pulled toward them: flying squirrels, sugar gliders and flying lemurs all glide on stretched skin but cannot flap. Only the bat truly flies. Checked length (every zero is far longer than the key), register (four a plus animal names) and stem echo (mammal, flapping and wings appear in no option).",
+  },
+  {
+    id: "in-68", d: 10, prompt: "Which blood vessels carry blood away from the heart?",
+    options: [
+      { text: "Arteries", points: 1 },
+      { text: "Veins", points: 0 },
+      { text: "Capillaries", points: 0 },
+      { text: "Ventricles", points: 0 },
+    ],
+    explanation: "Arteries carry blood away from the heart. Veins bring it back.",
+    reviewNote: "Every zero comes from the same lesson on the heart: veins are the other main vessels and carry blood the opposite way, capillaries are the tiny vessels in between, and ventricles are the chambers that pump the blood out. Only arteries carry it away from the heart. Checked length (Capillaries and Ventricles are both longer than the key), register (four plural body part nouns) and stem echo (blood, vessels and heart appear in no option).",
+  },
+  {
+    id: "in-72", d: 10, prompt: "Which is the only metal that is a liquid at room temperature?",
+    options: [
+      { text: "Mercury", points: 1 },
+      { text: "Lead", points: 0 },
+      { text: "Silver", points: 0 },
+      { text: "Aluminum", points: 0 },
+    ],
+    explanation: "Mercury is the only metal that is a liquid at room temperature.",
+    reviewNote: "Every zero is a common metal a child can name, and silver is the sharpest near miss because liquid mercury is shiny and silver colored and was once called quicksilver, while lead is the soft heavy metal that melts easily. Only mercury is already a liquid in a normal room. Checked length (Aluminum is longer than the key), register (four metal names) and stem echo (metal, liquid and temperature appear in no option).",
   },
   // ------------------------------------------------------------------
   // d11: about age 11 to 12. The whole versus its parts, proportions,
@@ -546,6 +656,28 @@ export const INFORMATION_BANK: ChoiceBankItem[] = [
     ],
     explanation: "A material that lets electricity flow through it easily is called a conductor.",
     reviewNote: "Three of the four options describe how easily current passes, so the item is a graded choice and not a coin flip: an insulator blocks the current, a resistor slows it down and a magnet is the electrical word a child reaches for when she is unsure. Only conductor means it passes easily. Checked length (An insulator is longer than the key), register (four electricity nouns) and stem echo (material and electricity appear in no option).",
+  },
+  {
+    id: "in-69", d: 11, prompt: "About how much of the Earth's surface is covered by oceans?",
+    options: [
+      { text: "About seven tenths", points: 1 },
+      { text: "About three tenths", points: 0 },
+      { text: "About one half", points: 0 },
+      { text: "About nine tenths", points: 0 },
+    ],
+    explanation: "Oceans cover about seven tenths of the Earth's surface. Land covers about three tenths.",
+    reviewNote: "Every option is a fraction in the same words, so wording gives nothing away, and three tenths is the sharpest near miss because it is the share that is land, the same fact turned around. One half is the guess of a child who thinks it is even and nine tenths the guess of a child picturing a globe that is nearly all blue. Only seven tenths is right. Checked length (About three tenths ties the key), register (four about plus fraction phrases) and stem echo (surface, covered and oceans appear in no option).",
+  },
+  {
+    id: "in-70", d: 11, prompt: "In which year did the thirteen American colonies declare their independence?",
+    options: [
+      { text: "Seventeen seventy six", points: 1 },
+      { text: "Seventeen eighty seven", points: 0 },
+      { text: "Seventeen eighty three", points: 0 },
+      { text: "Eighteen twelve", points: 0 },
+    ],
+    explanation: "The thirteen American colonies declared their independence in seventeen seventy six.",
+    reviewNote: "Every zero is a real year from the same chapter of American history: seventeen eighty three is when the war for independence ended, seventeen eighty seven is when the Constitution was written and eighteen twelve began the next war with Britain. Only seventeen seventy six is the year of the declaration. Checked length (two zeros are longer than the key), register (four years said as words so TTS reads them the same way) and stem echo (colonies and independence appear in no option).",
   },
   // ------------------------------------------------------------------
   // d12: about age 12. Instruments, cells, machines and where gases go.

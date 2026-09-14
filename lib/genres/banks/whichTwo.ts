@@ -302,6 +302,54 @@ export const WHICH_TWO_BANK: WhichTwoBankItem[] = [
     distractorNote: "A sofa is furniture and a river is a place outdoors; neither is a bird, and a sofa and a river have nothing in common. (Earlier draft used sofa and spoon, two household objects.)",
   },
 
+  {
+    id: "wt-76", d: 3,
+    items: [{ text: "cheese" }, { text: "yogurt" }, { text: "helmet" }, { text: "pinecone" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both foods made from milk", points: 2 },
+      { text: "They are both foods you keep in the fridge", points: 1 },
+      { text: "They can both swim in the sea", points: 0 },
+    ],
+    explanation: "Cheese and yogurt are both foods made from milk.",
+    distractorNote: "A helmet protects your head and a pinecone falls from a tree; neither is a food, and a helmet and a pinecone share no category with each other.",
+  },
+  {
+    id: "wt-77", d: 3,
+    items: [{ text: "broccoli" }, { text: "spinach" }, { text: "sweater" }, { text: "puddle" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both vegetables", points: 2 },
+      { text: "They are both green foods", points: 1 },
+      { text: "They are both kinds of fish", points: 0 },
+    ],
+    explanation: "Broccoli and spinach are both vegetables.",
+    distractorNote: "A sweater is clothing and a puddle is water on the ground; neither is a food, and a sweater and a puddle share no category with each other.",
+  },
+  {
+    id: "wt-78", d: 3,
+    items: [{ text: "shark" }, { text: "salmon" }, { text: "crayon" }, { text: "mailbox" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both fish", points: 2 },
+      { text: "They both live in the water", points: 1 },
+      { text: "They both have fur and whiskers", points: 0 },
+    ],
+    explanation: "A shark and a salmon are both fish.",
+    distractorNote: "A crayon is for drawing and a mailbox holds letters; neither lives in water, and a crayon and a mailbox share no category with each other.",
+  },
+  {
+    id: "wt-79", d: 3,
+    items: [{ text: "table" }, { text: "sofa" }, { text: "tiger" }, { text: "raindrop" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both furniture", points: 2 },
+      { text: "They are both found inside a house", points: 1 },
+      { text: "They both lay eggs in a nest", points: 0 },
+    ],
+    explanation: "A table and a sofa are both furniture.",
+    distractorNote: "A tiger is a wild animal and a raindrop is water falling from the sky; neither is furniture, and a tiger and a raindrop share no category with each other.",
+  },
   // ---------------------------------------------------------------------
   // d4: categories, word only, age 7 to 8 (one step harder than d3)
   // ---------------------------------------------------------------------
@@ -366,6 +414,42 @@ export const WHICH_TWO_BANK: WhichTwoBankItem[] = [
     distractorNote: "A ladder and a peach have nothing to do with birds, and they do not relate to each other.",
   },
 
+  {
+    id: "wt-80", d: 4,
+    items: [{ text: "copper" }, { text: "iron" }, { text: "feather" }, { text: "sandwich" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both metals", points: 2 },
+      { text: "They can both be dug up from the ground", points: 1 },
+      { text: "They are both kinds of fruit", points: 0 },
+    ],
+    explanation: "Copper and iron are both metals.",
+    distractorNote: "A feather comes from a bird and a sandwich is a meal; neither is a metal, and a feather and a sandwich share no category with each other.",
+  },
+  {
+    id: "wt-81", d: 4,
+    items: [{ text: "hurricane" }, { text: "tornado" }, { text: "toothbrush" }, { text: "giraffe" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both kinds of storms", points: 2 },
+      { text: "They are both kinds of weather that can be dangerous", points: 1 },
+      { text: "They are both kinds of trees", points: 0 },
+    ],
+    explanation: "A hurricane and a tornado are both kinds of storms.",
+    distractorNote: "A toothbrush cleans teeth and a giraffe is an animal; neither is weather, and a toothbrush and a giraffe share no category with each other.",
+  },
+  {
+    id: "wt-82", d: 4,
+    items: [{ text: "circle" }, { text: "triangle" }, { text: "slipper" }, { text: "honey" }],
+    pair: [0, 1],
+    reasons: [
+      { text: "They are both shapes", points: 2 },
+      { text: "You can draw both of them with a pencil", points: 1 },
+      { text: "They are both animals that hop", points: 0 },
+    ],
+    explanation: "A circle and a triangle are both shapes.",
+    distractorNote: "A slipper is worn on a foot and honey is a food made by bees; neither is a shape, and a slipper and honey share no category with each other.",
+  },
   // ---------------------------------------------------------------------
   // d5: function (shared purpose, not shared type), age 9 to 10
   // ---------------------------------------------------------------------

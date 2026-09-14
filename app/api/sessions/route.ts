@@ -27,9 +27,11 @@ export async function POST(req: Request) {
   await kvSet(`session:${s.id}`, s);
   if (!existed) await kvLpush("index", s.id);
 
-  // Per-session Telegram pings are OFF by default since 11 Sep 2026 (nag review):
-  // the health hub already confirms the same event, and the scores live on the
-  // parent page. Set PART_SUMMARY_PINGS=1 in Vercel to turn them back on.
+  // Per-part Telegram pings: OFF by default since the 11 Sep 2026 nag review,
+  // switched back ON in Vercel (PART_SUMMARY_PINGS=1) on 14 Sep 2026. The 11 Sep
+  // reason ("the health hub already confirms the same event") was wrong: the
+  // health hub's puzzle loop marks the day done SILENTLY when it sees her
+  // session. Unset the var to turn the pings off again.
   const pings = process.env.PART_SUMMARY_PINGS === "1";
   let notified = false;
   if (pings && s.complete && (await kvSetNx(`notified:${s.id}`, new Date().toISOString()))) {

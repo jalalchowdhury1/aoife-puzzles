@@ -17,7 +17,7 @@ import { FILL_THE_GAP_BANK } from "../banks/fillTheGap";
 import { WHAT_WOULD_YOU_DO_BANK } from "../banks/whatWouldYouDo";
 import { INFORMATION_BANK } from "../banks/information";
 import { WHICH_TWO_BANK } from "../banks/whichTwo";
-import { bankAsOf, REVISION_2026_08_30, REVISION_2026_09_12B } from "../banks/legacy";
+import { bankAsOf, REVISION_2026_08_30, REVISION_2026_09_14, REVISION_2026_09_12B } from "../banks/legacy";
 import { FILL_THE_GAP_BANK as FILL_THE_GAP_2026_09_12B } from "../banks/legacy/2026-09-12b/fillTheGap";
 import { WHICH_TWO_BANK as WHICH_TWO_LEGACY } from "../banks/legacy/2026-08-30/whichTwo";
 import { whichTwo } from "../whichTwo";
@@ -291,7 +291,10 @@ describe("whichTwo: register cues", () => {
 describe("legacy replay (decision #29)", () => {
   it("bankAsOf returns the frozen bank for a session before the cutover and the current bank otherwise", () => {
     expect(bankAsOf("whichTwo", WHICH_TWO_BANK, "2026-08-29T12:00:00.000Z")).toBe(WHICH_TWO_LEGACY);
-    expect(bankAsOf("whichTwo", WHICH_TWO_BANK, REVISION_2026_08_30)).toBe(WHICH_TWO_BANK);
+    // A later whichTwo revision exists (2026-09-14 fresh questions), so "current
+    // bank" is only guaranteed at or after the NEWEST cutover.
+    expect(bankAsOf("whichTwo", WHICH_TWO_BANK, REVISION_2026_08_30)).not.toBe(WHICH_TWO_BANK);
+    expect(bankAsOf("whichTwo", WHICH_TWO_BANK, REVISION_2026_09_14)).toBe(WHICH_TWO_BANK);
     expect(bankAsOf("whichTwo", WHICH_TWO_BANK)).toBe(WHICH_TWO_BANK);
   });
 

@@ -33,10 +33,17 @@ export interface WhichTwoResponse { pair: number[]; reason: number }
  * to this genre's worktree, and this genre's bank item shape does not fit
  * makeChoiceGenre's ChoiceBankItem contract anyway.
  */
-function pickWidening(bank: readonly WhichTwoBankItem[], d: Difficulty, exclude: Set<string>, rng: Rng): WhichTwoBankItem {
+function pickWidening(bank: readonly WhichTwoBankItem[], d: Difficulty, exclude: Set<string>, rng: Rng, avoid: readonly string[] = []): WhichTwoBankItem {
+  // `avoid` is SOFT, same rule as bankGenre.ts (2026-09-14): an unserved item
+  // wins; if the whole tier was served, the least recently served one is reused
+  // without consuming rng. Empty `avoid` = the original draw exactly.
   for (let widen = 0; widen <= 9; widen++) {
     const candidates = bank.filter(b => Math.abs(b.d - d) === widen && !exclude.has(b.id));
-    if (candidates.length > 0) return rng.pick(candidates);
+    if (candidates.length === 0) continue;
+    if (avoid.length === 0) return rng.pick(candidates);
+    const fresh = candidates.filter(b => !avoid.includes(b.id));
+    if (fresh.length > 0) return rng.pick(fresh);
+    return candidates.reduce((best, b) => (avoid.indexOf(b.id) < avoid.indexOf(best.id) ? b : best));
   }
   const fallback = bank.filter(b => !exclude.has(b.id));
   if (fallback.length > 0) return rng.pick(fallback);
@@ -79,7 +86,7 @@ export const whichTwo: Genre<WhichTwoItem, WhichTwoResponse> = {
     // A history replay (opts.asOf = the session's date) draws from the bank
     // that was live then (banks/legacy), so it lands on the same entry, the
     // same on-screen order, and the words she actually saw (decision #29).
-    const picked = pickWidening(bankAsOf("whichTwo", WHICH_TWO_BANK, opts?.asOf), d, exclude, rng);
+    const picked = pickWidening(bankAsOf("whichTwo", WHICH_TWO_BANK, opts?.asOf), d, exclude, rng, opts?.avoidBankIds ?? []);
 
     // Shuffle the four options' on-screen order (and recompute `pair`
     // against the new positions) so the pair is never predictably at the

@@ -206,7 +206,9 @@ export function makeArithmeticGenre(meta: ArithmeticGenreMeta, bank: readonly Ar
     generate(seed: number, d: Difficulty, opts?: GenerateOpts): ArithmeticItem {
       const rng = makeRng(seed);
       const exclude = new Set(opts?.excludeBankIds ?? []);
-      const tmpl = pickWidening(bank, d, exclude, rng);
+      // bankAsOf (2026-09-14): templates were added after she played, so a
+      // history replay must draw from the bank that was live then.
+      const tmpl = pickWidening(bankAsOf(meta.id, bank, opts?.asOf), d, exclude, rng, opts?.avoidBankIds ?? []);
       const { text, answer, explanation } = renderArithmetic(tmpl, rng);
       return { bankId: tmpl.id, d: tmpl.d, text, answer, explanation };
     },

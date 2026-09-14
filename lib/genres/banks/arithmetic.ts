@@ -747,4 +747,92 @@ export const ARITHMETIC_BANK: ArithmeticBankItem[] = [
     answer: v => Math.floor((v.a * 3) / 8) + v.b,
     explanation: "Half of {a} goes in, pouring away a quarter leaves three quarters of that which is three eighths of {a}, then {b} more.",
   },
+  // 2026-09-14 fresh-questions pass (owner: "we can't be repeating the same
+  // questions"). Drafted by deepseek-v4-flash, every template checked and
+  // fixed by Claude (6 of 12 drafts had broken answers). Answers are whole and
+  // non negative on every draw that satisfies `ok`.
+  {
+    id: "ar-101", d: 10,
+    template: "A farm has {a} chickens and ducks. One fifth of them are ducks. How many chickens are there?",
+    vars: { a: [10, 50] },
+    ok: v => v.a % 5 === 0,
+    answer: v => v.a - Math.floor(v.a / 5),
+  },
+  {
+    id: "ar-102", d: 10,
+    template: "A car travels {a} miles in {b} hours. At that speed, how many miles does it travel in {c} hours?",
+    vars: { a: [20, 80], b: [2, 5], c: [3, 7] },
+    ok: v => v.a % v.b === 0,
+    answer: v => Math.floor(v.a / v.b) * v.c,
+  },
+  {
+    id: "ar-103", d: 10,
+    template: "A crate has {a} apples. Two thirds of them are red and the rest are green. Then {b} green apples are eaten. How many green apples are left?",
+    vars: { a: [18, 45], b: [1, 5] },
+    ok: v => v.a % 3 === 0,
+    answer: v => Math.floor(v.a / 3) - v.b,
+  },
+  {
+    id: "ar-104", d: 11,
+    template: "Aoife has {a} crayons. She gives one third of them to a friend and then buys {b} more. How many crayons does she have now?",
+    vars: { a: [6, 30], b: [2, 10] },
+    ok: v => v.a % 3 === 0,
+    answer: v => Math.floor(v.a / 3) * 2 + v.b,
+  },
+  {
+    id: "ar-105", d: 11,
+    template: "A recipe needs {a} cups of flour and one fourth of that amount of sugar. How many cups of flour and sugar are needed altogether?",
+    vars: { a: [8, 32] },
+    ok: v => v.a % 4 === 0,
+    answer: v => v.a + Math.floor(v.a / 4),
+  },
+  {
+    id: "ar-106", d: 11,
+    template: "A store had {a} toys. It sold five sixths of them in the morning and none in the afternoon. How many toys are left?",
+    vars: { a: [12, 60] },
+    ok: v => v.a % 6 === 0,
+    answer: v => Math.floor(v.a / 6),
+  },
+  {
+    id: "ar-107", d: 12,
+    template: "A bag has {a} marbles. 20 percent of them are blue and 30 percent are green. How many marbles are neither blue nor green?",
+    vars: { a: [20, 80] },
+    ok: v => v.a % 10 === 0,
+    answer: v => v.a - Math.floor((v.a * 2) / 10) - Math.floor((v.a * 3) / 10),
+  },
+  {
+    id: "ar-108", d: 12,
+    template: "Aoife scores {a} points in her first game. In her second game she scores half as many points as that. How many points does she score in both games?",
+    vars: { a: [10, 40] },
+    ok: v => v.a % 2 === 0,
+    answer: v => v.a + Math.floor(v.a / 2),
+  },
+  {
+    id: "ar-109", d: 12,
+    template: "Pump A adds {a} liters of water every minute. Pump B adds one third as much every minute. How many liters do both pumps add together in {b} minutes?",
+    vars: { a: [6, 30], b: [2, 5] },
+    ok: v => v.a % 3 === 0,
+    answer: v => (v.a + Math.floor(v.a / 3)) * v.b,
+  },
+  {
+    id: "ar-110", d: 13,
+    template: "Aoife saves {a} dollars in week one, {b} dollars in week two and {c} dollars in week three. On average, how many dollars did she save each week?",
+    vars: { a: [5, 25], b: [5, 25], c: [5, 25] },
+    ok: v => (v.a + v.b + v.c) % 3 === 0,
+    answer: v => Math.floor((v.a + v.b + v.c) / 3),
+  },
+  {
+    id: "ar-111", d: 13,
+    template: "A machine fills {a} bottles every {b} minutes. How many bottles does it fill in {c} minutes?",
+    vars: { a: [4, 12], b: [2, 5], c: [10, 40] },
+    ok: v => v.c % v.b === 0,
+    answer: v => Math.floor(v.c / v.b) * v.a,
+  },
+  {
+    id: "ar-112", d: 13,
+    template: "A recipe for 3 cakes needs {a} cups of sugar. How many cups of sugar are needed for {b} cakes?",
+    vars: { a: [3, 15], b: [4, 10] },
+    ok: v => v.a % 3 === 0,
+    answer: v => Math.floor(v.a / 3) * v.b,
+  },
 ];

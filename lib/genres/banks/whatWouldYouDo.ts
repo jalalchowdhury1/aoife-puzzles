@@ -608,4 +608,74 @@ export const WHAT_WOULD_YOU_DO_BANK: ChoiceBankItem[] = [
     explanation: "You were sent to carry what the group decided, and your own view is honest once theirs has been heard.",
     reviewNote: "Zeros replace the group with yourself or hand the job back after accepting it, and both are what a nervous representative really does. The 1 delivers the group faithfully and hides that you think otherwise. The 2 delivers both, in the order the job requires. Checked: a zero is the longest option and also joins two ideas, group and view appear in several options.",
   },
+  // 2026-09-14 fresh-questions pass (owner: "we can't be repeating the same
+  // questions"). Flash's six drafts failed review (broken numbers, a key that
+  // made no sense, notes contradicting their own points), so Claude wrote
+  // these against the cue rules in fairness/cues.test.ts.
+  {
+    id: "wd-51", d: 8, prompt: "Your team is losing the relay game and one boy says it is his fault because he dropped the baton. What would you do?",
+    options: [
+      { text: "Tell him everyone drops it and try again", points: 2 },
+      { text: "Say nothing and get ready for the next race", points: 1 },
+      { text: "Agree that he did make you lose the race", points: 0 },
+      { text: "Ask to swap him off the team next time", points: 0 },
+    ],
+    explanation: "Everyone drops the baton sometimes, and cheering him on gets the whole team ready for the next try.",
+    reviewNote: "Zeros agree with the blame or push him out, which a child who is cross about losing might really say. The 1 avoids making it worse but leaves him feeling it was his fault. The 2 takes the blame off him and turns the team to the next race. Checked: key is shorter than the 1, no moral word, drops vs dropped is not a shared token, no dash.",
+  },
+  {
+    id: "wd-52", d: 8, prompt: "You made a card for a friend and she says she does not like the colors. What would you do?",
+    options: [
+      { text: "Ask what she likes best for next time", points: 2 },
+      { text: "Tell her you worked hard on it anyway", points: 1 },
+      { text: "Take the card back and throw it away", points: 0 },
+      { text: "Say her drawings are not great either", points: 0 },
+    ],
+    explanation: "Asking what she likes turns a hurt feeling into a better card next time, without a fight.",
+    reviewNote: "Zeros answer hurt with hurt, by binning the card or insulting her drawings. The 1 is true and understandable but only defends you and changes nothing. The 2 keeps the friendship and learns something useful. Checked: key ties the 1 for length, colors from the stem appears in no option, no moral word, no dash.",
+  },
+  {
+    id: "wd-53", d: 8, prompt: "You have been practicing a new song for weeks and you still trip over one part every time. What would you do?",
+    options: [
+      { text: "Play just that part slowly many times", points: 2 },
+      { text: "Keep playing the whole song from the start", points: 1 },
+      { text: "Skip that part whenever you play the song", points: 0 },
+      { text: "Decide the song is too hard for you", points: 0 },
+    ],
+    explanation: "Practicing only the tricky part, slowly, fixes it much faster than playing the whole song again and again.",
+    reviewNote: "Zeros dodge the problem or give up, both common after weeks of trying. The 1 is real practice but spends most of the time on the parts that are already fine. The 2 aims the practice at the one broken part. Checked: key is shorter than two other options, no stem word of 5+ letters in the key, no moral word, no dash.",
+  },
+  {
+    id: "wd-54", d: 9, prompt: "You are going away for a week and your class bean plant needs water every day. What would you do?",
+    options: [
+      { text: "Ask a classmate to water it while you are gone", points: 2 },
+      { text: "Give it lots of water right before you go", points: 1 },
+      { text: "Take the plant along with you on the long trip", points: 0 },
+      { text: "Ask the teacher to throw it out", points: 0 },
+    ],
+    explanation: "A classmate can give it water every day, which one big drink before you leave cannot do.",
+    reviewNote: "Zeros either drag the plant on a trip or give up on it, and a grown up word sits in a zero. The 1 is a real attempt but a plant that needs water every day will dry out. The 2 finds someone who is there each day. Checked: key ties a zero for length, water appears in the key and the 1, adult word only in a zero, no dash.",
+  },
+  {
+    id: "wd-55", d: 9, prompt: "Your group is painting a big poster for the fair, the paint will run out before it is done, and the shop is closed today. What would you do?",
+    options: [
+      { text: "Plan which parts matter most and paint those", points: 2 },
+      { text: "Ask a grown up if there is money for more paint", points: 1 },
+      { text: "Water down the paint so it lasts longer", points: 0 },
+      { text: "Stop now and leave the poster half done", points: 0 },
+    ],
+    explanation: "With no shop open today, painting the most important parts first means the poster still works.",
+    reviewNote: "Zeros ruin the paint or quit, both things a group in a hurry tries. The 1 is sensible for later but the shop is closed, so it does not help today. The 2 uses the paint that exists on what matters. Checked: key is shorter than the 1, paint appears in three options, adult word in the 1 not the key, no moral word, no dash.",
+  },
+  {
+    id: "wd-56", d: 9, prompt: "Your friends want to put on a puppet show for the little kids, but there are six of you and only three puppets. What would you do?",
+    options: [
+      { text: "Take turns so each of you gets a puppet part", points: 2 },
+      { text: "Let the three best puppet players do the show", points: 1 },
+      { text: "Cancel the show until everyone has a puppet", points: 0 },
+      { text: "Use the puppets yourself and let them watch", points: 0 },
+    ],
+    explanation: "Taking turns lets all six friends be in the show with the three puppets you have.",
+    reviewNote: "Zeros cancel the show or grab the puppets, both things that happen when there are not enough to go round. The 1 gets a good show on but leaves three friends out. The 2 includes everyone with what you have. Checked: key is shorter than the 1, puppet appears in all options, no moral word, no dash.",
+  },
 ];

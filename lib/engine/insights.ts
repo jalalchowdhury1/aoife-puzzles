@@ -44,6 +44,11 @@ export interface ItemDetail {
   // {pair, reason}). Carried so the parent dashboard can replay the whole
   // question via lib/engine/itemView.ts — see decision #25.
   response?: unknown;
+  // The soft avoid list play passed to generate (2026-09-12) — replay must
+  // pass the SAME list or pickWidening's fresh/avoid branch can diverge and
+  // land on a different bank entry, failing itemView's bankId guard even
+  // though nothing is actually wrong (decision #14 then hides the question).
+  avoidBankIds?: string[];
 }
 
 export interface SkillDetail {
@@ -147,6 +152,7 @@ function toItemDetail(session: SessionRecord, block: BlockRecord, item: ItemReco
     fast: item.fast === true && sanitizeMs(item.ms) !== null,
     teaching: item.teaching === true, bailed: item.bailed === true,
     excludedBlock, bankId: item.bankId, seed: item.seed, response: item.response,
+    avoidBankIds: item.avoidBankIds,
   };
 }
 

@@ -12,7 +12,7 @@ import { GENRE_LIST } from "../genres";
 function mkItem(p: {
   idx: number; d: number; correct: boolean; seed?: number; points?: number; max?: number;
   ms?: number; timedOut?: boolean; response?: unknown; bankId?: string; fast?: boolean;
-  teaching?: boolean; bailed?: boolean; stars?: number;
+  teaching?: boolean; bailed?: boolean; stars?: number; avoidBankIds?: string[];
 }): ItemRecord {
   return {
     idx: p.idx,
@@ -29,6 +29,7 @@ function mkItem(p: {
     teaching: p.teaching,
     bailed: p.bailed,
     stars: p.stars,
+    avoidBankIds: p.avoidBankIds,
   };
 }
 
@@ -339,5 +340,21 @@ describe("computeInsights", () => {
     expect(insights.timeline.map((t) => t.sessionId)).toEqual(["S4", "S1", "S2", "S3"]);
     const s1 = insights.timeline.find((t) => t.sessionId === "S1")!;
     expect(s1.blocks.find((b) => b.genre === "mosaic")!.excluded).toBe(true);
+  });
+
+  // Regression (2026-09-15): the parent dashboard replays a question via
+  // lib/engine/itemView.ts, which needs the SAME avoidBankIds play used or
+  // its bank-entry pick can diverge and the bankId guard fails — showing
+  // "can't be shown" for a perfectly fine answer. toItemDetail used to drop
+  // the field entirely, so every item recorded with a non-empty avoid list
+  // (any bank genre, from 2026-09-12 on) was unreplayable on the dashboard.
+  it("carries avoidBankIds through to the timeline's item detail", () => {
+    const withAvoid = mkBlock("whichTwo", "staircase", [
+      mkItem({ idx: 0, d: 4, correct: true, bankId: "wt-01", avoidBankIds: ["wt-02", "wt-03"] }),
+    ]);
+    const session = mkSession({ id: "S9", blocks: [withAvoid] });
+    const insightsWithAvoid = computeInsights([session]);
+    const item = insightsWithAvoid.timeline[0]!.blocks[0]!.items[0]!;
+    expect(item.avoidBankIds).toEqual(["wt-02", "wt-03"]);
   });
 });

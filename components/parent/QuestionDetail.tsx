@@ -47,6 +47,9 @@ export function QuestionDetail(
       // A block never repeats a bank entry, so replaying this item needs the
       // same exclusion list play used — every bankId before it in the block.
       priorBankIds,
+      // The soft cross-session avoid list play used (2026-09-12) — omitting
+      // it can steer pickWidening to a different bank entry than she saw.
+      avoidBankIds: item.avoidBankIds,
     }),
     // eslint-disable-next-line react-hooks/exhaustive-deps -- priorBankIds is a fresh array each render; `key` is its stable identity.
     [genre, item, key],
